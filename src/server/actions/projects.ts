@@ -545,52 +545,49 @@ export async function createProject(data: unknown) {
   try {
     const session = await requireCapability("projects:create");
 
-    const row = await db.transaction(async (tx) => {
-      const [inserted] = await tx
-        .insert(projects)
-        .values({
-          title: parsed.title,
-          type: parsed.type,
-          description: sanitizeDescription(parsed.description),
-          startDate: parsed.startDate ?? null,
-          endDate: parsed.endDate ?? null,
-          price: numberToNumeric(parsed.price),
-          status: parsed.status,
-          skpMode: parsed.skpMode,
-          skp: resolveSkp(parsed),
-          halfDaySkp: parsed.halfDaySkp ?? null,
-          eventId: parsed.eventId ?? null,
-          createdBy: session.user.id,
-          updatedAt: new Date(),
-        })
-        .returning({ id: projects.id, title: projects.title });
+    const [row] = await db
+      .insert(projects)
+      .values({
+        title: parsed.title,
+        type: parsed.type,
+        description: sanitizeDescription(parsed.description),
+        startDate: parsed.startDate ?? null,
+        endDate: parsed.endDate ?? null,
+        price: numberToNumeric(parsed.price),
+        status: parsed.status,
+        skpMode: parsed.skpMode,
+        skp: resolveSkp(parsed),
+        halfDaySkp: parsed.halfDaySkp ?? null,
+        eventId: parsed.eventId ?? null,
+        createdBy: session.user.id,
+        updatedAt: new Date(),
+      })
+      .returning({ id: projects.id, title: projects.title });
 
-      if (!inserted) throw new Error("INSERT_FAILED");
+    if (!row) throw new Error("INSERT_FAILED");
 
-      await tx.insert(projectMembers).values({
-        projectId: inserted.id,
-        userId: session.user.id,
-        role: "owner",
-        addedBy: session.user.id,
-      });
-
-      if (parsed.labelIds?.length) {
-        await tx.insert(projectToLabels).values(
-          parsed.labelIds.map((labelId) => ({ projectId: inserted.id, labelId })),
-        );
-      }
-
-      return inserted;
+    await db.insert(projectMembers).values({
+      projectId: row.id,
+      userId: session.user.id,
+      role: "owner",
+      addedBy: session.user.id,
     });
+
+    if (parsed.labelIds?.length) {
+      await db.insert(projectToLabels).values(
+        parsed.labelIds.map((labelId) => ({ projectId: row.id, labelId })),
+      );
+    }
 
     await logProjectActivity(row.id, session.user.id, "created", `Project "${row.title}" dibuat.`);
     revalidatePath("/projects");
     return { ok: true as const, data: row };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error("[projects] createProject failed", err);
     if (message === "Forbidden") return { ok: false as const, error: "Anda tidak memiliki izin membuat project." };
     if (message === "Unauthorized") return { ok: false as const, error: "Sesi tidak ditemukan. Silakan login ulang." };
-    return { ok: false as const, error: "Gagal membuat project." };
+    return { ok: false as const, error: `Gagal membuat project: ${message}` };
   }
 }
 
