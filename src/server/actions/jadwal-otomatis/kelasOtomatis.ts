@@ -29,6 +29,9 @@ export type KelasOtomatisRow = {
   programCode: string;
   classTypeName: string;
   mode: string;
+  angkatan: number | null;
+  certificateClassCode: string | null;
+  source: string;
   startDate: string;
   endDate: string | null;
   lokasi: string | null;
@@ -66,6 +69,9 @@ export async function listKelasOtomatis(): Promise<KelasOtomatisRow[]> {
       programCode: programs.code,
       classTypeName: classTypes.name,
       mode: kelasPelatihan.mode,
+      angkatan: kelasPelatihan.angkatan,
+      certificateClassCode: kelasPelatihan.certificateClassCode,
+      source: kelasPelatihan.source,
       startDate: kelasPelatihan.startDate,
       endDate: kelasPelatihan.endDate,
       lokasi: kelasPelatihan.lokasi,
@@ -114,6 +120,9 @@ export async function createKelasOtomatis(data: KelasOtomatisCreateInput) {
       programId: parsed.programId,
       classTypeId: parsed.classTypeId,
       mode: parsed.mode ?? "offline",
+      angkatan: parsed.angkatan ?? null,
+      certificateClassCode: parsed.certificateClassCode || null,
+      source: "system",
       startDate: parsed.startDate,
       lokasi: parsed.lokasi || null,
       status: "active",
@@ -163,6 +172,9 @@ export async function getKelasOtomatisDetail(id: string) {
       classTypeId: kelasPelatihan.classTypeId,
       classTypeName: classTypes.name,
       mode: kelasPelatihan.mode,
+      angkatan: kelasPelatihan.angkatan,
+      certificateClassCode: kelasPelatihan.certificateClassCode,
+      source: kelasPelatihan.source,
       startDate: kelasPelatihan.startDate,
       endDate: kelasPelatihan.endDate,
       lokasi: kelasPelatihan.lokasi,

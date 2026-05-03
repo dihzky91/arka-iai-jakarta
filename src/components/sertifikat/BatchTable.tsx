@@ -228,7 +228,12 @@ export function BatchTable({ initialBatches, programs, classTypes }: BatchTableP
                     <TableCell className="whitespace-nowrap text-sm">
                       {formatTanggal(batch.createdAt)}
                     </TableCell>
-                    <TableCell className="font-medium">{batch.programName}</TableCell>
+                    <TableCell>
+                      <p className="font-medium">{batch.programName}</p>
+                      {batch.kelasName ? (
+                        <p className="text-xs text-muted-foreground">{batch.kelasName}</p>
+                      ) : null}
+                    </TableCell>
                     <TableCell>{batch.angkatan}</TableCell>
                     <TableCell>
                       {batch.classTypeName}{" "}

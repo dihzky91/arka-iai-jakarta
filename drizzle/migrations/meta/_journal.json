@@ -232,6 +232,20 @@
       "when": 1777652666657,
       "tag": "0032_bored_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1777745063404,
+      "tag": "0039_certificate_batch_kelas_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1777822309491,
+      "tag": "0040_milky_deathbird",
+      "breakpoints": true
     }
   ]
 }

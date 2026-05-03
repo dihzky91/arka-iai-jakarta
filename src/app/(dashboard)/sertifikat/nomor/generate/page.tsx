@@ -4,9 +4,10 @@ import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { GenerateBatchForm } from "@/components/sertifikat/GenerateBatchForm";
 import { Button } from "@/components/ui/button";
-import { listCertificatePrograms } from "@/server/actions/sertifikat/nomor/programs";
+import { listCertificateBatchClasses } from "@/server/actions/sertifikat/nomor/batches";
+import { listClassTypes } from "@/server/actions/jadwal-otomatis/classTypes";
+import { listPrograms } from "@/server/actions/jadwal-otomatis/programs";
 import {
-  listCertificateClassTypes,
   getSerialConfig,
 } from "@/server/actions/sertifikat/nomor/classTypes";
 
@@ -17,9 +18,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [programs, classTypes, serialInfo] = await Promise.all([
-    listCertificatePrograms(),
-    listCertificateClassTypes(),
+  const [classes, programs, classTypes, serialInfo] = await Promise.all([
+    listCertificateBatchClasses(),
+    listPrograms(),
+    listClassTypes(),
     getSerialConfig(),
   ]);
 
@@ -38,6 +40,7 @@ export default async function Page() {
       </div>
 
       <GenerateBatchForm
+        classes={classes}
         programs={programs}
         classTypes={classTypes}
         lastSerial={serialInfo.lastSerialNumber}

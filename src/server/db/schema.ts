@@ -8,11 +8,13 @@ import {
   numeric,
   serial,
   pgEnum,
+  uuid,
   varchar,
   jsonb,
   uniqueIndex,
   index,
   primaryKey,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
@@ -86,6 +88,14 @@ export const statusEventEnum = pgEnum("status_event", [
   "dibatalkan",
   "ditunda",
   "arsip",
+]);
+
+export const projectTypeEnum = pgEnum("project_type", [
+  "Workshop",
+  "Seminar",
+  "Lokakarya",
+  "Pelatihan",
+  "Lainnya",
 ]);
 
 export const statusPesertaEnum = pgEnum("status_peserta", ["aktif", "dicabut"]);
@@ -542,6 +552,9 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "surat_keluar_revisi",
   "surat_keluar_selesai",
   "surat_masuk_baru",
+  "project_invitation",
+  "mention",
+  "project_update",
   "system",
 ]);
 
@@ -717,6 +730,170 @@ export const eventSignatories = pgTable(
   },
   (t) => ({
     pk: primaryKey({ columns: [t.eventId, t.signatoryId] }),
+  }),
+);
+
+// Project collaboration workspace: planning, discussion, files, and members.
+export const projects = pgTable(
+  "projects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    type: projectTypeEnum("type").notNull(),
+    description: text("description"),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    price: numeric("price", { precision: 15, scale: 2 }),
+    status: varchar("status", { length: 50 }).notNull().default("not_started"),
+    skpMode: varchar("skp_mode", { length: 20 }).notNull().default("auto"),
+    skp: numeric("skp", { precision: 5, scale: 2 }),
+    halfDaySkp: varchar("half_day_skp", { length: 5 }),
+    eventId: integer("event_id").references(() => events.id, {
+      onDelete: "set null",
+    }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    statusIdx: index("projects_status_idx").on(t.status),
+    createdByIdx: index("projects_created_by_idx").on(t.createdBy),
+    eventIdx: index("projects_event_idx").on(t.eventId),
+  }),
+);
+
+export const projectLabels = pgTable("project_labels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  color: varchar("color", { length: 7 }).notNull().default("#6B7280"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const projectToLabels = pgTable(
+  "project_to_labels",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    labelId: uuid("label_id")
+      .notNull()
+      .references(() => projectLabels.id, { onDelete: "cascade" }),
+  },
+  (t) => ({
+    pk: primaryKey({
+      columns: [t.projectId, t.labelId],
+      name: "project_to_labels_pk",
+    }),
+  }),
+);
+
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 50 }).notNull().default("member"),
+    addedBy: text("added_by")
+      .notNull()
+      .references(() => users.id),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    unq: uniqueIndex("project_member_unique").on(t.projectId, t.userId),
+    projectIdx: index("project_members_project_idx").on(t.projectId),
+    userIdx: index("project_members_user_idx").on(t.userId),
+  }),
+);
+
+export const projectComments = pgTable(
+  "project_comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    parentId: uuid("parent_id").references(
+      (): AnyPgColumn => projectComments.id,
+      { onDelete: "cascade" },
+    ),
+    content: text("content").notNull(),
+    isInternal: boolean("is_internal").default(false),
+    isEdited: boolean("is_edited").default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_comments_project_idx").on(t.projectId),
+    parentIdx: index("project_comments_parent_idx").on(t.parentId),
+  }),
+);
+
+export const projectCommentMentions = pgTable(
+  "project_comment_mentions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => projectComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    isRead: boolean("is_read").default(false),
+  },
+  (t) => ({
+    unq: uniqueIndex("mention_unique").on(t.commentId, t.userId),
+  }),
+);
+
+export const projectFiles = pgTable(
+  "project_files",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    fileName: varchar("file_name", { length: 500 }).notNull(),
+    fileUrl: varchar("file_url", { length: 1000 }).notNull(),
+    storageKey: varchar("storage_key", { length: 1000 }),
+    fileSize: integer("file_size").notNull(),
+    mimeType: varchar("mime_type", { length: 255 }).notNull(),
+    uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_files_project_idx").on(t.projectId),
+  }),
+);
+
+export const projectActivityLog = pgTable(
+  "project_activity_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    action: varchar("action", { length: 100 }).notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_activity_project_idx").on(t.projectId),
+    createdAtIdx: index("project_activity_created_at_idx").on(t.createdAt),
   }),
 );
 
@@ -1023,6 +1200,18 @@ export type EventCertificateCounter =
 export type NewEventCertificateCounter =
   typeof eventCertificateCounters.$inferInsert;
 export type Signatory = typeof signatories.$inferSelect;
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
+export type ProjectLabel = typeof projectLabels.$inferSelect;
+export type NewProjectLabel = typeof projectLabels.$inferInsert;
+export type ProjectMember = typeof projectMembers.$inferSelect;
+export type NewProjectMember = typeof projectMembers.$inferInsert;
+export type ProjectComment = typeof projectComments.$inferSelect;
+export type NewProjectComment = typeof projectComments.$inferInsert;
+export type ProjectFile = typeof projectFiles.$inferSelect;
+export type NewProjectFile = typeof projectFiles.$inferInsert;
+export type ProjectActivityLog = typeof projectActivityLog.$inferSelect;
+export type NewProjectActivityLog = typeof projectActivityLog.$inferInsert;
 export type NewSignatory = typeof signatories.$inferInsert;
 export type EventSignatory = typeof eventSignatories.$inferSelect;
 export type NewEventSignatory = typeof eventSignatories.$inferInsert;
@@ -1101,6 +1290,7 @@ export const certificateBatches = pgTable(
     classTypeId: text("class_type_id")
       .notNull()
       .references(() => certificateClassTypes.id),
+    kelasId: text("kelas_id").references(() => kelasPelatihan.id),
     angkatan: integer("angkatan").notNull(), // contoh: 223
     quantityRequested: integer("quantity_requested").notNull(),
     firstCertificateNumber: varchar("first_certificate_number", {
@@ -1255,6 +1445,10 @@ export const kelasPelatihan = pgTable("kelas_pelatihan", {
     .notNull()
     .references(() => classTypes.id),
   mode: varchar("mode", { length: 10 }).notNull().default("offline"), // offline | online
+  angkatan: integer("angkatan"),
+  certificateClassCode: varchar("certificate_class_code", { length: 2 }),
+  source: varchar("source", { length: 20 }).default("system").notNull(),
+  certificateNotes: text("certificate_notes"),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   lokasi: varchar("lokasi", { length: 300 }),

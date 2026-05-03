@@ -370,6 +370,29 @@ export async function seedMissingSystemRoles() {
     if (role) await replaceCapabilities(role.id, capabilities);
   }
 
+  const systemRoles = await db
+    .select({ id: roles.id, kode: roles.kode })
+    .from(roles)
+    .where(inArray(roles.kode, ["staff", "pejabat", "viewer"]));
+
+  for (const role of systemRoles) {
+    const capabilities =
+      DEFAULT_ROLE_CAPABILITIES[
+        role.kode as keyof typeof DEFAULT_ROLE_CAPABILITIES
+      ];
+    if (!capabilities) continue;
+
+    await db
+      .insert(roleCapabilities)
+      .values(
+        capabilities.map((capability) => ({
+          roleId: role.id,
+          capability,
+        })),
+      )
+      .onConflictDoNothing();
+  }
+
   await db.execute(sql`
     UPDATE users
     SET role_id = roles.id

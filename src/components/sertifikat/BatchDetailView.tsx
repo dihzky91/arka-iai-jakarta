@@ -142,6 +142,7 @@ export function BatchDetailView({ batch, role }: BatchDetailViewProps) {
               <p className="mt-1 text-sm text-muted-foreground">
                 {batchData.classTypeName}{" "}
                 <span className="font-mono">({batchData.classTypeCode})</span>
+                {batchData.kelasName ? ` - ${batchData.kelasName}` : ""}
               </p>
             </div>
             <StatusBadge status={batchData.status} />
@@ -158,6 +159,9 @@ export function BatchDetailView({ batch, role }: BatchDetailViewProps) {
           <div className="grid gap-3 sm:grid-cols-2">
             <InfoCard label="Dibuat Oleh" value={batchData.createdByName ?? "—"} />
             <InfoCard label="Tanggal Dibuat" value={formatTanggal(batchData.createdAt)} />
+            {batchData.kelasMode ? (
+              <InfoCard label="Metode Kelas" value={batchData.kelasMode} />
+            ) : null}
           </div>
           {batchData.notes && (
             <div className="rounded-lg border border-border bg-muted/25 px-4 py-3">

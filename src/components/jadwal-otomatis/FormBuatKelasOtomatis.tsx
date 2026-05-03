@@ -38,6 +38,8 @@ const defaultValues: KelasOtomatisCreateInput = {
   programId: "",
   classTypeId: "",
   mode: "offline",
+  angkatan: undefined,
+  certificateClassCode: "",
   startDate: "",
   lokasi: "",
   excludedDates: [],
@@ -200,6 +202,61 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="angkatan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Angkatan Sertifikat</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={100}
+                        max={999}
+                        placeholder="mis. 223"
+                        value={field.value ?? ""}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value ? Number(event.target.value) : undefined,
+                          )
+                        }
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    </FormControl>
+                    <FormDescription>Dipakai untuk format nomor sertifikat.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="certificateClassCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kode Kelas Sertifikat</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kode" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="01">01 - Kelas pagi</SelectItem>
+                        <SelectItem value="02">02 - Kelas siang</SelectItem>
+                        <SelectItem value="03">03 - Kelas sore / ekstra</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Online/offline tidak mengubah kode nomor.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

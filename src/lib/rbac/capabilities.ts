@@ -63,6 +63,13 @@ export const CAPABILITIES = [
   "keuangan:process",
   "keuangan:pay",
   "keuangan:export",
+  "projects:view",
+  "projects:create",
+  "projects:edit",
+  "projects:delete",
+  "projects:comment",
+  "projects:upload",
+  "projects:manage_members",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -145,6 +152,18 @@ export const CAPABILITY_GROUPS: Array<{
       "jadwal_ujian:manage",
       "jadwal_ujian:configure",
       "jadwal_ujian:export",
+    ],
+  },
+  {
+    label: "Projects",
+    capabilities: [
+      "projects:view",
+      "projects:create",
+      "projects:edit",
+      "projects:delete",
+      "projects:comment",
+      "projects:upload",
+      "projects:manage_members",
     ],
   },
   {
@@ -232,6 +251,13 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "keuangan:process": "Proses pembayaran honorarium",
   "keuangan:pay": "Konfirmasi & lock pembayaran",
   "keuangan:export": "Export laporan keuangan",
+  "projects:view": "Lihat project",
+  "projects:create": "Buat project",
+  "projects:edit": "Ubah project",
+  "projects:delete": "Hapus project",
+  "projects:comment": "Komentar project",
+  "projects:upload": "Upload file project",
+  "projects:manage_members": "Kelola anggota project",
 };
 
 export const DEFAULT_ROLE_CAPABILITIES: Record<
@@ -266,6 +292,13 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "search:view",
     "profile:view",
     "profile:edit",
+    "projects:view",
+    "projects:create",
+    "projects:edit",
+    "projects:delete",
+    "projects:comment",
+    "projects:upload",
+    "projects:manage_members",
   ],
   pejabat: [
     "surat_masuk:view",
@@ -304,6 +337,9 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "search:view",
     "profile:view",
     "profile:edit",
+    "projects:view",
+    "projects:comment",
+    "projects:upload",
   ],
   viewer: [
     "surat_masuk:view",
@@ -322,6 +358,7 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "search:view",
     "profile:view",
     "profile:edit",
+    "projects:view",
   ],
 };
 

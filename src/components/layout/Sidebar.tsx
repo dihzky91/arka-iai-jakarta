@@ -19,7 +19,8 @@ import {
 } from "@/lib/branding";
 import type { Capability } from "@/lib/rbac/capabilities";
 
-const SIDEBAR_COLLAPSED_SECTIONS_KEY = "iai-sidebar-collapsed-sections";
+const SIDEBAR_OPEN_SECTION_KEY = "iai-sidebar-open-section";
+const EMPTY_CAPABILITIES: Capability[] = [];
 
 interface SidebarProps {
   unreadDisposisiCount?: number;
@@ -38,7 +39,7 @@ export function Sidebar({
   unreadAnnouncementCount = 0,
   systemIdentity,
   userRole,
-  userCapabilities = [],
+  userCapabilities,
   isSuperAdmin = false,
   mobileOpen = false,
   onMobileOpenChange,
@@ -52,22 +53,30 @@ export function Sidebar({
     APP_BRAND_NAME;
   const logoUrl = systemIdentity?.logoUrl ?? "/iai-logo.png";
   const activeItem = getNavigationItem(pathname);
-  const capabilitySet = new Set(userCapabilities);
+  const userCapabilityList = userCapabilities ?? EMPTY_CAPABILITIES;
+  const capabilitySet = useMemo(
+    () => new Set(userCapabilityList),
+    [userCapabilityList],
+  );
 
   // Filter section + item berdasarkan role
-  const visibleSections = navigationSections
-    .map((section) => ({
-      ...section,
-      items: section.items.filter(
-        (item) =>
-          isSuperAdmin ||
-          (item.requiredCapability
-            ? capabilitySet.has(item.requiredCapability)
-            : !item.allowedRoles ||
-              (userRole && item.allowedRoles.includes(userRole))),
-      ),
-    }))
-    .filter((section) => section.items.length > 0);
+  const visibleSections = useMemo(
+    () =>
+      navigationSections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter(
+            (item) =>
+              isSuperAdmin ||
+              (item.requiredCapability
+                ? capabilitySet.has(item.requiredCapability)
+                : !item.allowedRoles ||
+                  (userRole && item.allowedRoles.includes(userRole))),
+          ),
+        }))
+        .filter((section) => section.items.length > 0),
+    [capabilitySet, isSuperAdmin, userRole],
+  );
 
   return (
     <>
@@ -140,65 +149,77 @@ function SidebarContent({
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
-  const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
-  const [hasLoadedCollapsedState, setHasLoadedCollapsedState] = useState(false);
+  const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
+  const [hasLoadedOpenState, setHasLoadedOpenState] = useState(false);
 
-  const activeSectionTitle = visibleSections.find((section) =>
-    section.items.some(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-    ),
-  )?.title;
+  const activeNavigationMatch = useMemo(() => {
+    return visibleSections
+      .map((section) => {
+        const matchingItem = section.items
+          .filter(
+            (item) =>
+              pathname === item.href || pathname.startsWith(`${item.href}/`),
+          )
+          .sort((a, b) => b.href.length - a.href.length)[0];
 
-  const collapsedSectionSet = useMemo(
-    () => new Set(collapsedSections),
-    [collapsedSections],
-  );
+        return matchingItem
+          ? {
+              sectionTitle: section.title,
+              href: matchingItem.href,
+              hrefLength: matchingItem.href.length,
+            }
+          : null;
+      })
+      .filter(
+        (
+          match,
+        ): match is {
+          sectionTitle: string;
+          href: string;
+          hrefLength: number;
+        } => match !== null,
+      )
+      .sort((a, b) => b.hrefLength - a.hrefLength)[0];
+  }, [pathname, visibleSections]);
+  const activeSectionTitle = activeNavigationMatch?.sectionTitle;
+  const activeItemHref = activeNavigationMatch?.href;
 
   useEffect(() => {
     try {
-      const storedValue = window.localStorage.getItem(
-        SIDEBAR_COLLAPSED_SECTIONS_KEY,
-      );
-      if (storedValue) {
-        const parsed = JSON.parse(storedValue);
-        if (Array.isArray(parsed)) {
-          setCollapsedSections(
-            parsed.filter(
-              (value): value is string => typeof value === "string",
-            ),
-          );
-        }
+      const storedValue = window.localStorage.getItem(SIDEBAR_OPEN_SECTION_KEY);
+      if (
+        storedValue &&
+        visibleSections.some((section) => section.title === storedValue)
+      ) {
+        setOpenSectionTitle(storedValue);
       }
     } catch {
-      setCollapsedSections([]);
+      setOpenSectionTitle(null);
     } finally {
-      setHasLoadedCollapsedState(true);
+      setHasLoadedOpenState(true);
     }
-  }, []);
+  }, [visibleSections]);
 
   useEffect(() => {
-    if (!hasLoadedCollapsedState) return;
-    window.localStorage.setItem(
-      SIDEBAR_COLLAPSED_SECTIONS_KEY,
-      JSON.stringify(collapsedSections),
-    );
-  }, [collapsedSections, hasLoadedCollapsedState]);
+    if (!hasLoadedOpenState) return;
+
+    if (openSectionTitle) {
+      window.localStorage.setItem(SIDEBAR_OPEN_SECTION_KEY, openSectionTitle);
+    } else {
+      window.localStorage.removeItem(SIDEBAR_OPEN_SECTION_KEY);
+    }
+  }, [openSectionTitle, hasLoadedOpenState]);
 
   useEffect(() => {
-    if (!hasLoadedCollapsedState || !activeSectionTitle) return;
-    setCollapsedSections((current) =>
-      current.includes(activeSectionTitle)
-        ? current.filter((sectionTitle) => sectionTitle !== activeSectionTitle)
-        : current,
-    );
-  }, [activeSectionTitle, hasLoadedCollapsedState]);
+    if (!hasLoadedOpenState || !activeSectionTitle) return;
+    setOpenSectionTitle(activeSectionTitle);
+  }, [activeSectionTitle, hasLoadedOpenState]);
 
   function toggleSection(title: string) {
-    setCollapsedSections((current) =>
-      current.includes(title)
-        ? current.filter((sectionTitle) => sectionTitle !== title)
-        : [...current, title],
-    );
+    setOpenSectionTitle((current) => {
+      if (current !== title) return title;
+      return title === activeSectionTitle ? title : null;
+    });
   }
 
   return (
@@ -229,7 +250,8 @@ function SidebarContent({
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
         <div className="space-y-5">
           {visibleSections.map((section) => {
-            const isCollapsed = collapsedSectionSet.has(section.title);
+            const isCollapsed =
+              (openSectionTitle ?? activeSectionTitle) !== section.title;
 
             return (
               <section key={section.title} className="min-w-0">
@@ -253,9 +275,7 @@ function SidebarContent({
                 {isCollapsed ? null : (
                   <ul className="mt-2 space-y-1">
                     {section.items.map((item) => {
-                      const isActive =
-                        pathname === item.href ||
-                        pathname.startsWith(`${item.href}/`);
+                      const isActive = activeItemHref === item.href;
 
                       if (!item.active) {
                         return (

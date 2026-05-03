@@ -11,6 +11,9 @@ import {
   certificateItems,
   certificatePrograms,
   certificateSerialConfig,
+  classTypes,
+  kelasPelatihan,
+  programs,
   users,
 } from "@/server/db/schema";
 import { requirePermission, requireSession } from "../../auth";
@@ -25,11 +28,19 @@ const batchFilterSchema = z.object({
 });
 
 const generateSchema = z.object({
-  programId:     z.string().min(1, "Program wajib dipilih."),
-  classTypeId:   z.string().min(1, "Jenis kelas wajib dipilih."),
-  classTypeCode: z.string().regex(/^\d{2}$/, "Kode jenis kelas tidak valid."),
-  angkatan:      z.number().int().min(100, "Angkatan minimal 100.").max(999, "Angkatan maksimal 999."),
-  quantity:      z.number().int().min(1, "Jumlah minimal 1.").max(1000, "Jumlah maksimal 1000."),
+  sourceMode: z.enum(["existing", "manual"]).default("existing"),
+  kelasId: z.string().optional(),
+  overrideAngkatan: z.number().int().min(100).max(999).optional(),
+  overrideCertificateClassCode: z.enum(["01", "02", "03"]).optional(),
+  manualNamaKelas: z.string().trim().min(2).max(200).optional(),
+  manualProgramId: z.string().optional(),
+  manualClassTypeId: z.string().optional(),
+  manualMode: z.enum(["offline", "online"]).optional(),
+  manualStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  manualAngkatan: z.number().int().min(100).max(999).optional(),
+  manualCertificateClassCode: z.enum(["01", "02", "03"]).optional(),
+  quantity: z.number().int().min(1, "Jumlah minimal 1.").max(1000, "Jumlah maksimal 1000."),
+  notes: z.string().trim().max(1000).optional(),
 });
 
 const idSchema = z.string().min(1, "ID tidak valid.");
@@ -45,6 +56,9 @@ const updateQuantitySchema = z.object({
 
 export type BatchRow = {
   id: string;
+  kelasId: string | null;
+  kelasName: string | null;
+  kelasMode: string | null;
   programId: string;
   programName: string;
   classTypeId: string;
@@ -96,6 +110,22 @@ export type CsvExportRow = {
   Status: string;
 };
 
+export type CertificateBatchClassOption = {
+  id: string;
+  namaKelas: string;
+  programId: string;
+  programName: string;
+  programCode: string;
+  classTypeId: string;
+  classTypeName: string;
+  mode: string;
+  angkatan: number | null;
+  certificateClassCode: string | null;
+  source: string;
+  startDate: string;
+  status: string;
+};
+
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function getLastSerial(): Promise<number> {
@@ -118,7 +148,104 @@ async function setLastSerial(value: number): Promise<void> {
     });
 }
 
+function certificateClassLabel(code: string) {
+  if (code === "01") return "Kelas Pagi";
+  if (code === "02") return "Kelas Siang";
+  if (code === "03") return "Kelas Sore / Ekstra";
+  return `Kelas ${code}`;
+}
+
+async function getOrCreateCertificateProgram(input: { name: string; code: string | null }) {
+  const [existing] = await db
+    .select()
+    .from(certificatePrograms)
+    .where(eq(certificatePrograms.name, input.name))
+    .limit(1);
+
+  if (existing) return existing;
+
+  const [created] = await db
+    .insert(certificatePrograms)
+    .values({
+      name: input.name,
+      code: input.code,
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing()
+    .returning();
+
+  if (created) return created;
+
+  const [row] = await db
+    .select()
+    .from(certificatePrograms)
+    .where(eq(certificatePrograms.name, input.name))
+    .limit(1);
+
+  if (!row) throw new Error("Gagal menyiapkan program sertifikat.");
+  return row;
+}
+
+async function getOrCreateCertificateClassType(code: string) {
+  const [existing] = await db
+    .select()
+    .from(certificateClassTypes)
+    .where(eq(certificateClassTypes.code, code))
+    .limit(1);
+
+  if (existing) return existing;
+
+  const [created] = await db
+    .insert(certificateClassTypes)
+    .values({
+      name: certificateClassLabel(code),
+      code,
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing()
+    .returning();
+
+  if (created) return created;
+
+  const [row] = await db
+    .select()
+    .from(certificateClassTypes)
+    .where(eq(certificateClassTypes.code, code))
+    .limit(1);
+
+  if (!row) throw new Error("Gagal menyiapkan jenis kelas sertifikat.");
+  return row;
+}
+
 // â”€â”€â”€ Actions: List & Get â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+export async function listCertificateBatchClasses(): Promise<CertificateBatchClassOption[]> {
+  await requireSession();
+
+  const rows = await db
+    .select({
+      id: kelasPelatihan.id,
+      namaKelas: kelasPelatihan.namaKelas,
+      programId: kelasPelatihan.programId,
+      programName: programs.name,
+      programCode: programs.code,
+      classTypeId: kelasPelatihan.classTypeId,
+      classTypeName: classTypes.name,
+      mode: kelasPelatihan.mode,
+      angkatan: kelasPelatihan.angkatan,
+      certificateClassCode: kelasPelatihan.certificateClassCode,
+      source: kelasPelatihan.source,
+      startDate: kelasPelatihan.startDate,
+      status: kelasPelatihan.status,
+    })
+    .from(kelasPelatihan)
+    .innerJoin(programs, eq(kelasPelatihan.programId, programs.id))
+    .innerJoin(classTypes, eq(kelasPelatihan.classTypeId, classTypes.id))
+    .where(sql`${kelasPelatihan.status} <> 'cancelled'`)
+    .orderBy(desc(kelasPelatihan.createdAt));
+
+  return rows as CertificateBatchClassOption[];
+}
 
 export async function listBatches(filters?: z.infer<typeof batchFilterSchema>): Promise<BatchRow[]> {
   await requireSession();
@@ -126,6 +253,9 @@ export async function listBatches(filters?: z.infer<typeof batchFilterSchema>): 
   const rows = await db
     .select({
       id:                     certificateBatches.id,
+      kelasId:                certificateBatches.kelasId,
+      kelasName:              kelasPelatihan.namaKelas,
+      kelasMode:              kelasPelatihan.mode,
       programId:              certificateBatches.programId,
       programName:            certificatePrograms.name,
       classTypeId:            certificateBatches.classTypeId,
@@ -144,6 +274,7 @@ export async function listBatches(filters?: z.infer<typeof batchFilterSchema>): 
     .from(certificateBatches)
     .innerJoin(certificatePrograms, eq(certificateBatches.programId, certificatePrograms.id))
     .innerJoin(certificateClassTypes, eq(certificateBatches.classTypeId, certificateClassTypes.id))
+    .leftJoin(kelasPelatihan, eq(certificateBatches.kelasId, kelasPelatihan.id))
     .leftJoin(users, eq(certificateBatches.createdBy, users.id))
     .where(
       and(
@@ -165,6 +296,9 @@ export async function getBatch(id: string): Promise<BatchDetailRow | null> {
   const rows = await db
     .select({
       id:                     certificateBatches.id,
+      kelasId:                certificateBatches.kelasId,
+      kelasName:              kelasPelatihan.namaKelas,
+      kelasMode:              kelasPelatihan.mode,
       programId:              certificateBatches.programId,
       programName:            certificatePrograms.name,
       classTypeId:            certificateBatches.classTypeId,
@@ -183,6 +317,7 @@ export async function getBatch(id: string): Promise<BatchDetailRow | null> {
     .from(certificateBatches)
     .innerJoin(certificatePrograms, eq(certificateBatches.programId, certificatePrograms.id))
     .innerJoin(certificateClassTypes, eq(certificateBatches.classTypeId, certificateClassTypes.id))
+    .leftJoin(kelasPelatihan, eq(certificateBatches.kelasId, kelasPelatihan.id))
     .leftJoin(users, eq(certificateBatches.createdBy, users.id))
     .where(eq(certificateBatches.id, parsedId))
     .limit(1);
@@ -212,10 +347,149 @@ export async function generateBatch(data: unknown) {
   if (!result.success) {
     return { ok: false as const, error: result.error.issues[0]?.message ?? "Data tidak valid." };
   }
-  const { programId, classTypeId, classTypeCode, angkatan, quantity } = result.data;
+  const parsed = result.data;
+  const { quantity, notes } = parsed;
   const session = await requirePermission("sertifikat", "manage");
 
   try {
+    let kelas:
+      | {
+          id: string;
+          namaKelas: string;
+          angkatan: number | null;
+          certificateClassCode: string | null;
+          programName: string;
+          programCode: string;
+        }
+      | undefined;
+
+    if (parsed.sourceMode === "manual") {
+      if (
+        !parsed.manualNamaKelas ||
+        !parsed.manualProgramId ||
+        !parsed.manualClassTypeId ||
+        !parsed.manualMode ||
+        !parsed.manualStartDate ||
+        !parsed.manualAngkatan ||
+        !parsed.manualCertificateClassCode
+      ) {
+        return { ok: false as const, error: "Data kelas manual belum lengkap." };
+      }
+
+      const [programRow] = await db
+        .select({ id: programs.id, name: programs.name, code: programs.code })
+        .from(programs)
+        .where(eq(programs.id, parsed.manualProgramId))
+        .limit(1);
+
+      if (!programRow) {
+        return { ok: false as const, error: "Program tidak ditemukan." };
+      }
+
+      const [createdClass] = await db
+        .insert(kelasPelatihan)
+        .values({
+          namaKelas: parsed.manualNamaKelas,
+          programId: parsed.manualProgramId,
+          classTypeId: parsed.manualClassTypeId,
+          mode: parsed.manualMode,
+          angkatan: parsed.manualAngkatan,
+          certificateClassCode: parsed.manualCertificateClassCode,
+          source: "manual",
+          certificateNotes: notes || null,
+          startDate: parsed.manualStartDate,
+          lokasi: null,
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .returning({
+          id: kelasPelatihan.id,
+          namaKelas: kelasPelatihan.namaKelas,
+          angkatan: kelasPelatihan.angkatan,
+          certificateClassCode: kelasPelatihan.certificateClassCode,
+        });
+
+      if (!createdClass) {
+        return { ok: false as const, error: "Gagal membuat kelas manual." };
+      }
+
+      kelas = {
+        ...createdClass,
+        programName: programRow.name,
+        programCode: programRow.code,
+      };
+    } else {
+      if (!parsed.kelasId) {
+        return { ok: false as const, error: "Kelas wajib dipilih." };
+      }
+
+      const [existingClass] = await db
+        .select({
+          id: kelasPelatihan.id,
+          namaKelas: kelasPelatihan.namaKelas,
+          angkatan: kelasPelatihan.angkatan,
+          certificateClassCode: kelasPelatihan.certificateClassCode,
+          programName: programs.name,
+          programCode: programs.code,
+        })
+        .from(kelasPelatihan)
+        .innerJoin(programs, eq(kelasPelatihan.programId, programs.id))
+        .where(eq(kelasPelatihan.id, parsed.kelasId))
+        .limit(1);
+
+      if (!existingClass) {
+        return { ok: false as const, error: "Kelas tidak ditemukan." };
+      }
+
+      const nextAngkatan = existingClass.angkatan ?? parsed.overrideAngkatan;
+      const nextClassCode =
+        existingClass.certificateClassCode ?? parsed.overrideCertificateClassCode;
+
+      if (!nextAngkatan || !nextClassCode) {
+        return {
+          ok: false as const,
+          error:
+            "Kelas belum punya angkatan atau kode kelas sertifikat. Isi override untuk melanjutkan.",
+        };
+      }
+
+      if (
+        nextAngkatan !== existingClass.angkatan ||
+        nextClassCode !== existingClass.certificateClassCode
+      ) {
+        await db
+          .update(kelasPelatihan)
+          .set({
+            angkatan: nextAngkatan,
+            certificateClassCode: nextClassCode,
+            certificateNotes: notes || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(kelasPelatihan.id, existingClass.id));
+      }
+
+      kelas = {
+        ...existingClass,
+        angkatan: nextAngkatan,
+        certificateClassCode: nextClassCode,
+      };
+    }
+
+    const program = await getOrCreateCertificateProgram({
+      name: kelas.programName,
+      code: kelas.programCode,
+    });
+    if (!kelas.angkatan || !kelas.certificateClassCode) {
+      return {
+        ok: false as const,
+        error: "Kelas belum punya angkatan atau kode kelas sertifikat.",
+      };
+    }
+
+    const angkatan = kelas.angkatan;
+    const classTypeCode = kelas.certificateClassCode;
+    const classType = await getOrCreateCertificateClassType(classTypeCode);
+
     // 1. Baca serial terakhir
     const lastSerial = await getLastSerial();
     const startSerial = lastSerial + 1;
@@ -230,12 +504,14 @@ export async function generateBatch(data: unknown) {
     const [batch] = await db
       .insert(certificateBatches)
       .values({
-        programId,
-        classTypeId,
+        programId: program.id,
+        classTypeId: classType.id,
+        kelasId: kelas.id,
         angkatan,
         quantityRequested: quantity,
         firstCertificateNumber: firstNumber,
         lastCertificateNumber:  lastNumber,
+        notes: notes || null,
         status: "active",
         createdBy: session.user.id,
         updatedAt: new Date(),
@@ -276,8 +552,10 @@ export async function generateBatch(data: unknown) {
       entitasType: "cert_batch",
       entitasId: batch.id,
       detail: {
-        programId,
-        classTypeId,
+        kelasId: kelas.id,
+        kelasName: kelas.namaKelas,
+        programId: program.id,
+        classTypeId: classType.id,
         angkatan,
         quantity,
         firstNumber,

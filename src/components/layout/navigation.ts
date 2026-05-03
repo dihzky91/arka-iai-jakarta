@@ -12,6 +12,7 @@ import {
   FileSignature,
   FileImage,
   FileText,
+  FolderKanban,
   Hash,
   Inbox,
   Landmark,
@@ -71,6 +72,14 @@ export const navigationSections: NavigationSection[] = [
         icon: Megaphone,
         active: true,
         requiredCapability: "announcement:view",
+      },
+      {
+        href: "/projects",
+        label: "Projects",
+        icon: FolderKanban,
+        active: true,
+        allowedRoles: ["admin", "staff", "pejabat"],
+        requiredCapability: "projects:view",
       },
     ],
   },
@@ -373,7 +382,9 @@ export const navigationSections: NavigationSection[] = [
 export const navigationItems = navigationSections.flatMap((section) => section.items);
 
 export function getNavigationItem(pathname: string) {
-  return navigationItems.find(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-  );
+  return navigationItems
+    .filter(
+      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0];
 }
