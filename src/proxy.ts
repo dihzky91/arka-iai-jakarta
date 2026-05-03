@@ -15,6 +15,7 @@ const PROTECTED_PREFIXES = [
   "/pejabat",
   "/pengaturan",
   "/audit-log",
+  "/projects",
 ];
 
 // ─── Route yang hanya boleh diakses saat BELUM login ─────────────────────────
