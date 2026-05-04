@@ -63,7 +63,7 @@ export function StatsCharts({ stats }: StatsChartsProps) {
   }, [stats.suratByJenis]);
 
   return (
-    <div className="grid gap-4 lg:gap-6 md:grid-cols-2">
+    <div className="grid gap-5 lg:gap-6 md:grid-cols-2">
       <Card className="md:col-span-2">
         <CardHeader className="pb-0">
           <CardTitle className="text-base">Trend Surat Bulanan</CardTitle>
@@ -231,7 +231,7 @@ function formatJenis(jenis: string): string {
 
 export function StatsSummary({ stats }: StatsChartsProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         title="Total Surat Keluar"
         value={stats.totalSuratKeluar}

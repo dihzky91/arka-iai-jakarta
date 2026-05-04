@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Download, Eye, Filter, FilePlus2 } from "lucide-react";
+import { Download, Eye, Filter, FilePlus2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
+  deleteHonorariumBatch,
   generateHonorariumBatch,
   getHonorariumReport,
+  getSuggestedHonorariumBatchPeriod,
   listHonorariumBatches,
+  previewHonorariumBatchGeneration,
 } from "@/server/actions/jadwal-otomatis/honorarium";
 
 type Option = {
@@ -28,6 +31,12 @@ type Option = {
 
 type HonorariumReportData = Awaited<ReturnType<typeof getHonorariumReport>>;
 type HonorariumBatchData = Awaited<ReturnType<typeof listHonorariumBatches>>;
+type HonorariumBatchPeriodSuggestion = Awaited<
+  ReturnType<typeof getSuggestedHonorariumBatchPeriod>
+>;
+type HonorariumGeneratePreview = Awaited<
+  ReturnType<typeof previewHonorariumBatchGeneration>
+>;
 type BatchStatusFilter = "" | "draft" | "dikirim_ke_keuangan" | "diproses_keuangan" | "dibayar" | "locked" | "all";
 
 interface HonorariumReportProps {
@@ -35,6 +44,7 @@ interface HonorariumReportProps {
   programs: Option[];
   initialReport: HonorariumReportData;
   initialBatches: HonorariumBatchData;
+  suggestedBatchPeriod: HonorariumBatchPeriodSuggestion;
 }
 
 function formatCurrency(value: number) {
@@ -84,6 +94,7 @@ export function HonorariumReport({
   programs,
   initialReport,
   initialBatches,
+  suggestedBatchPeriod,
 }: HonorariumReportProps) {
   const [pending, startTransition] = useTransition();
   const [report, setReport] = useState(initialReport);
@@ -93,10 +104,13 @@ export function HonorariumReport({
   const [endDate, setEndDate] = useState(initialReport.appliedFilters.endDate);
   const [instructorId, setInstructorId] = useState(initialReport.appliedFilters.instructorId);
   const [programId, setProgramId] = useState(initialReport.appliedFilters.programId);
-  const [batchStartDate, setBatchStartDate] = useState(initialReport.appliedFilters.startDate);
-  const [batchEndDate, setBatchEndDate] = useState(initialReport.appliedFilters.endDate);
+  const [batchStartDate, setBatchStartDate] = useState(suggestedBatchPeriod.startDate);
+  const [batchEndDate, setBatchEndDate] = useState(suggestedBatchPeriod.endDate);
   const [batchStatus, setBatchStatus] = useState<BatchStatusFilter>("all");
   const [batchScope, setBatchScope] = useState<"all" | "finance">("all");
+  const [activeSuggestion, setActiveSuggestion] = useState(suggestedBatchPeriod);
+  const [generationPreview, setGenerationPreview] =
+    useState<HonorariumGeneratePreview | null>(null);
 
   const rows = report.rows;
 
@@ -129,6 +143,22 @@ export function HonorariumReport({
     });
   }
 
+  async function runGeneratePreview() {
+    const preview = await previewHonorariumBatchGeneration({
+      startDate: batchStartDate,
+      endDate: batchEndDate,
+      internalNotes: "",
+    });
+    setGenerationPreview(preview);
+    return preview;
+  }
+
+  function handleApplySuggestedPeriod() {
+    setBatchStartDate(activeSuggestion.startDate);
+    setBatchEndDate(activeSuggestion.endDate);
+    toast.success("Periode saran diterapkan.");
+  }
+
   function handleGenerateDraftBatch() {
     if (!batchStartDate || !batchEndDate) {
       toast.error("Pilih periode tanggal terlebih dahulu.");
@@ -137,6 +167,32 @@ export function HonorariumReport({
 
     startTransition(async () => {
       try {
+        const preview = await runGeneratePreview();
+        if (preview.eligibleCount === 0) {
+          toast.info("Tidak ada sesi eligible pada periode ini.");
+          return;
+        }
+        if (preview.missingRateCount > 0) {
+          toast.error(
+            `Ada ${preview.missingRateCount} sesi tanpa tarif. Lengkapi tarif dulu sebelum generate.`,
+          );
+          return;
+        }
+        if (preview.conflictingAssignmentCount > 0) {
+          const sampleDocs = preview.conflictingBatches
+            .slice(0, 3)
+            .map((row) => row.documentNumber)
+            .join(", ");
+          const more =
+            preview.conflictingBatches.length > 3
+              ? ` +${preview.conflictingBatches.length - 3} batch`
+              : "";
+          toast.error(
+            `Bentrok ${preview.conflictingAssignmentCount} sesi dengan batch lama (${sampleDocs}${more}).`,
+          );
+          return;
+        }
+
         const result = await generateHonorariumBatch({
           startDate: batchStartDate,
           endDate: batchEndDate,
@@ -154,7 +210,9 @@ export function HonorariumReport({
           status: batchStatus === "all" ? "" : batchStatus,
           financeOnly: batchScope === "finance",
         });
+        const latestSuggestion = await getSuggestedHonorariumBatchPeriod();
         setBatches(latestBatches);
+        setActiveSuggestion(latestSuggestion);
         toast.success(
           `Draft ${result.documentNumber} dibuat (${result.itemCount} sesi).`,
         );
@@ -177,6 +235,59 @@ export function HonorariumReport({
         toast.success("Queue batch diperbarui.");
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Filter batch tidak valid.");
+      }
+    });
+  }
+
+  function handleDeleteDraftBatch(batchId: string, documentNumber: string) {
+    if (!confirm(`Hapus batch ${documentNumber}? Aksi ini tidak bisa dibatalkan.`)) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        await deleteHonorariumBatch(batchId);
+        const latestBatches = await listHonorariumBatches({
+          startDate: batchStartDate,
+          endDate: batchEndDate,
+          status: batchStatus === "all" ? "" : batchStatus,
+          financeOnly: batchScope === "finance",
+        });
+        const latestSuggestion = await getSuggestedHonorariumBatchPeriod();
+        setBatches(latestBatches);
+        setActiveSuggestion(latestSuggestion);
+        setGenerationPreview(null);
+        toast.success(`Batch ${documentNumber} berhasil dihapus.`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Gagal hapus batch.");
+      }
+    });
+  }
+
+  function handleCheckGeneration() {
+    if (!batchStartDate || !batchEndDate) {
+      toast.error("Pilih periode tanggal terlebih dahulu.");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const preview = await runGeneratePreview();
+        if (preview.conflictingAssignmentCount > 0) {
+          toast.error(
+            `Ditemukan bentrok: ${preview.conflictingAssignmentCount} sesi sudah ada di batch lain.`,
+          );
+          return;
+        }
+        if (preview.missingRateCount > 0) {
+          toast.warning(
+            `Ada ${preview.missingRateCount} sesi tanpa tarif. Generate akan ditolak.`,
+          );
+          return;
+        }
+        toast.success(`Aman digenerate. Eligible ${preview.eligibleCount} sesi.`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Gagal cek kelayakan.");
       }
     });
   }
@@ -321,11 +432,25 @@ export function HonorariumReport({
               <CardDescription>
                 Generate draft internal dari periode terpilih untuk diproses sampai pembayaran.
               </CardDescription>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Saran periode berikutnya: {activeSuggestion.startDate} s.d. {activeSuggestion.endDate}
+                {activeSuggestion.hasExistingBatch && activeSuggestion.sourceDocumentNumber
+                  ? ` (setelah ${activeSuggestion.sourceDocumentNumber})`
+                  : ""}
+              </p>
             </div>
-            <Button onClick={handleGenerateDraftBatch} disabled={pending}>
-              <FilePlus2 className="h-4 w-4 mr-1" />
-              Generate Draft
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleApplySuggestedPeriod} disabled={pending}>
+                Gunakan Saran
+              </Button>
+              <Button variant="outline" onClick={handleCheckGeneration} disabled={pending}>
+                Cek Kelayakan
+              </Button>
+              <Button onClick={handleGenerateDraftBatch} disabled={pending}>
+                <FilePlus2 className="h-4 w-4 mr-1" />
+                Generate Draft
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6 p-0">
@@ -379,6 +504,13 @@ export function HonorariumReport({
               </div>
             </div>
           </div>
+          {generationPreview ? (
+            <div className="px-6 pb-4 text-xs text-muted-foreground">
+              Eligible: {generationPreview.eligibleCount} sesi · Missing Tarif:{" "}
+              {generationPreview.missingRateCount} · Bentrok:{" "}
+              {generationPreview.conflictingAssignmentCount}
+            </div>
+          ) : null}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -417,12 +549,28 @@ export function HonorariumReport({
                       <td className="px-6 py-3 text-right tabular-nums">{formatCurrency(batch.netAmount)}</td>
                       <td className="px-6 py-3">{new Date(batch.createdAt).toLocaleString("id-ID")}</td>
                       <td className="px-6 py-3">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link href={`/jadwal-otomatis/honorarium/${batch.id}`}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Detail
-                          </Link>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/jadwal-otomatis/honorarium/${batch.id}`}>
+                              <Eye className="h-4 w-4 mr-1" />
+                              Detail
+                            </Link>
+                          </Button>
+                          {batch.status === "draft" ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleDeleteDraftBatch(batch.id, batch.documentNumber)
+                              }
+                              disabled={pending}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Hapus
+                            </Button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))

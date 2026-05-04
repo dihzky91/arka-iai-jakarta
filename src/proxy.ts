@@ -23,6 +23,23 @@ const AUTH_ONLY_ROUTES = ["/login"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  let forwardedHeaders: Headers | null = null;
+
+  if (process.env.NODE_ENV !== "production") {
+    const origin = request.headers.get("origin");
+    if (origin && origin !== "null") {
+      try {
+        const originHost = new URL(origin).host;
+        const forwardedHost = request.headers.get("x-forwarded-host");
+        if (originHost && originHost !== forwardedHost) {
+          forwardedHeaders = new Headers(request.headers);
+          forwardedHeaders.set("x-forwarded-host", originHost);
+        }
+      } catch {
+        // Ignore malformed origin headers in development.
+      }
+    }
+  }
 
   // Lightweight check: cukup cek keberadaan session cookie.
   // Validasi session asli (ke DB) tetap dilakukan di layout Server Component.
@@ -48,7 +65,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  return forwardedHeaders
+    ? NextResponse.next({ request: { headers: forwardedHeaders } })
+    : NextResponse.next();
 }
 
 // Terapkan proxy ke semua route kecuali asset statis & API auth

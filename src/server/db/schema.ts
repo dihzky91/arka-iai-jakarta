@@ -1779,6 +1779,7 @@ export const honorariumItems = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [
+    uniqueIndex("uniq_honorarium_assignment_once").on(t.assignmentId),
     uniqueIndex("uniq_honorarium_batch_assignment").on(
       t.batchId,
       t.assignmentId,
@@ -1831,6 +1832,32 @@ export const honorariumAuditLogs = pgTable(
   (t) => [
     index("hal_batch_idx").on(t.batchId),
     index("hal_action_idx").on(t.action),
+  ],
+);
+
+// Bukti pembayaran transfer per batch honorarium
+export const honorariumPaymentProofs = pgTable(
+  "honorarium_payment_proofs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchId: text("batch_id")
+      .notNull()
+      .references(() => honorariumBatches.id, { onDelete: "cascade" }),
+    fileName: varchar("file_name", { length: 500 }).notNull(),
+    fileUrl: varchar("file_url", { length: 1000 }).notNull(),
+    storageKey: varchar("storage_key", { length: 1000 }),
+    fileSize: integer("file_size").notNull(),
+    mimeType: varchar("mime_type", { length: 255 }).notNull(),
+    uploadedBy: text("uploaded_by")
+      .notNull()
+      .references(() => users.id),
+    uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("hpp_batch_idx").on(t.batchId),
+    index("hpp_uploaded_at_idx").on(t.uploadedAt),
   ],
 );
 

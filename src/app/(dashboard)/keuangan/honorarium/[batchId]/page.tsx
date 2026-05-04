@@ -9,6 +9,7 @@ import { getCurrentUserAccess } from "@/server/actions/auth";
 import {
   getHonorariumBatchDetail,
   listHonorariumDeductions,
+  listHonorariumPaymentProofs,
 } from "@/server/actions/jadwal-otomatis/honorarium";
 import { getSystemSettings } from "@/server/actions/systemSettings";
 
@@ -23,9 +24,10 @@ type PageProps = {
 export default async function Page({ params }: PageProps) {
   const { batchId } = await params;
 
-  const [detail, deductions, access, systemSettings] = await Promise.all([
+  const [detail, deductions, paymentProofs, access, systemSettings] = await Promise.all([
     getHonorariumBatchDetail(batchId),
     listHonorariumDeductions(batchId),
+    listHonorariumPaymentProofs(batchId),
     getCurrentUserAccess(),
     getSystemSettings(),
   ]);
@@ -55,6 +57,7 @@ export default async function Page({ params }: PageProps) {
       <HonorariumBatchDetail
         initialData={detail}
         initialDeductions={deductions}
+        initialPaymentProofs={paymentProofs}
         canManage={false}
         isAdmin={isSuperAdmin}
         canProcess={canProcess}

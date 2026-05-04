@@ -99,7 +99,7 @@ export default async function DashboardPage() {
     <DashboardTabs
       ringkasan={
         <>
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Surat Masuk Baru"
               value={String(suratMasukBaru.length)}
@@ -286,7 +286,7 @@ export default async function DashboardPage() {
         </section>
       }
       ujian={
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <UjianDashboardWidget data={statistikUjian} />
         </section>
       }

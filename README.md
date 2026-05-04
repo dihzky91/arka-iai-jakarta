@@ -99,6 +99,13 @@ cp .env.example .env.local
 npm run dev          # http://localhost:6700
 ```
 
+Jika akses via port-forward/reverse proxy (contoh `*.devtunnels.ms`), isi juga:
+
+```bash
+SERVER_ACTIONS_ALLOWED_ORIGINS=*.devtunnels.ms
+NEXT_ALLOWED_DEV_ORIGINS=*.devtunnels.ms
+```
+
 ## Scripts
 
 ```bash

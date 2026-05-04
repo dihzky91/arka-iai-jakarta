@@ -3,6 +3,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { HonorariumReport } from "@/components/jadwal-otomatis/HonorariumReport";
 import {
   getHonorariumReport,
+  getSuggestedHonorariumBatchPeriod,
   listHonorariumBatches,
 } from "@/server/actions/jadwal-otomatis/honorarium";
 import { listInstructors } from "@/server/actions/jadwal-otomatis/instructors";
@@ -13,11 +14,12 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [report, batches, instructors, programs] = await Promise.all([
+  const [report, batches, instructors, programs, suggestedBatchPeriod] = await Promise.all([
     getHonorariumReport(),
     listHonorariumBatches(),
     listInstructors(),
     listPrograms(),
+    getSuggestedHonorariumBatchPeriod(),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export default async function Page() {
       <HonorariumReport
         initialReport={report}
         initialBatches={batches}
+        suggestedBatchPeriod={suggestedBatchPeriod}
         instructors={instructors.map((item) => ({
           id: item.id,
           name: item.name,

@@ -72,10 +72,20 @@ export function DashboardTabs({
         )}
       </TabsList>
 
-      <TabsContent value="ringkasan">{ringkasan}</TabsContent>
-      <TabsContent value="analitik">{analitik}</TabsContent>
-      <TabsContent value="aktivitas">{aktivitas}</TabsContent>
-      {ujian && <TabsContent value="ujian">{ujian}</TabsContent>}
+      <TabsContent value="ringkasan" className="space-y-5 sm:space-y-6">
+        {ringkasan}
+      </TabsContent>
+      <TabsContent value="analitik" className="space-y-5 sm:space-y-6">
+        {analitik}
+      </TabsContent>
+      <TabsContent value="aktivitas" className="space-y-5 sm:space-y-6">
+        {aktivitas}
+      </TabsContent>
+      {ujian && (
+        <TabsContent value="ujian" className="space-y-5 sm:space-y-6">
+          {ujian}
+        </TabsContent>
+      )}
     </Tabs>
   );
 }

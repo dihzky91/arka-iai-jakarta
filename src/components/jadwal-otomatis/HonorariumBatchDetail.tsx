@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, Pencil, Plus, Trash2, RotateCcw } from "lucide-react";
+import { Download, Pencil, Plus, Trash2, RotateCcw, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,8 +33,10 @@ import {
   removeHonorariumDeduction,
   exportHonorariumBatchExcel,
   logHonorariumBatchPdfExport,
+  uploadHonorariumPaymentProof,
   type getHonorariumBatchDetail,
   type DeductionRow,
+  type HonorariumPaymentProofRow,
 } from "@/server/actions/jadwal-otomatis/honorarium";
 import {
   formatTanggalWaktuJakarta,
@@ -49,6 +51,7 @@ type DetailData = NonNullable<
 interface HonorariumBatchDetailProps {
   initialData: DetailData;
   initialDeductions: DeductionRow[];
+  initialPaymentProofs: HonorariumPaymentProofRow[];
   canManage: boolean;
   isAdmin: boolean;
   canProcess?: boolean;
@@ -93,6 +96,7 @@ function actionLabel(action: string) {
   if (action === "batch_reopened") return "Reopen Batch";
   if (action === "deduction_added") return "Tambah Potongan";
   if (action === "deduction_removed") return "Hapus Potongan";
+  if (action === "payment_proof_uploaded") return "Upload Bukti Pembayaran";
   if (action === "batch_exported_excel") return "Export Excel";
   if (action === "batch_exported_pdf") return "Export PDF";
   return action;
@@ -120,6 +124,24 @@ function formatDateInputValue(value: Date | null) {
 
 function sanitizeFileName(value: string) {
   return value.replace(/[\\/:*?"<>|]/g, "-");
+}
+
+function formatFileSize(size: number) {
+  if (!Number.isFinite(size) || size <= 0) return "-";
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Gagal membaca file."));
+    };
+    reader.onerror = () => reject(new Error("Gagal membaca file."));
+    reader.readAsDataURL(file);
+  });
 }
 
 async function buildLogoDataUrl(logoUrl: string) {
@@ -154,6 +176,7 @@ async function buildLogoImage(logoUrl: string) {
 export function HonorariumBatchDetail({
   initialData,
   initialDeductions,
+  initialPaymentProofs,
   canManage,
   isAdmin,
   canProcess = false,
@@ -184,6 +207,9 @@ export function HonorariumBatchDetail({
 
   const [deductions, setDeductions] =
     useState<DeductionRow[]>(initialDeductions);
+  const [paymentProofs, setPaymentProofs] =
+    useState<HonorariumPaymentProofRow[]>(initialPaymentProofs);
+  const [selectedProofFile, setSelectedProofFile] = useState<File | null>(null);
   const [newDeductionInstructor, setNewDeductionInstructor] = useState("");
   const [newDeductionType, setNewDeductionType] = useState("pph21");
   const [newDeductionDesc, setNewDeductionDesc] = useState("");
@@ -606,6 +632,48 @@ export function HonorariumBatchDetail({
     });
   }
 
+  function handleUploadPaymentProof() {
+    if (!selectedProofFile) {
+      toast.error("Pilih file bukti pembayaran terlebih dahulu.");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const dataUrl = await fileToDataUrl(selectedProofFile);
+        const result = await uploadHonorariumPaymentProof({
+          batchId: batch.id,
+          fileName: selectedProofFile.name,
+          contentType: selectedProofFile.type || "application/octet-stream",
+          dataUrl,
+        });
+
+        if (result.ok) {
+          setPaymentProofs((prev) => [
+            {
+              id: result.data.id,
+              fileName: result.data.fileName,
+              fileUrl: result.data.fileUrl,
+              fileSize: result.data.fileSize,
+              mimeType: result.data.mimeType,
+              uploadedBy: "current-user",
+              uploaderName: "Anda",
+              uploadedAt: new Date(),
+            },
+            ...prev,
+          ]);
+          setSelectedProofFile(null);
+          toast.success("Bukti pembayaran berhasil diupload.");
+          router.refresh();
+        }
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal upload bukti pembayaran.",
+        );
+      }
+    });
+  }
+
   const deductionSummary = recaps.map((r) => {
     const instrDeductions = deductions.filter(
       (d) => d.instructorId === r.instructorId,
@@ -918,6 +986,97 @@ export function HonorariumBatchDetail({
           </CardContent>
         </Card>
       ) : null}
+
+      <Card className="rounded-[28px]">
+        <CardHeader className="border-b border-border">
+          <CardTitle>Bukti Pembayaran</CardTitle>
+          <CardDescription>
+            Dokumen bukti transfer dari keuangan. Dapat dilihat oleh pengaju dan keuangan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          {canPay ? (
+            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Upload Bukti</p>
+                <Input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  onChange={(e) => setSelectedProofFile(e.target.files?.[0] ?? null)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Format disarankan PDF/JPG/PNG/WEBP.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={handleUploadPaymentProof}
+                disabled={pending || !selectedProofFile}
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Upload Bukti
+              </Button>
+            </div>
+          ) : null}
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    Nama File
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    Tipe
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+                    Ukuran
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    Diupload Oleh
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    Waktu Upload
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paymentProofs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                      Belum ada bukti pembayaran.
+                    </td>
+                  </tr>
+                ) : (
+                  paymentProofs.map((proof) => (
+                    <tr key={proof.id} className="border-b border-border">
+                      <td className="px-3 py-2">{proof.fileName}</td>
+                      <td className="px-3 py-2">{proof.mimeType}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {formatFileSize(proof.fileSize)}
+                      </td>
+                      <td className="px-3 py-2">{proof.uploaderName ?? "-"}</td>
+                      <td className="px-3 py-2">
+                        {formatTanggalWaktuJakarta(proof.uploadedAt)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Button asChild variant="outline" size="sm">
+                          <a href={proof.fileUrl} target="_blank" rel="noreferrer">
+                            Buka
+                          </a>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Reopen Section - Hanya admin */}
       {isAdmin && batch.status !== "draft" ? (
