@@ -23,11 +23,11 @@ import {
   instructorRates,
   instructors,
   kelasPelatihan,
-  notifications,
   programs,
   sessionAssignments,
   users,
 } from "@/server/db/schema";
+import { createNotification } from "@/server/actions/notifications";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -1044,20 +1044,18 @@ async function notifyHonorariumStatusTransition(params: {
   const template = buildHonorariumTransitionText(params.from, params.to);
   const message = `Batch ${params.documentNumber} ${template.actionText} oleh ${actorName}. Status: ${batchStatusLabel(params.from)} -> ${batchStatusLabel(params.to)}.`;
 
-  const notificationRows: Array<typeof notifications.$inferInsert> =
-    targetUserIds.map((userId) => ({
-      id: nanoid(),
-      userId,
-      type: "system",
-      title: template.title,
-      message,
-      entitasType: "honorarium_batch",
-      entitasId: params.batchId,
-      isRead: false,
-      isEmailSent: false,
-    }));
-
-  await db.insert(notifications).values(notificationRows);
+  await Promise.all(
+    targetUserIds.map((userId) =>
+      createNotification({
+        userId,
+        type: "system",
+        title: template.title,
+        message,
+        entitasType: "honorarium_batch",
+        entitasId: params.batchId,
+      })
+    )
+  );
 
   revalidatePath("/dashboard");
 }

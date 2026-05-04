@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Landmark, LockKeyhole, X } from "lucide-react";
+import {
+  ChevronDown,
+  Landmark,
+  LockKeyhole,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -20,6 +27,7 @@ import {
 import type { Capability } from "@/lib/rbac/capabilities";
 
 const SIDEBAR_OPEN_SECTION_KEY = "iai-sidebar-open-section";
+const SIDEBAR_COLLAPSED_KEY = "iai-sidebar-collapsed";
 const EMPTY_CAPABILITIES: Capability[] = [];
 
 interface SidebarProps {
@@ -45,6 +53,8 @@ export function Sidebar({
   onMobileOpenChange,
   pathname: pathnameProp,
 }: SidebarProps) {
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [hasLoadedCollapsedState, setHasLoadedCollapsedState] = useState(false);
   const pathnameFromHook = usePathname();
   const pathname = pathnameProp ?? pathnameFromHook;
   const appName =
@@ -78,9 +88,40 @@ export function Sidebar({
     [capabilitySet, isSuperAdmin, userRole],
   );
 
+  useEffect(() => {
+    try {
+      setDesktopCollapsed(
+        window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1",
+      );
+    } catch {
+      setDesktopCollapsed(false);
+    } finally {
+      setHasLoadedCollapsedState(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedCollapsedState) return;
+
+    try {
+      if (desktopCollapsed) {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, "1");
+      } else {
+        window.localStorage.removeItem(SIDEBAR_COLLAPSED_KEY);
+      }
+    } catch {
+      // localStorage can be unavailable in restricted browser contexts.
+    }
+  }, [desktopCollapsed, hasLoadedCollapsedState]);
+
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-80 shrink-0 border-r border-border bg-card lg:flex lg:flex-col">
+      <aside
+        className={cn(
+          "sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card transition-[width] duration-200 lg:flex lg:flex-col",
+          desktopCollapsed ? "w-20" : "w-80",
+        )}
+      >
         <SidebarContent
           pathname={pathname}
           visibleSections={visibleSections}
@@ -89,6 +130,8 @@ export function Sidebar({
           activeItemLabel={activeItem?.label}
           unreadDisposisiCount={unreadDisposisiCount}
           unreadAnnouncementCount={unreadAnnouncementCount}
+          collapsed={desktopCollapsed}
+          onCollapsedChange={setDesktopCollapsed}
         />
       </aside>
 
@@ -119,6 +162,7 @@ export function Sidebar({
               unreadDisposisiCount={unreadDisposisiCount}
               unreadAnnouncementCount={unreadAnnouncementCount}
               mobile
+              collapsed={false}
               onNavigate={() => onMobileOpenChange?.(false)}
             />
           </div>
@@ -136,6 +180,8 @@ function SidebarContent({
   activeItemLabel,
   unreadDisposisiCount,
   unreadAnnouncementCount,
+  collapsed = false,
+  onCollapsedChange,
   mobile = false,
   onNavigate,
 }: {
@@ -146,6 +192,8 @@ function SidebarContent({
   activeItemLabel?: string;
   unreadDisposisiCount: number;
   unreadAnnouncementCount: number;
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
@@ -224,8 +272,18 @@ function SidebarContent({
 
   return (
     <>
-      <div className="border-b border-border px-4 py-4 lg:px-5 lg:py-5">
-        <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          "border-b border-border px-4 py-4 lg:py-5",
+          collapsed ? "lg:px-3" : "lg:px-5",
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center gap-3",
+            collapsed && "justify-center",
+          )}
+        >
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -238,18 +296,101 @@ function SidebarContent({
               <Landmark className="h-5 w-5" />
             )}
           </div>
-          <div className="min-w-0">
+          {collapsed ? null : (
+            <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-foreground">
               {appName}
             </p>
             <p className="text-xs text-muted-foreground">{APP_BRAND_TAGLINE}</p>
-          </div>
+            </div>
+          )}
+          {!mobile ? (
+            <button
+              type="button"
+              onClick={() => onCollapsedChange?.(!collapsed)}
+              className={cn(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                collapsed && "mx-auto",
+              )}
+              aria-label={collapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
+              title={collapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
-        <div className="space-y-5">
-          {visibleSections.map((section) => {
+      <nav
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain py-4",
+          collapsed ? "px-2" : "px-3",
+        )}
+      >
+        {collapsed ? (
+          <ul className="space-y-1">
+            {visibleSections.flatMap((section) => section.items).map((item) => {
+              const isActive = activeItemHref === item.href;
+              const unreadCount =
+                item.href === "/disposisi"
+                  ? unreadDisposisiCount
+                  : item.href === "/pengumuman"
+                    ? unreadAnnouncementCount
+                    : 0;
+
+              if (!item.active) {
+                return (
+                  <li key={item.href}>
+                    <div
+                      className="relative flex h-12 items-center justify-center rounded-2xl text-muted-foreground opacity-80"
+                      title={`${item.label} (${item.statusLabel ?? "Nonaktif"})`}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <LockKeyhole className="absolute bottom-2 right-2 h-3 w-3" />
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    title={item.label}
+                    aria-label={item.label}
+                    className={cn(
+                      "relative flex h-12 items-center justify-center rounded-2xl transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-foreground hover:bg-muted",
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {unreadCount > 0 ? (
+                      <span
+                        className={cn(
+                          "absolute right-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold",
+                          isActive
+                            ? "bg-white/20 text-primary-foreground"
+                            : "bg-primary text-primary-foreground",
+                        )}
+                      >
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="space-y-5">
+            {visibleSections.map((section) => {
             const isCollapsed =
               (openSectionTitle ?? activeSectionTitle) !== section.title;
 
@@ -343,23 +484,38 @@ function SidebarContent({
                 )}
               </section>
             );
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </nav>
 
-      <div
-        className={cn(
-          "border-t border-border px-4 py-4 lg:px-5",
-          mobile && "pb-[max(1rem,env(safe-area-inset-bottom))]",
-        )}
-      >
-        <p className="text-xs font-medium text-foreground">
-          {activeItemLabel ?? "Aplikasi Internal"}
-        </p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          {APP_BRAND_DESCRIPTION}
-        </p>
-      </div>
+      {collapsed ? (
+        <div className="border-t border-border px-2 py-3">
+          <button
+            type="button"
+            onClick={() => onCollapsedChange?.(false)}
+            className="flex h-11 w-full items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Lebarkan sidebar"
+            title="Lebarkan sidebar"
+          >
+            <PanelLeftOpen className="h-5 w-5" />
+          </button>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "border-t border-border px-4 py-4 lg:px-5",
+            mobile && "pb-[max(1rem,env(safe-area-inset-bottom))]",
+          )}
+        >
+          <p className="text-xs font-medium text-foreground">
+            {activeItemLabel ?? "Aplikasi Internal"}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {APP_BRAND_DESCRIPTION}
+          </p>
+        </div>
+      )}
     </>
   );
 }

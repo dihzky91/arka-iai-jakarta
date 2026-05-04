@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/server/db";
-import { notifications, type Notification } from "@/server/db/schema";
-import { eq, and, desc, count, gte, lte } from "drizzle-orm";
+import { notifications, users, type Notification } from "@/server/db/schema";
+import { eq, and, desc, count, gte, lte, inArray, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
+import { checkNotificationPreference } from "./notificationPreferences";
 
 export interface NotificationInput {
   userId: string;
@@ -42,6 +43,7 @@ export async function createNotification(input: NotificationInput): Promise<Noti
 export async function getNotifications(userId: string, options?: {
   unreadOnly?: boolean;
   limit?: number;
+  offset?: number;
 }): Promise<Notification[]> {
   const conditions = [eq(notifications.userId, userId)];
 
@@ -54,7 +56,8 @@ export async function getNotifications(userId: string, options?: {
     .from(notifications)
     .where(conditions.length > 1 ? and(...conditions) : conditions[0])
     .orderBy(desc(notifications.createdAt))
-    .limit(options?.limit ?? 50);
+    .limit(options?.limit ?? 50)
+    .offset(options?.offset ?? 0);
 
   return results;
 }
@@ -117,6 +120,9 @@ export async function notifyDisposisiBaru(
   suratPerihal: string,
   disposisiId: string
 ): Promise<void> {
+  const pref = await checkNotificationPreference(kepadaUserId, "disposisi_baru");
+  if (!pref.inApp) return;
+
   await createNotification({
     userId: kepadaUserId,
     type: "disposisi_baru",
@@ -134,6 +140,9 @@ export async function notifyDisposisiDeadline(
   batasWaktu: Date,
   disposisiId: string
 ): Promise<void> {
+  const pref = await checkNotificationPreference(userId, "disposisi_deadline");
+  if (!pref.inApp) return;
+
   const daysLeft = Math.ceil(
     (batasWaktu.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
@@ -150,13 +159,16 @@ export async function notifyDisposisiDeadline(
 
 // Helper function to notify surat keluar approval needed
 export async function notifySuratKeluarApproval(
-  pejabatId: string,
+  pejabatUserId: string,
   pengirimNama: string,
   perihal: string,
   suratId: string
 ): Promise<void> {
+  const pref = await checkNotificationPreference(pejabatUserId, "surat_keluar_approval");
+  if (!pref.inApp) return;
+
   await createNotification({
-    userId: pejabatId,
+    userId: pejabatUserId,
     type: "surat_keluar_approval",
     title: "Persetujuan Surat Keluar",
     message: `${pengirimNama} meminta persetujuan untuk surat: ${perihal}`,
@@ -167,14 +179,17 @@ export async function notifySuratKeluarApproval(
 
 // Helper function to notify surat keluar revisi
 export async function notifySuratKeluarRevisi(
-  creatorId: string,
+  creatorUserId: string,
   pejabatNama: string,
   perihal: string,
   catatan: string,
   suratId: string
 ): Promise<void> {
+  const pref = await checkNotificationPreference(creatorUserId, "surat_keluar_revisi");
+  if (!pref.inApp) return;
+
   await createNotification({
-    userId: creatorId,
+    userId: creatorUserId,
     type: "surat_keluar_revisi",
     title: "Revisi Surat Keluar Diperlukan",
     message: `${pejabatNama} meminta revisi untuk "${perihal}". Catatan: ${catatan}`,
@@ -185,17 +200,68 @@ export async function notifySuratKeluarRevisi(
 
 // Helper function to notify surat keluar selesai
 export async function notifySuratKeluarSelesai(
-  creatorId: string,
+  creatorUserId: string,
   perihal: string,
   nomorSurat: string | null,
   suratId: string
 ): Promise<void> {
+  const pref = await checkNotificationPreference(creatorUserId, "surat_keluar_selesai");
+  if (!pref.inApp) return;
+
   await createNotification({
-    userId: creatorId,
+    userId: creatorUserId,
     type: "surat_keluar_selesai",
     title: "Surat Keluar Selesai",
     message: `Surat "${perihal}" telah selesai${nomorSurat ? ` dengan nomor ${nomorSurat}` : ""}`,
     entitasType: "surat_keluar",
     entitasId: suratId,
   });
+}
+
+// Helper function to notify surat masuk baru
+export async function notifySuratMasukBaru(
+  suratPerihal: string,
+  pengirim: string,
+  suratMasukId: string
+): Promise<void> {
+  const recipients = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        eq(users.isActive, true),
+        inArray(users.role, ["admin", "pejabat"])
+      )
+    );
+
+  for (const recipient of recipients) {
+    const pref = await checkNotificationPreference(recipient.id, "surat_masuk_baru");
+    if (!pref.inApp) continue;
+
+    await createNotification({
+      userId: recipient.id,
+      type: "surat_masuk_baru",
+      title: "Surat Masuk Baru",
+      message: `Surat masuk baru "${suratPerihal}" dari ${pengirim}`,
+      entitasType: "surat_masuk",
+      entitasId: suratMasukId,
+    });
+  }
+}
+
+export async function pruneOldNotifications(daysOld: number = 90): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysOld);
+
+  const result = await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.isRead, true),
+        lt(notifications.createdAt, cutoff)
+      )
+    )
+    .returning({ id: notifications.id });
+
+  return result.length;
 }

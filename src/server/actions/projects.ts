@@ -14,7 +14,6 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/server/db";
 import {
@@ -31,6 +30,7 @@ import {
   projectToLabels,
   users,
 } from "@/server/db/schema";
+import { createNotification } from "@/server/actions/notifications";
 import { env } from "@/lib/env";
 import { parseDataUrl, sanitizeFileName } from "@/lib/storage/utils";
 import { getStorageProvider } from "@/lib/storage";
@@ -252,16 +252,13 @@ async function notifyProjectUser(input: {
   message: string;
   entitasId: string;
 }) {
-  await db.insert(notifications).values({
-    id: nanoid(),
+  await createNotification({
     userId: input.userId,
     type: input.type,
     title: input.title,
     message: input.message,
     entitasType: "project",
     entitasId: input.entitasId,
-    isRead: false,
-    isEmailSent: false,
   });
 }
 

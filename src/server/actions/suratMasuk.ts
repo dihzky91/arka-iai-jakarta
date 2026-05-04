@@ -12,6 +12,7 @@ import {
   suratMasukUpdateSchema,
 } from "@/lib/validators/suratMasuk.schema";
 import { requirePermission, requireSession } from "./auth";
+import { notifySuratMasukBaru } from "./notifications";
 
 export type SuratMasukRow = {
   id: string;
@@ -112,6 +113,8 @@ export async function createSuratMasuk(data: unknown) {
     entitasId: row!.id,
     detail: { perihal: parsed.perihal, pengirim: parsed.pengirim },
   });
+
+  void notifySuratMasukBaru(parsed.perihal, parsed.pengirim, row!.id);
 
   revalidatePath("/surat-masuk");
   return { ok: true as const, data: row! };

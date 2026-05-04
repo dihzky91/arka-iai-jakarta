@@ -29,6 +29,11 @@ import {
   suratKeluarUpdateSchema,
 } from "@/lib/validators/suratKeluar.schema";
 import { requirePermission, requireSession } from "./auth";
+import {
+  notifySuratKeluarApproval,
+  notifySuratKeluarRevisi,
+  notifySuratKeluarSelesai,
+} from "./notifications";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -477,7 +482,12 @@ export async function ajukanPersetujuan(data: { id: string }) {
   const session = await requirePermission("suratKeluar", "update");
 
   const [existing] = await db
-    .select({ status: suratKeluar.status })
+    .select({
+      status: suratKeluar.status,
+      perihal: suratKeluar.perihal,
+      dibuatOleh: suratKeluar.dibuatOleh,
+      pejabatId: suratKeluar.pejabatId,
+    })
     .from(suratKeluar)
     .where(eq(suratKeluar.id, id));
 
@@ -501,6 +511,27 @@ export async function ajukanPersetujuan(data: { id: string }) {
     entitasId: id,
     detail: null,
   });
+
+  // Notify pejabat that approval is needed
+  if (existing.pejabatId) {
+    const [pejabatUser] = await db
+      .select({ userId: pejabatPenandatangan.userId })
+      .from(pejabatPenandatangan)
+      .where(eq(pejabatPenandatangan.id, existing.pejabatId))
+      .limit(1);
+
+    if (pejabatUser?.userId) {
+      const pengirimNama = (session.user as { namaLengkap?: string; name?: string }).namaLengkap
+        ?? session.user.name
+        ?? "Pengirim";
+      void notifySuratKeluarApproval(
+        pejabatUser.userId,
+        pengirimNama,
+        existing.perihal,
+        id
+      );
+    }
+  }
 
   revalidatePath("/surat-keluar");
   return { ok: true as const };
@@ -581,6 +612,11 @@ export async function tolakSurat(data: { id: string; catatanReviu: string }) {
   const guard = await ensureSuratStatus(parsed.id, ["reviu"]);
   if (!guard.ok) return guard;
 
+  const [existing] = await db
+    .select({ perihal: suratKeluar.perihal, dibuatOleh: suratKeluar.dibuatOleh })
+    .from(suratKeluar)
+    .where(eq(suratKeluar.id, parsed.id));
+
   await db
     .update(suratKeluar)
     .set({
@@ -599,6 +635,20 @@ export async function tolakSurat(data: { id: string; catatanReviu: string }) {
     detail: { catatanReviu: parsed.catatanReviu },
   });
 
+  // Notify creator about revision request
+  if (existing?.dibuatOleh) {
+    const pejabatNama = (session.user as { namaLengkap?: string; name?: string }).namaLengkap
+      ?? session.user.name
+      ?? "Pejabat";
+    void notifySuratKeluarRevisi(
+      existing.dibuatOleh,
+      pejabatNama,
+      existing.perihal,
+      parsed.catatanReviu,
+      parsed.id
+    );
+  }
+
   revalidatePath("/surat-keluar");
   return { ok: true as const };
 }
@@ -615,6 +665,8 @@ export async function selesaikanSurat(data: { id: string }) {
       nomorSurat: suratKeluar.nomorSurat,
       qrCodeUrl: suratKeluar.qrCodeUrl,
       fileFinalUrl: suratKeluar.fileFinalUrl,
+      perihal: suratKeluar.perihal,
+      dibuatOleh: suratKeluar.dibuatOleh,
     })
     .from(suratKeluar)
     .where(eq(suratKeluar.id, id));
@@ -652,6 +704,16 @@ export async function selesaikanSurat(data: { id: string }) {
     entitasId: id,
     detail: null,
   });
+
+  // Notify creator that surat is complete
+  if (existing.dibuatOleh) {
+    void notifySuratKeluarSelesai(
+      existing.dibuatOleh,
+      existing.perihal,
+      existing.nomorSurat,
+      id
+    );
+  }
 
   revalidatePath("/surat-keluar");
   return { ok: true as const };
