@@ -16,6 +16,7 @@ import {
   primaryKey,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
 
@@ -195,6 +196,7 @@ export const users = pgTable("users", {
   qrContactUrl: text("qr_contact_url"),
   isActive: boolean("is_active").default(true),
   activatedAt: timestamp("activated_at"),
+  dingtalkUserId: text("dingtalk_user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2062,6 +2064,128 @@ export type HonorariumDeduction = typeof honorariumDeductions.$inferSelect;
 export type NewHonorariumDeduction = typeof honorariumDeductions.$inferInsert;
 export type HonorariumAuditLog = typeof honorariumAuditLogs.$inferSelect;
 export type NewHonorariumAuditLog = typeof honorariumAuditLogs.$inferInsert;
+
+// ─── DINGTALK INTEGRATION ────────────────────────────────────────────────────
+
+export const statusAbsensiEnum = pgEnum("status_absensi", [
+  "hadir",
+  "terlambat",
+  "alpha",
+  "cuti",
+  "dinas_luar",
+  "izin",
+  "sakit",
+]);
+
+export const sumberAbsensiEnum = pgEnum("sumber_absensi", ["dingtalk", "manual"]);
+
+export const jenisCutiEnum = pgEnum("jenis_cuti", [
+  "tahunan",
+  "sakit",
+  "melahirkan",
+  "menikah",
+  "kematian",
+  "lainnya",
+]);
+
+export const statusCutiEnum = pgEnum("status_cuti", [
+  "draft",
+  "diajukan",
+  "disetujui",
+  "ditolak",
+  "dibatalkan",
+]);
+
+export const statusDingtalkSyncEnum = pgEnum("status_dingtalk_sync", [
+  "success",
+  "partial",
+  "failed",
+]);
+
+export const absensiKaryawan = pgTable(
+  "absensi_karyawan",
+  {
+    id: text("id").primaryKey(),
+    // nullable — null berarti user belum punya akun ARKA (hanya DingTalk)
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    // diisi saat userId null (user DingTalk tanpa akun ARKA)
+    dingtalkUserId: text("dingtalk_user_id"),
+    dingtalkNama: varchar("dingtalk_nama", { length: 200 }),
+    tanggal: date("tanggal").notNull(),
+    jamMasuk: timestamp("jam_masuk", { withTimezone: true }),
+    jamPulang: timestamp("jam_pulang", { withTimezone: true }),
+    status: statusAbsensiEnum("status").notNull().default("hadir"),
+    keterlambatanMenit: integer("keterlambatan_menit").default(0),
+    sumber: sumberAbsensiEnum("sumber").notNull().default("dingtalk"),
+    dingtalkRecordId: text("dingtalk_record_id"),
+    catatan: text("catatan"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    // Partial unique index: untuk record yang ter-link ke ARKA user
+    uniqArkaAbsensi: uniqueIndex("uniq_absensi_arka_user")
+      .on(t.userId, t.tanggal, t.sumber)
+      .where(sql`user_id IS NOT NULL`),
+    // Partial unique index: untuk record DingTalk-only (belum ada akun ARKA)
+    uniqDtkAbsensi: uniqueIndex("uniq_absensi_dtk_user")
+      .on(t.dingtalkUserId, t.tanggal, t.sumber)
+      .where(sql`user_id IS NULL`),
+    idxTanggal: index("idx_absensi_tanggal").on(t.tanggal),
+    idxUserId: index("idx_absensi_user_id").on(t.userId),
+    idxDtkUserId: index("idx_absensi_dtk_user_id").on(t.dingtalkUserId),
+  }),
+);
+
+export const pengajuanCuti = pgTable(
+  "pengajuan_cuti",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jenisCuti: jenisCutiEnum("jenis_cuti").notNull(),
+    tanggalMulai: date("tanggal_mulai").notNull(),
+    tanggalSelesai: date("tanggal_selesai").notNull(),
+    jumlahHari: integer("jumlah_hari").notNull(),
+    alasan: text("alasan"),
+    status: statusCutiEnum("status").notNull().default("draft"),
+    dingtalkProcessId: text("dingtalk_process_id"),
+    dingtalkFormCode: text("dingtalk_form_code"),
+    approvedBy: text("approved_by").references(() => users.id),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    rejectedReason: text("rejected_reason"),
+    lampiranUrl: text("lampiran_url"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    idxCutiUserId: index("idx_cuti_user_id").on(t.userId),
+    idxCutiStatus: index("idx_cuti_status").on(t.status),
+    idxCutiTanggal: index("idx_cuti_tanggal").on(t.tanggalMulai, t.tanggalSelesai),
+  }),
+);
+
+export const dingtalkConfig = pgTable("dingtalk_config", {
+  id: serial("id").primaryKey(),
+  appKey: text("app_key").notNull(),
+  appSecret: text("app_secret").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  syncIntervalMenit: integer("sync_interval_menit").notNull().default(60),
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+  lastSyncStatus: statusDingtalkSyncEnum("last_sync_status"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ─── TYPE EXPORTS (DingTalk) ──────────────────────────────────────────────────
+
+export type AbsensiKaryawan = typeof absensiKaryawan.$inferSelect;
+export type NewAbsensiKaryawan = typeof absensiKaryawan.$inferInsert;
+export type PengajuanCuti = typeof pengajuanCuti.$inferSelect;
+export type NewPengajuanCuti = typeof pengajuanCuti.$inferInsert;
+export type DingtalkConfig = typeof dingtalkConfig.$inferSelect;
+export type NewDingtalkConfig = typeof dingtalkConfig.$inferInsert;
 
 // ─── TYPE EXPORTS (Penomoran Sertifikat) ─────────────────────────────────────
 

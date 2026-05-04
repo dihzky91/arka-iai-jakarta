@@ -152,3 +152,30 @@ export async function testDatabaseConnection() {
     };
   }
 }
+
+export async function testDingtalkConnection() {
+  await requireSession();
+  if (!env.DINGTALK_APP_KEY || !env.DINGTALK_APP_SECRET) {
+    return { ok: false as const, error: "DINGTALK_APP_KEY atau DINGTALK_APP_SECRET belum di-set." };
+  }
+  try {
+    const start = Date.now();
+    const res = await fetch(`${env.DINGTALK_BASE_URL}/v1.0/oauth2/accessToken`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appKey: env.DINGTALK_APP_KEY, appSecret: env.DINGTALK_APP_SECRET }),
+    });
+    const elapsed = Date.now() - start;
+    if (!res.ok) {
+      const text = await res.text();
+      return { ok: false as const, error: `HTTP ${res.status}: ${text}` };
+    }
+    const data = (await res.json()) as { accessToken?: string; message?: string };
+    if (!data.accessToken) {
+      return { ok: false as const, error: data.message ?? "Token tidak diterima." };
+    }
+    return { ok: true as const, message: `DingTalk OK (${elapsed}ms). Token diterima.` };
+  } catch (e) {
+    return { ok: false as const, error: e instanceof Error ? e.message : "Gagal koneksi DingTalk." };
+  }
+}

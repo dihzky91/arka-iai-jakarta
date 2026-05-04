@@ -818,7 +818,7 @@ export async function getAvailableYears(): Promise<number[]> {
       year: sql<number>`extract(year from ${certificateBatches.createdAt})::int`,
     })
     .from(certificateBatches)
-    .orderBy(desc(sql`extract(year from ${certificateBatches.createdAt})`));
+    .orderBy(desc(sql`extract(year from ${certificateBatches.createdAt})::int`));
 
   return rows.map((r) => r.year);
 }

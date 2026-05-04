@@ -98,12 +98,14 @@ export async function createKelasOtomatis(data: KelasOtomatisCreateInput) {
 
   // Insert excluded dates
   if (parsed.excludedDates.length > 0) {
-    const uniqueDates = [...new Set(parsed.excludedDates)];
-    for (const date of uniqueDates) {
+    const seen = new Set<string>();
+    for (const entry of parsed.excludedDates) {
+      if (seen.has(entry.date)) continue;
+      seen.add(entry.date);
       try {
         await db
           .insert(classExcludedDates)
-          .values({ id: nanoid(), kelasId: id, date, reason: "Manual" })
+          .values({ id: nanoid(), kelasId: id, date: entry.date, reason: entry.reason ?? "Manual" })
           .onConflictDoNothing();
       } catch {
         // skip duplicate

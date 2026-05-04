@@ -48,4 +48,7 @@ export const env = {
   MAILJET_API_SECRET: readEnv("MAILJET_API_SECRET"),
   MAILJET_FROM_EMAIL: readEnv("MAILJET_FROM_EMAIL"),
   MAILJET_FROM_NAME: readEnv("MAILJET_FROM_NAME"),
+  DINGTALK_APP_KEY: readEnv("DINGTALK_APP_KEY"),
+  DINGTALK_APP_SECRET: readEnv("DINGTALK_APP_SECRET"),
+  DINGTALK_BASE_URL: readEnvOptional("DINGTALK_BASE_URL") || "https://api.dingtalk.com",
 };

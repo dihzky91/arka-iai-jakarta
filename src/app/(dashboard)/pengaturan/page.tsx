@@ -7,6 +7,7 @@ import { NotifikasiPreferencesCard } from "@/components/pengaturan/NotifikasiPre
 import { SistemStatusSection } from "@/components/pengaturan/SistemStatusSection";
 import { ManajemenUserCard } from "@/components/pengaturan/ManajemenUserCard";
 import { RoleManagementCard } from "@/components/pengaturan/RoleManagementCard";
+import { DingtalkConfigCard } from "@/components/pengaturan/DingtalkConfigCard";
 import { PengaturanTabs } from "@/components/pengaturan/PengaturanTabs";
 import {
   getSystemSettings,
@@ -24,6 +25,11 @@ import {
   listRoleManagementRows,
   listRoleOptions,
 } from "@/server/actions/roles";
+import {
+  getDingtalkConfig,
+  getDingtalkSyncStatus,
+  getDingtalkUserMappings,
+} from "@/server/actions/dingtalk/config";
 
 export const metadata: Metadata = {
   title: "Pengaturan | ARKA",
@@ -53,6 +59,10 @@ export default async function PengaturanPage() {
     ReturnType<typeof listCapabilityMetadata>
   > | null = null;
 
+  let dingtalkConfig = null;
+  let dingtalkSyncStatus = null;
+  let dingtalkMappings: Awaited<ReturnType<typeof getDingtalkUserMappings>>["data"] = [];
+
   if (isAdmin) {
     [
       invitations,
@@ -61,6 +71,9 @@ export default async function PengaturanPage() {
       roleOptions,
       roleRows,
       capabilityMetadata,
+      dingtalkConfig,
+      dingtalkSyncStatus,
+      dingtalkMappings,
     ] = await Promise.all([
       listInvitations(),
       listUsersForManagement(),
@@ -70,6 +83,9 @@ export default async function PengaturanPage() {
       listRoleOptions(),
       listRoleManagementRows(),
       listCapabilityMetadata(),
+      getDingtalkConfig(),
+      getDingtalkSyncStatus(),
+      getDingtalkUserMappings().then((r) => r.data),
     ]);
   }
 
@@ -106,6 +122,15 @@ export default async function PengaturanPage() {
               roles={roleRows}
               capabilityGroups={capabilityMetadata.groups}
               capabilityLabels={capabilityMetadata.labels}
+            />
+          ) : undefined
+        }
+        dingtalk={
+          isAdmin ? (
+            <DingtalkConfigCard
+              initialConfig={dingtalkConfig?.data ?? null}
+              initialSyncStatus={dingtalkSyncStatus?.data ?? null}
+              initialMappings={dingtalkMappings}
             />
           ) : undefined
         }

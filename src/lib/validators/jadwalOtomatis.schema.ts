@@ -14,7 +14,12 @@ export const kelasOtomatisCreateSchema = z.object({
   certificateClassCode: z.enum(["01", "02", "03"]).optional().or(z.literal("")),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
   lokasi: z.string().trim().max(300).optional().or(z.literal("")),
-  excludedDates: z.array(z.string()),
+  excludedDates: z.array(
+    z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid"),
+      reason: z.string().trim().max(200).optional(),
+    }),
+  ),
 });
 
 export type KelasOtomatisCreateInput = z.infer<typeof kelasOtomatisCreateSchema>;

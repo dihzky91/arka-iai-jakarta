@@ -32,7 +32,9 @@ export type PermissionModule =
   | "calendar"
   | "search"
   | "profile"
-  | "manajemenUser";
+  | "manajemenUser"
+  | "absensi"
+  | "cuti";
 
 export type PermissionAction =
   | "view"
@@ -44,7 +46,8 @@ export type PermissionAction =
   | "configure"
   | "generate"
   | "assign"
-  | "export";
+  | "export"
+  | "sync";
 
 
 const PERMISSION_TO_CAPABILITY: Record<
@@ -178,6 +181,18 @@ const PERMISSION_TO_CAPABILITY: Record<
     update: "users:manage",
     delete: "users:manage",
     manage: "users:manage",
+  },
+  absensi: {
+    view: "absensi:view",
+    sync: "absensi:sync",
+    manage: "absensi:sync",
+  },
+  cuti: {
+    view: "cuti:view",
+    create: "cuti:create",
+    update: "cuti:update",
+    approve: "cuti:approve",
+    manage: "cuti:approve",
   },
 };
 

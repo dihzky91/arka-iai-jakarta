@@ -583,22 +583,22 @@ Semua operasi sync dicatat di `audit_log`:
 - [ ] Buat Zod validators
 
 ### Fase 3 — API Wrapper
-- [ ] Buat `src/lib/dingtalk/attendance.ts`
-- [ ] Buat `src/lib/dingtalk/leave.ts`
+- [x] Buat `src/lib/dingtalk/attendance.ts`
+- [x] Buat `src/lib/dingtalk/leave.ts`
 
 ### Fase 4 — Server Actions
-- [ ] Buat `src/server/actions/dingtalk/sync-attendance.ts`
-- [ ] Buat `src/server/actions/dingtalk/sync-leave.ts`
-- [ ] Buat `src/server/actions/dingtalk/submit-leave.ts`
-- [ ] Buat `src/server/actions/dingtalk/config.ts`
-- [ ] Tambah audit logging
+- [x] Buat `src/server/actions/dingtalk/sync-attendance.ts`
+- [x] Buat `src/server/actions/dingtalk/sync-leave.ts`
+- [x] Buat `src/server/actions/dingtalk/submit-leave.ts`
+- [x] Buat `src/server/actions/dingtalk/config.ts`
+- [x] Tambah audit logging
 
 ### Fase 5 — UI
-- [ ] Tambah sidebar menu Absensi & Cuti
-- [ ] Buat halaman Absensi (manager, calendar, stats)
-- [ ] Buat halaman Cuti (manager, form, approval)
-- [ ] Buat tab DingTalk di Pengaturan
-- [ ] Buat fitur mapping pegawai
+- [x] Tambah sidebar menu Absensi & Cuti
+- [x] Buat halaman Absensi (manager, calendar, stats)
+- [x] Buat halaman Cuti (manager, form, approval)
+- [x] Buat tab DingTalk di Pengaturan
+- [x] Buat fitur mapping pegawai (via `getDingtalkUserMappings` / `updateDingtalkUserMapping`)
 - [ ] Tambah notification types baru (cuti disetujui/ditolak)
 
 ### Fase 6 — Testing & Polish

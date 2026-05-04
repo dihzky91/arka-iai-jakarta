@@ -8,6 +8,7 @@ import {
   Loader2,
   Mail,
   PlugZap,
+  Webhook,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import {
   testDatabaseConnection,
+  testDingtalkConnection,
   testEmailConnection,
   testStorageConnection,
 } from "@/server/actions/systemConfig";
@@ -77,6 +79,13 @@ export function TestConnectionCard({ isAdmin }: Props) {
               description="Ping database dengan SELECT 1."
               action={testDatabaseConnection}
               actionLabel="Ping Database"
+            />
+            <TestRow
+              icon={Webhook}
+              label="DingTalk"
+              description="Test koneksi ke DingTalk API menggunakan kredensial yang dikonfigurasi."
+              action={testDingtalkConnection}
+              actionLabel="Test DingTalk"
             />
           </>
         )}

@@ -70,6 +70,12 @@ export const CAPABILITIES = [
   "projects:comment",
   "projects:upload",
   "projects:manage_members",
+  "absensi:view",
+  "absensi:sync",
+  "cuti:view",
+  "cuti:create",
+  "cuti:update",
+  "cuti:approve",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -176,6 +182,17 @@ export const CAPABILITY_GROUPS: Array<{
     ],
   },
   {
+    label: "Kepegawaian",
+    capabilities: [
+      "absensi:view",
+      "absensi:sync",
+      "cuti:view",
+      "cuti:create",
+      "cuti:update",
+      "cuti:approve",
+    ],
+  },
+  {
     label: "Sistem",
     capabilities: [
       "pengaturan:view",
@@ -258,6 +275,12 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "projects:comment": "Komentar project",
   "projects:upload": "Upload file project",
   "projects:manage_members": "Kelola anggota project",
+  "absensi:view": "Lihat absensi karyawan",
+  "absensi:sync": "Sync absensi dari DingTalk",
+  "cuti:view": "Lihat pengajuan cuti",
+  "cuti:create": "Buat pengajuan cuti",
+  "cuti:update": "Ubah pengajuan cuti",
+  "cuti:approve": "Setujui/tolak pengajuan cuti",
 };
 
 export const DEFAULT_ROLE_CAPABILITIES: Record<
@@ -299,6 +322,11 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "projects:comment",
     "projects:upload",
     "projects:manage_members",
+    "absensi:view",
+    "absensi:sync",
+    "cuti:view",
+    "cuti:create",
+    "cuti:update",
   ],
   pejabat: [
     "surat_masuk:view",
@@ -340,6 +368,9 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "projects:view",
     "projects:comment",
     "projects:upload",
+    "absensi:view",
+    "cuti:view",
+    "cuti:approve",
   ],
   viewer: [
     "surat_masuk:view",
@@ -359,6 +390,8 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "profile:view",
     "profile:edit",
     "projects:view",
+    "absensi:view",
+    "cuti:view",
   ],
 };
 

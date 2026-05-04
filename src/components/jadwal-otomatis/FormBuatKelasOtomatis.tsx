@@ -53,8 +53,9 @@ interface FormBuatKelasOtomatisProps {
 export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOtomatisProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [excludedDates, setExcludedDates] = useState<string[]>([]);
+  const [excludedDates, setExcludedDates] = useState<{ date: string; reason: string }[]>([]);
   const [excludeInput, setExcludeInput] = useState("");
+  const [excludeReason, setExcludeReason] = useState("");
 
   const form = useForm<KelasOtomatisCreateInput>({
     resolver: zodResolver(kelasOtomatisCreateSchema),
@@ -71,18 +72,20 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
       toast.error("Format tanggal harus YYYY-MM-DD");
       return;
     }
-    if (excludedDates.includes(excludeInput)) {
+    if (excludedDates.some((d) => d.date === excludeInput)) {
       toast.error("Tanggal sudah ditambahkan");
       return;
     }
-    const updated = [...excludedDates, excludeInput];
+    const entry = { date: excludeInput, reason: excludeReason.trim() };
+    const updated = [...excludedDates, entry];
     setExcludedDates(updated);
     form.setValue("excludedDates", updated);
     setExcludeInput("");
+    setExcludeReason("");
   }
 
   function removeExcludedDate(date: string) {
-    const updated = excludedDates.filter((d) => d !== date);
+    const updated = excludedDates.filter((d) => d.date !== date);
     setExcludedDates(updated);
     form.setValue("excludedDates", updated);
   }
@@ -301,7 +304,14 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
                   type="date"
                   value={excludeInput}
                   onChange={(e) => setExcludeInput(e.target.value)}
-                  placeholder="YYYY-MM-DD"
+                  className="w-44"
+                />
+                <Input
+                  type="text"
+                  value={excludeReason}
+                  onChange={(e) => setExcludeReason(e.target.value)}
+                  placeholder="Keterangan (opsional, mis. Libur Nasional)"
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addExcludedDate())}
                 />
                 <Button type="button" variant="outline" onClick={addExcludedDate}>
                   Tambah
@@ -309,10 +319,11 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
               </div>
               {excludedDates.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {excludedDates.map((date) => (
+                  {excludedDates.map(({ date, reason }) => (
                     <Badge key={date} variant="secondary" className="gap-1">
                       <Calendar className="h-3 w-3" />
                       {date}
+                      {reason && <span className="text-muted-foreground">· {reason}</span>}
                       <button
                         type="button"
                         onClick={() => removeExcludedDate(date)}
