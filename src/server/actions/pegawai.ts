@@ -1,8 +1,9 @@
-"use server";
+﻿"use server";
 
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   users,
   account,
@@ -159,7 +160,7 @@ export async function createPegawai(data: unknown) {
     password: PENDING_INVITE_PASSWORD,
   });
 
-  // 3. Trigger email aktivasi via Better Auth → callback sendResetPassword di auth.ts.
+  // 3. Trigger email aktivasi via Better Auth â†’ callback sendResetPassword di auth.ts.
   //    Tanda `?invite=1` membantu callback memilih template "undangan" alih-alih "reset".
   let inviteSent = true;
   try {
@@ -172,11 +173,11 @@ export async function createPegawai(data: unknown) {
   } catch (err) {
     inviteSent = false;
     console.error("[createPegawai] Gagal kirim invite email:", err);
-    // Tidak rollback — admin bisa retry kirim ulang dari menu (TODO: resendInvite).
+    // Tidak rollback â€” admin bisa retry kirim ulang dari menu (TODO: resendInvite).
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_PEGAWAI",
     entitasType: "users",
     entitasId: row!.id,
@@ -219,8 +220,8 @@ export async function updatePegawai(data: unknown) {
       return { ok: false as const, error: "Pegawai tidak ditemukan." };
     }
 
-    await db.insert(auditLog).values({
-      userId: session.user.id as string,
+    await writeAuditLog({
+      userId: session.user.id,
       aksi: "UPDATE_PEGAWAI",
       entitasType: "users",
       entitasId: row.id,
@@ -270,8 +271,8 @@ export async function deletePegawai(data: unknown) {
     .where(eq(pegawaiPernyataanIntegritas.userId, parsed.id));
   await db.delete(users).where(eq(users.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "DELETE_PEGAWAI",
     entitasType: "users",
     entitasId: parsed.id,
@@ -282,7 +283,7 @@ export async function deletePegawai(data: unknown) {
   return { ok: true as const };
 }
 
-// ─── Keluarga ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Keluarga â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type KeluargaRow = typeof pegawaiKeluarga.$inferSelect;
 
@@ -334,7 +335,7 @@ export async function deleteKeluarga(data: unknown) {
   return { ok: true as const };
 }
 
-// ─── Pendidikan ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Pendidikan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type PendidikanRow = typeof pegawaiPendidikan.$inferSelect;
 
@@ -386,7 +387,7 @@ export async function deletePendidikan(data: unknown) {
   return { ok: true as const };
 }
 
-// ─── Pekerjaan ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Pekerjaan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type PekerjaanRow = typeof pegawaiRiwayatPekerjaan.$inferSelect;
 
@@ -438,7 +439,7 @@ export async function deletePekerjaan(data: unknown) {
   return { ok: true as const };
 }
 
-// ─── Kesehatan ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Kesehatan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type KesehatanRow = typeof pegawaiKesehatan.$inferSelect;
 
@@ -468,7 +469,7 @@ export async function upsertKesehatan(data: unknown) {
   return row!;
 }
 
-// ─── Integritas ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Integritas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type IntegritasRow = typeof pegawaiPernyataanIntegritas.$inferSelect;
 
@@ -498,7 +499,7 @@ export async function upsertIntegritas(data: unknown) {
   return row!;
 }
 
-// ─── Kelengkapan ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Kelengkapan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type KelengkapanRow = typeof pegawaiKelengkapan.$inferSelect;
 
@@ -537,7 +538,7 @@ export async function upsertKelengkapan(data: unknown) {
   return row!;
 }
 
-// ─── Reference ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function listPegawaiReference() {
   await requireSession();

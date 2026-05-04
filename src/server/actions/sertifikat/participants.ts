@@ -6,6 +6,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { auditLog, eventCertificateCounters, events, participantRevisions, participants, users } from "@/server/db/schema";
 import { requirePermission, requireSession } from "../auth";
 
@@ -317,7 +318,7 @@ export async function createParticipant(data: unknown) {
 
     if (!row) throw new Error("Gagal menambah peserta.");
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_SERTIFIKAT_PARTICIPANT",
       entitasType: "sertifikat_participant",
@@ -381,7 +382,7 @@ export async function updateParticipant(id: number, data: unknown) {
 
     if (!row) return { ok: false as const, error: "Peserta tidak ditemukan." };
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "UPDATE_SERTIFIKAT_PARTICIPANT",
       entitasType: "sertifikat_participant",
@@ -425,7 +426,7 @@ export async function deleteParticipant(id: number) {
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(eq(participants.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "SOFT_DELETE_SERTIFIKAT_PARTICIPANT",
     entitasType: "sertifikat_participant",
@@ -475,7 +476,7 @@ export async function revokeParticipant(
 
   if (!row) return { ok: false as const, error: "Gagal mencabut sertifikat." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "REVOKE_CERTIFICATE",
     entitasType: "sertifikat_participant",
@@ -530,7 +531,7 @@ export async function reactivateParticipant(
 
   if (!row) return { ok: false as const, error: "Gagal mengaktifkan kembali sertifikat." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "REACTIVATE_CERTIFICATE",
     entitasType: "sertifikat_participant",
@@ -715,7 +716,7 @@ export async function reissueParticipant(
       return created;
     });
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "REISSUE_CERTIFICATE",
       entitasType: "sertifikat_participant",
@@ -874,7 +875,7 @@ export async function restoreParticipant(id: number) {
     .set({ deletedAt: null, updatedAt: new Date() })
     .where(eq(participants.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "RESTORE_SERTIFIKAT_PARTICIPANT",
     entitasType: "sertifikat_participant",
@@ -913,7 +914,7 @@ export async function bulkDeleteParticipants(ids: number[]) {
 
   const eventIds = [...new Set(existing.map((row) => row.eventId))];
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "BULK_SOFT_DELETE_PARTICIPANTS",
     entitasType: "sertifikat_participant",
@@ -961,7 +962,7 @@ export async function bulkRevokeParticipants(ids: number[], reason?: string) {
 
   const eventIds = [...new Set(existing.map((row) => row.eventId))];
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "BULK_REVOKE_CERTIFICATES",
     entitasType: "sertifikat_participant",
@@ -1120,7 +1121,7 @@ export async function bulkImportParticipants(
     errors,
   };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "IMPORT_SERTIFIKAT_PARTICIPANTS",
     entitasType: "sertifikat_event",

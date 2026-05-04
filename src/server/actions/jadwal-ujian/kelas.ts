@@ -4,6 +4,7 @@ import { asc, eq, sql, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { kelasUjian, jadwalUjian, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 import {
@@ -84,7 +85,7 @@ export async function createKelas(data: KelasCreateInput) {
   const row = rows[0];
   if (!row) throw new Error("Gagal membuat kelas");
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_KELAS_UJIAN",
     entitasType: "kelas_ujian",
@@ -116,7 +117,7 @@ export async function updateKelas(data: KelasUpdateInput) {
   const row = rows[0];
   if (!row) return { ok: false as const, error: "Kelas tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_KELAS_UJIAN",
     entitasType: "kelas_ujian",
@@ -146,7 +147,7 @@ export async function deleteKelas(id: string) {
 
   await db.delete(kelasUjian).where(eq(kelasUjian.id, id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_KELAS_UJIAN",
     entitasType: "kelas_ujian",

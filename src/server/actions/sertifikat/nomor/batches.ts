@@ -4,6 +4,7 @@ import { and, asc, count, desc, eq, max, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   certificateBatches,
@@ -546,7 +547,7 @@ export async function generateBatch(data: unknown) {
     await setLastSerial(endSerial);
 
     // 6. Audit log
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "GENERATE_CERT_BATCH",
       entitasType: "cert_batch",
@@ -657,7 +658,7 @@ export async function updateBatchQuantity(rawData: unknown) {
 
     await setLastSerial(newMaxRow?.maxSerial ?? 0);
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "DECREASE_CERT_BATCH_QTY",
       entitasType: "cert_batch",
@@ -704,7 +705,7 @@ export async function updateBatchQuantity(rawData: unknown) {
       })
       .where(eq(certificateBatches.id, batchId));
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "INCREASE_CERT_BATCH_QTY",
       entitasType: "cert_batch",
@@ -744,7 +745,7 @@ export async function cancelBatch(id: string) {
     .set({ status: "cancelled" })
     .where(eq(certificateItems.batchId, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CANCEL_CERT_BATCH",
     entitasType: "cert_batch",

@@ -4,6 +4,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   certificateBatches,
@@ -67,7 +68,7 @@ export async function createCertificateProgram(data: unknown) {
 
     if (!row) throw new Error("Gagal membuat program.");
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_CERT_PROGRAM",
       entitasType: "cert_program",
@@ -112,7 +113,7 @@ export async function updateCertificateProgram(id: string, data: unknown) {
 
     if (!row) return { ok: false as const, error: "Program tidak ditemukan." };
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "UPDATE_CERT_PROGRAM",
       entitasType: "cert_program",
@@ -162,7 +163,7 @@ export async function deleteCertificateProgram(id: string) {
 
   await db.delete(certificatePrograms).where(eq(certificatePrograms.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_CERT_PROGRAM",
     entitasType: "cert_program",

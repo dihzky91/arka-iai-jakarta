@@ -7,6 +7,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   certificateTemplates,
@@ -143,7 +144,7 @@ export async function createTemplate(input: {
 
     if (!row) throw new Error("Gagal membuat template.");
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_CERTIFICATE_TEMPLATE",
       entitasType: "sertifikat_template",
@@ -189,7 +190,7 @@ export async function updateTemplate(
 
   if (!row) return { ok: false, error: "Template tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_CERTIFICATE_TEMPLATE",
     entitasType: "sertifikat_template",
@@ -214,7 +215,7 @@ export async function deleteTemplate(id: number): Promise<{ ok: true; data: Temp
 
   if (!row) return { ok: false, error: "Template tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_CERTIFICATE_TEMPLATE",
     entitasType: "sertifikat_template",
@@ -253,7 +254,7 @@ export async function setDefaultTemplate(id: number): Promise<{ ok: true } | { o
       .where(eq(certificateTemplates.id, selected.id));
   });
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "SET_DEFAULT_CERTIFICATE_TEMPLATE",
     entitasType: "sertifikat_template",

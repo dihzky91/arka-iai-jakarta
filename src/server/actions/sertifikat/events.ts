@@ -16,6 +16,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   certificateTemplates,
@@ -406,7 +407,7 @@ export async function createEvent(data: unknown) {
       lastCounter: 0,
     });
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_SERTIFIKAT_EVENT",
       entitasType: "sertifikat_event",
@@ -456,7 +457,7 @@ export async function updateEvent(id: number, data: unknown) {
     await db.delete(eventSignatories).where(eq(eventSignatories.eventId, parsedId));
     await attachSignatories(parsedId, selectedSignatories);
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "UPDATE_SERTIFIKAT_EVENT",
       entitasType: "sertifikat_event",
@@ -493,7 +494,7 @@ export async function deleteEvent(id: number) {
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(eq(events.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "SOFT_DELETE_SERTIFIKAT_EVENT",
     entitasType: "sertifikat_event",
@@ -588,7 +589,7 @@ export async function restoreEvent(id: number) {
     .set({ deletedAt: null, updatedAt: new Date() })
     .where(eq(events.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "RESTORE_SERTIFIKAT_EVENT",
     entitasType: "sertifikat_event",
@@ -619,7 +620,7 @@ export async function updateEventStatus(eventId: number, statusEvent: StatusEven
 
   if (!row) return { ok: false as const, error: "Kegiatan tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_SERTIFIKAT_EVENT_STATUS",
     entitasType: "sertifikat_event",

@@ -1,9 +1,9 @@
-"use server";
+﻿"use server";
 
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   pejabatPenandatangan,
@@ -21,6 +21,7 @@ import {
   suratKeputusanUpdateSchema,
 } from "@/lib/validators/suratKeputusan.schema";
 import { requirePermission, requireSession } from "./auth";
+import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
 
 export type SuratKeputusanRow = {
   id: string;
@@ -40,12 +41,7 @@ export type SuratKeputusanRow = {
   updatedAt: Date | null;
 };
 
-const idSchema = z.object({ id: z.string().uuid() });
-const uploadFileSchema = z.object({
-  fileName: z.string().min(1, "Nama file wajib ada."),
-  contentType: z.string().min(1).optional(),
-  dataUrl: z.string().min(1, "Data file wajib ada."),
-});
+const idSchema = uuidIdSchema;
 
 export async function listSuratKeputusan(): Promise<SuratKeputusanRow[]> {
   await requireSession();
@@ -83,12 +79,12 @@ export async function createSuratKeputusan(data: unknown) {
     .values({
       id: crypto.randomUUID(),
       ...parsed,
-      dibuatOleh: session.user.id as string,
+      dibuatOleh: session.user.id,
     })
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_SURAT_KEPUTUSAN",
     entitasType: "surat_keputusan",
     entitasId: row!.id,
@@ -119,8 +115,8 @@ export async function updateSuratKeputusan(data: unknown) {
     .where(eq(suratKeputusan.id, id))
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_SURAT_KEPUTUSAN",
     entitasType: "surat_keputusan",
     entitasId: id,
@@ -146,8 +142,8 @@ export async function deleteSuratKeputusan(data: unknown) {
 
   await db.delete(suratKeputusan).where(eq(suratKeputusan.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "DELETE_SURAT_KEPUTUSAN",
     entitasType: "surat_keputusan",
     entitasId: parsed.id,
@@ -203,8 +199,8 @@ export async function generateQrSuratKeputusan(data: { id: string }) {
     .set({ qrCodeUrl, updatedAt: new Date() })
     .where(eq(suratKeputusan.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "GENERATE_QR_SURAT_KEPUTUSAN",
     entitasType: "surat_keputusan",
     entitasId: parsed.id,

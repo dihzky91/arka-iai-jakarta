@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createHash } from "node:crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
@@ -10,6 +10,7 @@ import JSZip from "jszip";
 import { buildCertificatePdf } from "@/lib/pdf/certificate";
 import { sendEmail } from "@/lib/email/mailjet";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   certificateTemplates,
@@ -259,7 +260,7 @@ export async function generateCertificatePdf(
 
   try {
     const result = await buildParticipantCertificate(participantId);
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "GENERATE_CERTIFICATE_PDF",
       entitasType: "sertifikat_participant",
@@ -322,7 +323,7 @@ export async function generateBulkCertificatesZip(
     }
 
     const zipBase64 = await zip.generateAsync({ type: "base64" });
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "GENERATE_BULK_CERTIFICATES",
       entitasType: "sertifikat_event",
@@ -391,7 +392,7 @@ async function sendCertificateEmailInternal(
       .set({ emailSentAt: new Date(), updatedAt: new Date() })
       .where(eq(participants.id, participantId));
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId,
       aksi: "SEND_CERTIFICATE_EMAIL",
       entitasType: "sertifikat_participant",
@@ -477,7 +478,7 @@ export async function sendBulkCertificateEmails(
     }
   }
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "SEND_BULK_CERTIFICATE_EMAILS",
     entitasType: "sertifikat_event",

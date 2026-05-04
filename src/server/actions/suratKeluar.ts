@@ -1,17 +1,17 @@
-"use server";
+﻿"use server";
 
 import { desc, eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { PDFDocument } from "pdf-lib";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   suratKeluar,
   auditLog,
   divisi,
   users,
   pejabatPenandatangan,
-  nomorSuratCounter,
 } from "@/server/db/schema";
 import { getStorageProvider } from "@/lib/storage";
 import {
@@ -34,8 +34,9 @@ import {
   notifySuratKeluarRevisi,
   notifySuratKeluarSelesai,
 } from "./notifications";
+import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type SuratKeluarRow = {
   id: string;
@@ -74,14 +75,9 @@ export type DivisiOption = {
   kode: string | null;
 };
 
-const idSchema = z.object({ id: z.string().uuid() });
+const idSchema = uuidIdSchema;
 const bulkAssignNomorSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
-});
-const uploadFileSchema = z.object({
-  fileName: z.string().min(1, "Nama file wajib ada."),
-  contentType: z.string().min(1).optional(),
-  dataUrl: z.string().min(1, "Data file wajib ada."),
 });
 const stampQrPdfSchema = z.object({
   id: z.string().uuid(),
@@ -119,7 +115,7 @@ async function ensureSuratStatus(
   return { ok: true as const, status };
 }
 
-// ─── Queries ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function listSuratKeluar(): Promise<SuratKeluarRow[]> {
   await requireSession();
@@ -186,7 +182,7 @@ export async function getSuratKeluarById(id: string) {
   return row ?? null;
 }
 
-// ─── Create ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function createSuratKeluar(data: unknown) {
   const parsed = suratKeluarCreateSchema.parse(data);
@@ -197,13 +193,13 @@ export async function createSuratKeluar(data: unknown) {
     .values({
       id: crypto.randomUUID(),
       ...parsed,
-      dibuatOleh: session.user.id as string,
+      dibuatOleh: session.user.id,
       status: "draft",
     })
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: row!.id,
@@ -389,8 +385,8 @@ export async function stampQrToSuratKeluarPdf(data: unknown) {
     })
     .where(eq(suratKeluar.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "STAMP_QR_PDF_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: parsed.id,
@@ -404,7 +400,7 @@ export async function stampQrToSuratKeluarPdf(data: unknown) {
   return { ok: true as const, data: uploaded };
 }
 
-// ─── Update ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function updateSuratKeluar(data: unknown) {
   const parsed = suratKeluarUpdateSchema.parse(data);
@@ -430,8 +426,8 @@ export async function updateSuratKeluar(data: unknown) {
     .where(eq(suratKeluar.id, id))
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -442,7 +438,7 @@ export async function updateSuratKeluar(data: unknown) {
   return { ok: true as const, data: row! };
 }
 
-// ─── Delete ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function deleteSuratKeluar(data: { id: string }) {
   const { id } = idSchema.parse(data);
@@ -463,8 +459,8 @@ export async function deleteSuratKeluar(data: { id: string }) {
 
   await db.delete(suratKeluar).where(eq(suratKeluar.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "DELETE_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -475,7 +471,7 @@ export async function deleteSuratKeluar(data: { id: string }) {
   return { ok: true as const };
 }
 
-// ─── Status Transitions ───────────────────────────────────────────────────────
+// â”€â”€â”€ Status Transitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function ajukanPersetujuan(data: { id: string }) {
   const { id } = idSchema.parse(data);
@@ -504,8 +500,8 @@ export async function ajukanPersetujuan(data: { id: string }) {
     .set({ status: "permohonan_persetujuan", updatedAt: new Date() })
     .where(eq(suratKeluar.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "AJUKAN_PERSETUJUAN_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -559,8 +555,8 @@ export async function mulaiReviu(data: { id: string }) {
     return { ok: false as const, error: "Surat tidak dapat masuk ke tahap reviu." };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "MULAI_REVIU_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -582,14 +578,14 @@ export async function setujuiSurat(data: { id: string }) {
     .update(suratKeluar)
     .set({
       status: "pengarsipan",
-      disetujuiOleh: session.user.id as string,
+      disetujuiOleh: session.user.id,
       tanggalDisetujui: new Date(),
       updatedAt: new Date(),
     })
     .where(eq(suratKeluar.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "SETUJUI_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -627,8 +623,8 @@ export async function tolakSurat(data: { id: string; catatanReviu: string }) {
     })
     .where(eq(suratKeluar.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "TOLAK_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: parsed.id,
@@ -697,8 +693,8 @@ export async function selesaikanSurat(data: { id: string }) {
     .set({ status: "selesai", updatedAt: new Date() })
     .where(eq(suratKeluar.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "SELESAIKAN_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -757,8 +753,8 @@ export async function generateQrSuratKeluar(data: { id: string }) {
     .set({ qrCodeUrl, updatedAt: new Date() })
     .where(eq(suratKeluar.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "GENERATE_QR_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -821,8 +817,8 @@ export async function batalkanSurat(data: { id: string }) {
     .set({ status: "dibatalkan", updatedAt: new Date() })
     .where(eq(suratKeluar.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "BATALKAN_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -833,7 +829,7 @@ export async function batalkanSurat(data: { id: string }) {
   return { ok: true as const };
 }
 
-// ─── Generate & Assign Nomor Surat ───────────────────────────────────────────
+// â”€â”€â”€ Generate & Assign Nomor Surat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Atomic: counter increment + nomorSurat assignment dalam satu DB transaction.
 
 export async function assignNomorSuratKeluar(data: { id: string }) {
@@ -889,8 +885,8 @@ export async function assignNomorSuratKeluar(data: { id: string }) {
     };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "ASSIGN_NOMOR_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: id,
@@ -942,8 +938,8 @@ export async function setManualNomorSuratKeluar(data: unknown) {
     return { ok: false as const, error: "Surat tidak ditemukan." };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "SET_MANUAL_NOMOR_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: parsed.id,
@@ -1086,8 +1082,8 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
     return results;
   });
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "BULK_ASSIGN_NOMOR_SURAT_KELUAR",
     entitasType: "surat_keluar",
     entitasId: assigned.map((item) => item.id).join(","),

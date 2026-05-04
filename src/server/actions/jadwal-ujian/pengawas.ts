@@ -4,6 +4,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { pengawas, penugasanPengawas, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 import {
@@ -56,7 +57,7 @@ export async function createPengawas(data: PengawasCreateInput) {
   const row = rows[0];
   if (!row) throw new Error("Gagal membuat pengawas");
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_PENGAWAS",
     entitasType: "pengawas",
@@ -84,7 +85,7 @@ export async function updatePengawas(data: PengawasUpdateInput) {
   const row = rows[0];
   if (!row) return { ok: false as const, error: "Pengawas tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_PENGAWAS",
     entitasType: "pengawas",
@@ -114,7 +115,7 @@ export async function deletePengawas(id: string) {
 
   await db.delete(pengawas).where(eq(pengawas.id, id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_PENGAWAS",
     entitasType: "pengawas",

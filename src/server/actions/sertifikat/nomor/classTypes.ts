@@ -4,6 +4,7 @@ import { asc, eq, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   certificateBatches,
@@ -76,7 +77,7 @@ export async function createCertificateClassType(data: unknown) {
 
     if (!row) throw new Error("Gagal membuat jenis kelas.");
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_CERT_CLASS_TYPE",
       entitasType: "cert_class_type",
@@ -123,7 +124,7 @@ export async function updateCertificateClassType(id: string, data: unknown) {
 
     if (!row) return { ok: false as const, error: "Jenis kelas tidak ditemukan." };
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "UPDATE_CERT_CLASS_TYPE",
       entitasType: "cert_class_type",
@@ -176,7 +177,7 @@ export async function deleteCertificateClassType(id: string) {
 
   await db.delete(certificateClassTypes).where(eq(certificateClassTypes.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_CERT_CLASS_TYPE",
     entitasType: "cert_class_type",
@@ -237,7 +238,7 @@ export async function updateSerialConfig(newValue: number) {
       set: { value: String(parsed), updatedAt: new Date() },
     });
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_CERT_SERIAL_CONFIG",
     entitasType: "cert_serial_config",

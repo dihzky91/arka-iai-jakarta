@@ -1,9 +1,9 @@
-"use server";
+﻿"use server";
 
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   pejabatPenandatangan,
@@ -21,6 +21,7 @@ import {
   suratMouUpdateSchema,
 } from "@/lib/validators/suratMou.schema";
 import { requirePermission, requireSession } from "./auth";
+import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
 
 export type SuratMouRow = {
   id: string;
@@ -42,12 +43,7 @@ export type SuratMouRow = {
   updatedAt: Date | null;
 };
 
-const idSchema = z.object({ id: z.string().uuid() });
-const uploadFileSchema = z.object({
-  fileName: z.string().min(1, "Nama file wajib ada."),
-  contentType: z.string().min(1).optional(),
-  dataUrl: z.string().min(1, "Data file wajib ada."),
-});
+const idSchema = uuidIdSchema;
 
 export async function listSuratMou(): Promise<SuratMouRow[]> {
   await requireSession();
@@ -87,12 +83,12 @@ export async function createSuratMou(data: unknown) {
     .values({
       id: crypto.randomUUID(),
       ...parsed,
-      dibuatOleh: session.user.id as string,
+      dibuatOleh: session.user.id,
     })
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_SURAT_MOU",
     entitasType: "surat_mou",
     entitasId: row!.id,
@@ -123,8 +119,8 @@ export async function updateSuratMou(data: unknown) {
     .where(eq(suratMou.id, id))
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_SURAT_MOU",
     entitasType: "surat_mou",
     entitasId: id,
@@ -150,8 +146,8 @@ export async function deleteSuratMou(data: unknown) {
 
   await db.delete(suratMou).where(eq(suratMou.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "DELETE_SURAT_MOU",
     entitasType: "surat_mou",
     entitasId: parsed.id,
@@ -207,8 +203,8 @@ export async function generateQrSuratMou(data: { id: string }) {
     .set({ qrCodeUrl, updatedAt: new Date() })
     .where(eq(suratMou.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "GENERATE_QR_SURAT_MOU",
     entitasType: "surat_mou",
     entitasId: parsed.id,

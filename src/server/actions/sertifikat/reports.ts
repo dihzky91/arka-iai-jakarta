@@ -3,6 +3,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { auditLog, events, participants } from "@/server/db/schema";
 import { requirePermission } from "../auth";
 
@@ -130,7 +131,7 @@ export async function exportEventReport(eventId: number): Promise<ExportResult> 
     const xlsxBase64 = Buffer.from(buffer).toString("base64");
 
     // 6. Audit log
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "EXPORT_EVENT_REPORT",
       entitasType: "sertifikat_event",

@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { cache } from "react";
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { disposisi, suratMasuk, users, auditLog } from "@/server/db/schema";
 import {
   disposisiCreateSchema,
@@ -106,7 +107,7 @@ export async function inboxDisposisi(): Promise<DisposisiTimelineRow[]> {
     })
     .from(disposisi)
     .innerJoin(suratMasuk, eq(disposisi.suratMasukId, suratMasuk.id))
-    .where(eq(disposisi.kepadaUserId, session.user.id as string))
+    .where(eq(disposisi.kepadaUserId, session.user.id))
     .orderBy(desc(disposisi.tanggalDisposisi));
 
   return hydrateTimelineRows(rows);
@@ -145,7 +146,7 @@ export const countUnreadDisposisi = cache(async (): Promise<number> => {
     .from(disposisi)
     .where(
       and(
-        eq(disposisi.kepadaUserId, session.user.id as string),
+        eq(disposisi.kepadaUserId, session.user.id),
         eq(disposisi.status, "belum_dibaca"),
       ),
     );
@@ -164,7 +165,7 @@ export async function listDisposisiRecipients(): Promise<DisposisiRecipientOptio
       jabatan: users.jabatan,
     })
     .from(users)
-    .where(and(eq(users.isActive, true), ne(users.id, session.user.id as string)))
+    .where(and(eq(users.isActive, true), ne(users.id, session.user.id)))
     .orderBy(asc(users.namaLengkap));
 }
 
@@ -177,7 +178,7 @@ export async function createDisposisi(data: unknown) {
     .values({
       id: crypto.randomUUID(),
       ...parsed,
-      dariUserId: session.user.id as string,
+      dariUserId: session.user.id,
     })
     .returning();
 
@@ -186,7 +187,7 @@ export async function createDisposisi(data: unknown) {
   const [[penerima], [surat], [pengirim]] = await Promise.all([
     db.select().from(users).where(eq(users.id, parsed.kepadaUserId)),
     db.select().from(suratMasuk).where(eq(suratMasuk.id, parsed.suratMasukId)),
-    db.select({ namaLengkap: users.namaLengkap }).from(users).where(eq(users.id, session.user.id as string)),
+    db.select({ namaLengkap: users.namaLengkap }).from(users).where(eq(users.id, session.user.id)),
   ]);
 
   if (penerima && surat) {
@@ -202,8 +203,8 @@ export async function createDisposisi(data: unknown) {
     void sendEmail({ to: penerima.email, toName: penerima.namaLengkap, ...email });
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_DISPOSISI",
     entitasType: "disposisi",
     entitasId: row!.id,
@@ -252,7 +253,7 @@ export async function updateStatusDisposisi(data: unknown) {
     .where(
       and(
         eq(disposisi.id, parsed.id),
-        eq(disposisi.kepadaUserId, session.user.id as string),
+        eq(disposisi.kepadaUserId, session.user.id),
       ),
     )
     .returning();
@@ -261,8 +262,8 @@ export async function updateStatusDisposisi(data: unknown) {
     return { ok: false as const, error: "Disposisi tidak ditemukan." };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_STATUS_DISPOSISI",
     entitasType: "disposisi",
     entitasId: parsed.id,

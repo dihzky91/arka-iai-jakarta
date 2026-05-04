@@ -4,6 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   eventSignatories,
@@ -65,7 +66,7 @@ export async function createSignatory(data: unknown) {
 
   if (!row) throw new Error("Gagal membuat penandatangan.");
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_SERTIFIKAT_SIGNATORY",
     entitasType: "sertifikat_signatory",
@@ -95,7 +96,7 @@ export async function updateSignatory(id: number, data: unknown) {
 
   if (!row) return { ok: false as const, error: "Penandatangan tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_SERTIFIKAT_SIGNATORY",
     entitasType: "sertifikat_signatory",
@@ -124,7 +125,7 @@ export async function deleteSignatory(id: number) {
   await db.delete(eventSignatories).where(eq(eventSignatories.signatoryId, parsedId));
   await db.delete(signatories).where(eq(signatories.id, parsedId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_SERTIFIKAT_SIGNATORY",
     entitasType: "sertifikat_signatory",

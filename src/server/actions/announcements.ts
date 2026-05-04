@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { cache } from "react";
 import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   announcementReads,
   announcements,
@@ -261,7 +262,7 @@ export async function createAnnouncement(data: unknown) {
 
   if (!row) throw new Error("Gagal membuat pengumuman.");
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_ANNOUNCEMENT",
     entitasType: "announcement",
@@ -298,7 +299,7 @@ export async function updateAnnouncement(data: unknown) {
 
   if (!row) return { ok: false as const, error: "Pengumuman tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_ANNOUNCEMENT",
     entitasType: "announcement",
@@ -325,7 +326,7 @@ export async function deleteAnnouncement(input: unknown) {
 
   await db.delete(announcements).where(eq(announcements.id, parsed.id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_ANNOUNCEMENT",
     entitasType: "announcement",
@@ -370,7 +371,7 @@ export async function duplicateAnnouncement(input: unknown) {
 
   if (!row) return { ok: false as const, error: "Gagal menduplikat pengumuman." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DUPLICATE_ANNOUNCEMENT",
     entitasType: "announcement",

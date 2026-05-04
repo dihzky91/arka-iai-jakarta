@@ -46,141 +46,6 @@ export type PermissionAction =
   | "assign"
   | "export";
 
-type PermissionMatrix = Record<
-  PermissionModule,
-  Partial<Record<PermissionAction, Role[]>>
->;
-
-const PERMISSION_MATRIX: PermissionMatrix = {
-  announcement: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin"],
-    update: ["admin"],
-    delete: ["admin"],
-    manage: ["admin"],
-  },
-  suratKeluar: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin", "staff", "pejabat"],
-    update: ["admin", "staff", "pejabat"],
-    delete: ["admin"],
-    approve: ["admin", "pejabat"],
-    generate: ["admin", "pejabat"],
-    assign: ["admin", "pejabat"],
-    manage: ["admin", "staff", "pejabat"],
-  },
-  suratMasuk: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin", "staff"],
-    update: ["admin", "staff", "pejabat"],
-    delete: ["admin"],
-    manage: ["admin", "staff"],
-  },
-  disposisi: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin", "pejabat"],
-    update: ["admin", "staff", "pejabat"],
-    manage: ["admin", "staff", "pejabat"],
-  },
-  pegawai: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin"],
-    update: ["admin"],
-    delete: ["admin"],
-    manage: ["admin"],
-  },
-  divisi: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin"],
-    update: ["admin"],
-    delete: ["admin"],
-    manage: ["admin"],
-  },
-  pejabat: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin"],
-    update: ["admin"],
-    delete: ["admin"],
-    manage: ["admin"],
-  },
-  nomor: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    generate: ["admin", "pejabat"],
-    update: ["admin"],
-    manage: ["admin", "pejabat"],
-  },
-  suratKeputusan: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin", "pejabat"],
-    update: ["admin", "pejabat"],
-    delete: ["admin"],
-    generate: ["admin", "pejabat"],
-    manage: ["admin", "pejabat"],
-  },
-  suratMou: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    create: ["admin", "pejabat"],
-    update: ["admin", "pejabat"],
-    delete: ["admin"],
-    generate: ["admin", "pejabat"],
-    manage: ["admin", "pejabat"],
-  },
-  sertifikat: {
-    view: ["admin", "staff", "viewer"],
-    create: ["admin", "staff"],
-    update: ["admin", "staff"],
-    delete: ["admin"],
-    generate: ["admin", "staff"],
-    export: ["admin", "staff"],
-    configure: ["admin"],
-    manage: ["admin", "staff"],
-  },
-  jadwalUjian: {
-    view: ["admin", "staff", "viewer"],
-    create: ["admin", "staff"],
-    update: ["admin", "staff"],
-    delete: ["admin"],
-    configure: ["admin"],
-    export: ["admin", "staff"],
-    manage: ["admin", "staff"],
-  },
-  pengaturan: {
-    view: ["admin"],
-    update: ["admin"],
-    configure: ["admin"],
-    manage: ["admin"],
-  },
-  auditLog: {
-    view: ["admin"],
-    export: ["admin", "staff"],
-    manage: ["admin", "staff"],
-  },
-  notification: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    update: ["admin", "staff", "pejabat", "viewer"],
-    manage: ["admin", "staff", "pejabat", "viewer"],
-  },
-  calendar: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    manage: ["admin", "staff", "pejabat", "viewer"],
-  },
-  search: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    manage: ["admin", "staff", "pejabat", "viewer"],
-  },
-  profile: {
-    view: ["admin", "staff", "pejabat", "viewer"],
-    update: ["admin", "staff", "pejabat", "viewer"],
-    manage: ["admin", "staff", "pejabat", "viewer"],
-  },
-  manajemenUser: {
-    view: ["admin"],
-    create: ["admin"],
-    update: ["admin"],
-    delete: ["admin"],
-    manage: ["admin"],
-  },
-};
 
 const PERMISSION_TO_CAPABILITY: Record<
   PermissionModule,
@@ -321,21 +186,6 @@ function getSessionRoleValue(session: AuthSession): Role | null {
   return role ?? null;
 }
 
-function hasLegacyPermission(
-  role: Role | null | undefined,
-  module: PermissionModule,
-  action: PermissionAction,
-): boolean {
-  if (!role) return false;
-  if (role === "admin") return true;
-
-  const actions = PERMISSION_MATRIX[module];
-  if (!actions) return false;
-
-  const allowed = actions[action];
-  return Array.isArray(allowed) ? allowed.includes(role) : false;
-}
-
 function permissionToCapability(
   module: PermissionModule,
   action: PermissionAction,
@@ -450,14 +300,7 @@ export async function requirePermission(
     return session;
   }
 
-  // Fallback deploy awal: bila role_id belum backfilled, role lama tetap
-  // mencegah lock-out sampai migration data selesai.
-  const role = access?.role ?? getSessionRoleValue(session);
-  if (!hasLegacyPermission(role, module, action)) {
-    throw new Error("Forbidden");
-  }
-
-  return session;
+  throw new Error("Forbidden");
 }
 
 export const getCurrentUserAccess = cache(async (): Promise<{
@@ -502,6 +345,12 @@ export const getCurrentUserAccess = cache(async (): Promise<{
         : [],
   };
 });
+
+// Ekstrak user id dari session yang sudah divalidasi.
+// Gunakan ini sebagai pengganti `session.user.id as string` di server actions.
+export function getSessionUserId(session: AuthSession): string {
+  return session.user.id;
+}
 
 // Ambil session tanpa throw - dipakai di layout/middleware untuk cek login state.
 export const getSession = cache(async (): Promise<AuthSession | null> => {

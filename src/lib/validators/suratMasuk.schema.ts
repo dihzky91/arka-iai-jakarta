@@ -1,13 +1,10 @@
 import { z } from "zod";
 import { jenisSuratEnum, statusSuratMasukEnum } from "@/server/db/schema";
 import { fileUrlSchema } from "@/lib/validators/fileUrl";
+import { isoDate } from "@/lib/validators/common";
 
 const jenisSuratValues = jenisSuratEnum.enumValues;
 const statusValues = statusSuratMasukEnum.enumValues;
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD");
 
 // CATATAN: tanggalSurat & tanggalDiterima TIDAK punya validasi range (backdate diizinkan).
 export const suratMasukCreateSchema = z.object({

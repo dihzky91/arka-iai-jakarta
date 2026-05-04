@@ -1,8 +1,9 @@
-"use server";
+﻿"use server";
 
 import { asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { divisi, users, auditLog } from "@/server/db/schema";
 import {
   divisiCreateSchema,
@@ -54,7 +55,7 @@ export async function createDivisi(data: DivisiCreateInput) {
     const row = rows[0];
     if (!row) throw new Error("Gagal membuat divisi");
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_DIVISI",
       entitasType: "divisi",
@@ -89,7 +90,7 @@ export async function updateDivisi(data: DivisiUpdateInput) {
       return { ok: false as const, error: "Divisi tidak ditemukan." };
     }
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "UPDATE_DIVISI",
       entitasType: "divisi",
@@ -126,7 +127,7 @@ export async function deleteDivisi(data: { id: number }) {
 
   await db.delete(divisi).where(eq(divisi.id, parsed.id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_DIVISI",
     entitasType: "divisi",

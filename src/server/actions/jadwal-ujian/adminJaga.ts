@@ -4,6 +4,7 @@ import { asc, desc, eq, sql, and, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { adminJaga, jadwalUjian, kelasUjian, pengawas, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 import {
@@ -151,7 +152,7 @@ export async function assignAdminJaga(
       set: { catatan: parsed.catatan || null, konflik },
     });
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "ASSIGN_ADMIN_JAGA",
     entitasType: "admin_jaga",
@@ -195,7 +196,7 @@ export async function unassignAdminJaga(id: string) {
   await removeAdminJagaEvent(id);
   await db.delete(adminJaga).where(eq(adminJaga.id, id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UNASSIGN_ADMIN_JAGA",
     entitasType: "admin_jaga",

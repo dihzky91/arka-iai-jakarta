@@ -27,7 +27,7 @@ const DEFAULTS = {
 
 export async function getMyNotificationPreferences(): Promise<NotificationPreferencesRow> {
   const session = await requireSession();
-  const userId = session.user.id as string;
+  const userId = session.user.id;
 
   const [existing] = await db
     .select()
@@ -64,7 +64,7 @@ const updateSchema = z.object({
 
 export async function updateMyNotificationPreferences(input: unknown) {
   const session = await requireSession();
-  const userId = session.user.id as string;
+  const userId = session.user.id;
 
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) {

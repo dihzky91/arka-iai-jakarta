@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { users, auditLog } from "@/server/db/schema";
 import { requireSession } from "./auth";
 import { getStorageProvider } from "@/lib/storage";
@@ -34,7 +35,7 @@ export async function getMyProfile(): Promise<ProfileRow | null> {
       role: users.role,
     })
     .from(users)
-    .where(eq(users.id, session.user.id as string))
+    .where(eq(users.id, session.user.id))
     .limit(1);
   return row ?? null;
 }
@@ -93,7 +94,7 @@ export async function updateMyProfile(formData: FormData) {
       fileName: avatarFile.name,
       contentType: avatarFile.type,
       folder: "avatars",
-      publicId: session.user.id as string,
+      publicId: session.user.id,
     });
     avatarUrl = result.url;
   }
@@ -106,13 +107,13 @@ export async function updateMyProfile(formData: FormData) {
       ...(avatarUrl !== undefined && { avatarUrl }),
       updatedAt: new Date(),
     })
-    .where(eq(users.id, session.user.id as string));
+    .where(eq(users.id, session.user.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_PROFILE",
     entitasType: "user",
-    entitasId: session.user.id as string,
+    entitasId: session.user.id,
     detail: {
       emailPribadiChanged: !!parsed.data.emailPribadi,
       noHpChanged: !!parsed.data.noHp,

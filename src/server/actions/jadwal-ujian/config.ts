@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { jadwalUjianConfig, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 
@@ -113,7 +114,7 @@ export async function createKonfig(data: { jenis: ConfigJenis; nilai: string }) 
       urutan: nextUrutan,
     });
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "CREATE_KONFIG_JADWAL",
       entitasType: "jadwal_ujian_config",
@@ -153,7 +154,7 @@ export async function deleteKonfig(id: string) {
 
   await db.delete(jadwalUjianConfig).where(eq(jadwalUjianConfig.id, id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_KONFIG_JADWAL",
     entitasType: "jadwal_ujian_config",

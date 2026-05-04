@@ -4,6 +4,7 @@ import { asc, eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { penugasanPengawas, jadwalUjian, pengawas, kelasUjian, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 import {
@@ -208,7 +209,7 @@ export async function assignPengawas(data: AssignPengawasInput) {
     const row = rows[0];
     if (!row) throw new Error("Gagal menyimpan penugasan");
 
-    await db.insert(auditLog).values({
+    await writeAuditLog({
       userId: session.user.id,
       aksi: "ASSIGN_PENGAWAS",
       entitasType: "penugasan_pengawas",
@@ -262,7 +263,7 @@ export async function unassignPengawas(penugasanId: string) {
   await removePenugasanPengawasEvent(penugasanId);
   await db.delete(penugasanPengawas).where(eq(penugasanPengawas.id, penugasanId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UNASSIGN_PENGAWAS",
     entitasType: "penugasan_pengawas",

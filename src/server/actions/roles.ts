@@ -1,8 +1,9 @@
-"use server";
+﻿"use server";
 
 import { and, count, eq, inArray, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   roleCapabilities,
@@ -144,7 +145,7 @@ export async function createRole(data: RoleCreateInput) {
   if (!row) return { ok: false as const, error: "Gagal membuat role." };
 
   await replaceCapabilities(row.id, parsed.capabilities);
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_ROLE",
     entitasType: "roles",
@@ -186,7 +187,7 @@ export async function updateRole(data: RoleUpdateInput) {
     .where(eq(roles.id, parsed.id));
   await replaceCapabilities(parsed.id, parsed.capabilities);
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_ROLE",
     entitasType: "roles",
@@ -210,7 +211,7 @@ export async function updateRoleCapabilities(data: UpdateRoleCapabilitiesInput) 
   if (!role) return { ok: false as const, error: "Role tidak ditemukan." };
 
   await replaceCapabilities(parsed.roleId, parsed.capabilities);
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_ROLE_CAPABILITIES",
     entitasType: "roles",
@@ -245,7 +246,7 @@ export async function deleteRole(data: RoleDeleteInput) {
   }
 
   await db.delete(roles).where(eq(roles.id, parsed.id));
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_ROLE",
     entitasType: "roles",
@@ -329,7 +330,7 @@ export async function updateUserAccess(data: UpdateUserAccessInput) {
     })
     .where(eq(users.id, parsed.userId));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_USER_ACCESS",
     entitasType: "users",

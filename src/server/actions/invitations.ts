@@ -1,8 +1,9 @@
-"use server";
+﻿"use server";
 
 import { and, count, desc, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   users,
   account,
@@ -25,12 +26,12 @@ import {
 } from "@/lib/validators/invitation.schema";
 import { requireCapability, requirePermission } from "./auth";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const INVITE_EXPIRY_HOURS = 24;
 const PENDING_INVITE_PASSWORD = "PENDING_INVITE";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type InvitationRow = {
   id: string;
@@ -64,7 +65,7 @@ export type UserRow = {
   createdAt: Date | null;
 };
 
-// ─── Queries ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function listInvitations(): Promise<InvitationRow[]> {
   await requirePermission("manajemenUser", "view");
@@ -131,13 +132,13 @@ export async function listUsersForManagement(): Promise<UserRow[]> {
     .limit(200);
 }
 
-// ─── Invite ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Invite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function inviteUser(data: InviteUserInput) {
   const parsed = inviteUserSchema.parse(data);
   const session = await requireCapability("users:invite");
 
-  // Privilege escalation guard — cegah invite role lebih tinggi dari diri sendiri
+  // Privilege escalation guard â€” cegah invite role lebih tinggi dari diri sendiri
   const [targetRole] = await db
     .select({ id: roles.id, nama: roles.nama, kode: roles.kode })
     .from(roles)
@@ -192,7 +193,7 @@ export async function inviteUser(data: InviteUserInput) {
       jabatan: parsed.jabatan,
       token,
       expiredAt,
-      invitedBy: session.user.id as string,
+      invitedBy: session.user.id,
     })
     .returning();
 
@@ -233,8 +234,8 @@ export async function inviteUser(data: InviteUserInput) {
   }
 
   // 5. Audit log
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "INVITE_USER",
     entitasType: "user_invitations",
     entitasId: invitation!.id,
@@ -256,7 +257,7 @@ export async function inviteUser(data: InviteUserInput) {
   };
 }
 
-// ─── Resend Invite ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Resend Invite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function resendInvite(data: ResendInviteInput) {
   const parsed = resendInviteSchema.parse(data);
@@ -307,8 +308,8 @@ export async function resendInvite(data: ResendInviteInput) {
     console.error("[resendInvite] Gagal kirim ulang invite email:", err);
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "RESEND_INVITE",
     entitasType: "user_invitations",
     entitasId: invitation.id,
@@ -319,7 +320,7 @@ export async function resendInvite(data: ResendInviteInput) {
   return { ok: true as const, inviteSent };
 }
 
-// ─── Cancel Invite ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Cancel Invite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function cancelInvite(data: CancelInviteInput) {
   const parsed = cancelInviteSchema.parse(data);
@@ -344,8 +345,8 @@ export async function cancelInvite(data: CancelInviteInput) {
     .set({ status: "cancelled" })
     .where(eq(userInvitations.id, parsed.invitationId));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CANCEL_INVITE",
     entitasType: "user_invitations",
     entitasId: invitation.id,
@@ -356,7 +357,7 @@ export async function cancelInvite(data: CancelInviteInput) {
   return { ok: true as const };
 }
 
-// ─── Toggle User Active Status ────────────────────────────────────────────────
+// â”€â”€â”€ Toggle User Active Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function toggleUserStatus(data: ToggleUserStatusInput) {
   const parsed = toggleUserStatusSchema.parse(data);
@@ -382,7 +383,7 @@ export async function toggleUserStatus(data: ToggleUserStatusInput) {
     return { ok: false as const, error: "Tidak bisa mengubah status admin." };
   }
 
-  // Proteksi admin terakhir — cegah nonaktifkan satu-satunya admin aktif
+  // Proteksi admin terakhir â€” cegah nonaktifkan satu-satunya admin aktif
   if (!parsed.isActive && target.role === "admin") {
     const [activeAdminCount] = await db
       .select({ total: count() })
@@ -408,8 +409,8 @@ export async function toggleUserStatus(data: ToggleUserStatusInput) {
     .where(eq(users.id, parsed.userId));
 
   const aksi = parsed.isActive ? "ACTIVATE_USER" : "DEACTIVATE_USER";
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi,
     entitasType: "users",
     entitasId: parsed.userId,
@@ -421,8 +422,8 @@ export async function toggleUserStatus(data: ToggleUserStatusInput) {
   return { ok: true as const };
 }
 
-// ─── Activate Invited Account (dipanggil setelah user set password) ───────────
-// Tidak memerlukan session — dipanggil dari halaman reset-password.
+// â”€â”€â”€ Activate Invited Account (dipanggil setelah user set password) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tidak memerlukan session â€” dipanggil dari halaman reset-password.
 // Keamanan: validasi bahwa account password sudah bukan PENDING_INVITE lagi.
 
 export async function activateInvitedAccount(email: string) {
@@ -450,7 +451,7 @@ export async function activateInvitedAccount(email: string) {
     .limit(1);
 
   if (!acc || acc.password === PENDING_INVITE_PASSWORD) {
-    return { ok: false as const, error: "Akun belum diaktivasi — password belum diset." };
+    return { ok: false as const, error: "Akun belum diaktivasi â€” password belum diset." };
   }
 
   // Aktivasi user
@@ -479,7 +480,7 @@ export async function activateInvitedAccount(email: string) {
   }
 
   // Audit log (system-initiated)
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: user.id,
     aksi: "ACCOUNT_ACTIVATED",
     entitasType: "users",
@@ -490,7 +491,7 @@ export async function activateInvitedAccount(email: string) {
   return { ok: true as const };
 }
 
-// ─── Admin Reset Password (kirim email reset untuk user existing) ─────────────
+// â”€â”€â”€ Admin Reset Password (kirim email reset untuk user existing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function adminResetPassword(userId: string) {
   const session = await requirePermission("manajemenUser", "manage");
@@ -517,8 +518,8 @@ export async function adminResetPassword(userId: string) {
     console.error("[adminResetPassword] Gagal kirim email reset:", err);
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "ADMIN_RESET_PASSWORD",
     entitasType: "users",
     entitasId: target.id,

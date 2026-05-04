@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { auditLog, suratMasuk, users } from "@/server/db/schema";
 import { getStorageProvider } from "@/lib/storage";
 import { prepareUploadPayload } from "@/lib/storage/utils";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/validators/suratMasuk.schema";
 import { requirePermission, requireSession } from "./auth";
 import { notifySuratMasukBaru } from "./notifications";
+import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
 
 export type SuratMasukRow = {
   id: string;
@@ -33,12 +35,7 @@ export type SuratMasukRow = {
   updatedAt: Date | null;
 };
 
-const idSchema = z.object({ id: z.string().uuid() });
-const uploadFileSchema = z.object({
-  fileName: z.string().min(1, "Nama file wajib ada."),
-  contentType: z.string().min(1).optional(),
-  dataUrl: z.string().min(1, "Data file wajib ada."),
-});
+const idSchema = uuidIdSchema;
 
 export async function listSuratMasuk(): Promise<SuratMasukRow[]> {
   await requireSession();
@@ -102,12 +99,12 @@ export async function createSuratMasuk(data: unknown) {
     .values({
       id: crypto.randomUUID(),
       ...parsed,
-      dicatatOleh: session.user.id as string,
+      dicatatOleh: session.user.id,
     })
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_SURAT_MASUK",
     entitasType: "surat_masuk",
     entitasId: row!.id,
@@ -159,8 +156,8 @@ export async function updateSuratMasuk(data: unknown) {
     .where(eq(suratMasuk.id, id))
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_SURAT_MASUK",
     entitasType: "surat_masuk",
     entitasId: id,
@@ -190,8 +187,8 @@ export async function updateStatusSuratMasuk(data: unknown) {
     return { ok: false as const, error: "Surat masuk tidak ditemukan." };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_STATUS_SURAT_MASUK",
     entitasType: "surat_masuk",
     entitasId: parsed.id,
@@ -231,8 +228,8 @@ export async function deleteSuratMasuk(data: { id: string }) {
 
   await db.delete(suratMasuk).where(eq(suratMasuk.id, id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "DELETE_SURAT_MASUK",
     entitasType: "surat_masuk",
     entitasId: id,

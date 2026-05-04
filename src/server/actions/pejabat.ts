@@ -1,8 +1,9 @@
-"use server";
+﻿"use server";
 
 import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   auditLog,
   pejabatPenandatangan,
@@ -64,8 +65,8 @@ export async function createPejabat(data: unknown) {
     })
     .returning();
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "CREATE_PEJABAT_PENANDATANGAN",
     entitasType: "pejabat_penandatangan",
     entitasId: String(row!.id),
@@ -97,8 +98,8 @@ export async function updatePejabat(data: unknown) {
     return { ok: false as const, error: "Data pejabat tidak ditemukan." };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_PEJABAT_PENANDATANGAN",
     entitasType: "pejabat_penandatangan",
     entitasId: String(parsed.id),
@@ -153,8 +154,8 @@ export async function deletePejabat(data: unknown) {
     .delete(pejabatPenandatangan)
     .where(eq(pejabatPenandatangan.id, parsed.id));
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "DELETE_PEJABAT_PENANDATANGAN",
     entitasType: "pejabat_penandatangan",
     entitasId: String(parsed.id),

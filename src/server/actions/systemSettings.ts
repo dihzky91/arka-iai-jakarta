@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { access } from "node:fs/promises";
 import path from "node:path";
@@ -6,6 +6,7 @@ import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { systemSettings, auditLog } from "@/server/db/schema";
 import { systemSettingsUpdateSchema } from "@/lib/validators/systemSettings.schema";
 import { APP_BRAND_NAME } from "@/lib/branding";
@@ -225,7 +226,7 @@ export async function updateSystemSettings(formData: FormData) {
     rowId = existing[0]!.id;
   }
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_SYSTEM_SETTINGS",
     entitasType: "system_settings",

@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { systemSettings, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "./auth";
 import { sendEmail } from "@/lib/email/mailjet";
@@ -11,7 +12,7 @@ import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
 import { APP_BRAND_FULL_NAME } from "@/lib/branding";
 
-// ─── Update non-secret config (admin only) ────────────────────────────────────
+// â”€â”€â”€ Update non-secret config (admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const configSchema = z.object({
   defaultDisposisiDeadlineDays: z.number().int().min(0).max(365),
@@ -52,7 +53,7 @@ export async function updateSystemConfig(input: unknown) {
       .where(eq(systemSettings.id, existing[0]!.id));
   }
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_SYSTEM_CONFIG",
     entitasType: "system_settings",
@@ -64,12 +65,12 @@ export async function updateSystemConfig(input: unknown) {
   return { ok: true as const };
 }
 
-// ─── Test connections (admin only) ────────────────────────────────────────────
+// â”€â”€â”€ Test connections (admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function testEmailConnection() {
   const session = await requirePermission("pengaturan", "configure");
 
-  // Pre-flight check — sendEmail silently returns on missing env, jadi kita
+  // Pre-flight check â€” sendEmail silently returns on missing env, jadi kita
   // harus cek manual supaya test action tidak false-positive.
   const missing: string[] = [];
   if (!env.MAILJET_API_KEY) missing.push("MAILJET_API_KEY");

@@ -51,6 +51,39 @@ export type PreparedUploadPayload = {
 
 const DATA_URL_PATTERN = /^data:([^;,]+)(?:;charset=[^;,]+)?;base64,(.+)$/s;
 
+// Validators check actual file bytes, not client-declared MIME type.
+// Prevents rename attack (e.g. .exe renamed to .pdf).
+const MAGIC_BYTE_VALIDATORS: Record<string, (buf: Buffer) => boolean> = {
+  "application/pdf": (buf) =>
+    buf.length >= 4 &&
+    buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46,
+  "image/jpeg": (buf) =>
+    buf.length >= 3 &&
+    buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff,
+  "image/png": (buf) =>
+    buf.length >= 8 &&
+    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+    buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a,
+  "image/webp": (buf) =>
+    buf.length >= 12 &&
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50,
+  // OLE Compound Document (legacy .doc, .xls, .ppt)
+  "application/msword": (buf) =>
+    buf.length >= 4 &&
+    buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0,
+  // OOXML formats (.docx, .xlsx, .pptx) are ZIP archives
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": (buf) =>
+    buf.length >= 4 &&
+    buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04,
+};
+
+export function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  const validator = MAGIC_BYTE_VALIDATORS[mimeType];
+  if (!validator) return true;
+  return validator(buffer);
+}
+
 export function getAllowedMimeTypes(): string[] {
   return env.STORAGE_ALLOWED_MIME_TYPES.split(",")
     .map((value) => value.trim().toLowerCase())
@@ -94,6 +127,10 @@ export function prepareUploadPayload(input: {
 
   if (!allowedMimeTypes.includes(contentType)) {
     throw new Error("Tipe file tidak didukung.");
+  }
+
+  if (!validateMagicBytes(parsed.body, contentType)) {
+    throw new Error("Konten file tidak sesuai dengan tipe yang dideklarasikan.");
   }
 
   if (!parsed.body.byteLength) {

@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { fileUrlSchema } from "@/lib/validators/fileUrl";
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD");
+import { isoDate } from "@/lib/validators/common";
 
 export const suratKeputusanCreateSchema = z.object({
   nomorSK: z.string().min(1, "Nomor SK wajib diisi."),

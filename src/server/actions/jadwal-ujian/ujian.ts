@@ -4,6 +4,7 @@ import { asc, desc, eq, sql, and, gte, lte, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   jadwalUjian,
   kelasUjian,
@@ -322,7 +323,7 @@ export async function createUjian(data: UjianCreateInput & { pengawasIds?: strin
     konflikAdminJagaIds.push(...adminJagaIds.filter((pgId) => konflikMap[pgId]));
   }
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_JADWAL_UJIAN",
     entitasType: "jadwal_ujian",
@@ -435,7 +436,7 @@ export async function updateUjian(data: UjianUpdateInput & { pengawasIds?: strin
     }
   }
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_JADWAL_UJIAN",
     entitasType: "jadwal_ujian",
@@ -522,7 +523,7 @@ export async function deleteUjian(id: string) {
   // Cascade delete penugasan_pengawas otomatis via FK
   await db.delete(jadwalUjian).where(eq(jadwalUjian.id, id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_JADWAL_UJIAN",
     entitasType: "jadwal_ujian",

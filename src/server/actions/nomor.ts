@@ -1,8 +1,9 @@
-"use server";
+﻿"use server";
 
 import { z } from "zod";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { nomorSuratCounter, auditLog } from "@/server/db/schema";
 import { jenisSuratValues } from "@/lib/jenis-surat";
 import { allocateNomorSurat } from "@/lib/nomor-surat";
@@ -73,8 +74,8 @@ export async function generateNomorSurat(input: unknown) {
     throw new Error("Gagal menggenerate nomor surat");
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "GENERATE_NOMOR_SURAT",
     entitasType: "nomor_surat_counter",
     entitasId: `${data.tahun}-${data.bulan}-${data.jenisSurat}`,
@@ -102,8 +103,8 @@ export async function generateBulkNomorSurat(input: unknown) {
     prefixOverride: data.prefixOverride,
   });
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "GENERATE_BULK_NOMOR_SURAT",
     entitasType: "nomor_surat_counter",
     entitasId: `${data.tahun}-${data.bulan}-${data.jenisSurat}`,
@@ -136,8 +137,8 @@ export async function updateNomorSuratCounterPrefix(input: unknown) {
     return { ok: false as const, error: "Counter nomor surat tidak ditemukan." };
   }
 
-  await db.insert(auditLog).values({
-    userId: session.user.id as string,
+  await writeAuditLog({
+    userId: session.user.id,
     aksi: "UPDATE_PREFIX_NOMOR_SURAT",
     entitasType: "nomor_surat_counter",
     entitasId: String(data.id),

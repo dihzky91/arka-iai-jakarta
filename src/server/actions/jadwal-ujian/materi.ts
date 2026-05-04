@@ -4,6 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import { materiUjian, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 import {
@@ -49,7 +50,7 @@ export async function createMateri(data: MateriCreateInput) {
   const row = rows[0];
   if (!row) throw new Error("Gagal membuat materi ujian");
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_MATERI_UJIAN",
     entitasType: "materi_ujian",
@@ -73,7 +74,7 @@ export async function updateMateri(data: MateriUpdateInput) {
   const row = rows[0];
   if (!row) return { ok: false as const, error: "Materi ujian tidak ditemukan." };
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "UPDATE_MATERI_UJIAN",
     entitasType: "materi_ujian",
@@ -96,7 +97,7 @@ export async function deleteMateri(id: string) {
 
   await db.delete(materiUjian).where(eq(materiUjian.id, id));
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_MATERI_UJIAN",
     entitasType: "materi_ujian",

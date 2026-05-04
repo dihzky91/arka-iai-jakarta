@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { eq, and, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   kelasPelatihan,
   kelasUjian,
@@ -171,7 +172,7 @@ export async function createKelasUjianFromPelatihan(kelasPelatihanId: string) {
     await db.insert(jadwalUjian).values(jadwalData);
   }
 
-  await db.insert(auditLog).values({
+  await writeAuditLog({
     userId: session.user.id,
     aksi: "CREATE_KELAS_UJIAN_FROM_PELATIHAN",
     entitasType: "kelas_ujian",
