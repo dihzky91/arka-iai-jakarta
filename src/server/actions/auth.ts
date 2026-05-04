@@ -346,12 +346,6 @@ export const getCurrentUserAccess = cache(async (): Promise<{
   };
 });
 
-// Ekstrak user id dari session yang sudah divalidasi.
-// Gunakan ini sebagai pengganti `session.user.id as string` di server actions.
-export function getSessionUserId(session: AuthSession): string {
-  return session.user.id;
-}
-
 // Ambil session tanpa throw - dipakai di layout/middleware untuk cek login state.
 export const getSession = cache(async (): Promise<AuthSession | null> => {
   const headersList = await headers();
