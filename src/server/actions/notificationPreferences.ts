@@ -4,10 +4,15 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { notificationPreferences, type NotificationPreferences } from "@/server/db/schema";
+import {
+  notifications,
+  notificationPreferences,
+  type NotificationPreferences,
+} from "@/server/db/schema";
 import { requireSession } from "./auth";
 
 export type NotificationPreferencesRow = NotificationPreferences;
+export type NotificationPreferenceType = typeof notifications.$inferInsert.type;
 
 const DEFAULTS = {
   inAppDisposisiBaru: true,
@@ -16,12 +21,22 @@ const DEFAULTS = {
   inAppSuratKeluarRevisi: true,
   inAppSuratKeluarSelesai: true,
   inAppSuratMasukBaru: true,
+  inAppProjectInvitation: true,
+  inAppProjectMention: true,
+  inAppProjectUpdate: true,
+  inAppHonorariumStatus: true,
+  inAppSystem: true,
   emailDisposisiBaru: true,
   emailDisposisiDeadline: true,
   emailSuratKeluarApproval: false,
   emailSuratKeluarRevisi: false,
   emailSuratKeluarSelesai: false,
   emailSuratMasukBaru: false,
+  emailProjectInvitation: false,
+  emailProjectMention: false,
+  emailProjectUpdate: false,
+  emailHonorariumStatus: false,
+  emailSystem: false,
   deadlineReminderDays: 1,
 };
 
@@ -53,12 +68,22 @@ const updateSchema = z.object({
   inAppSuratKeluarRevisi: z.boolean(),
   inAppSuratKeluarSelesai: z.boolean(),
   inAppSuratMasukBaru: z.boolean(),
+  inAppProjectInvitation: z.boolean(),
+  inAppProjectMention: z.boolean(),
+  inAppProjectUpdate: z.boolean(),
+  inAppHonorariumStatus: z.boolean(),
+  inAppSystem: z.boolean(),
   emailDisposisiBaru: z.boolean(),
   emailDisposisiDeadline: z.boolean(),
   emailSuratKeluarApproval: z.boolean(),
   emailSuratKeluarRevisi: z.boolean(),
   emailSuratKeluarSelesai: z.boolean(),
   emailSuratMasukBaru: z.boolean(),
+  emailProjectInvitation: z.boolean(),
+  emailProjectMention: z.boolean(),
+  emailProjectUpdate: z.boolean(),
+  emailHonorariumStatus: z.boolean(),
+  emailSystem: z.boolean(),
   deadlineReminderDays: z.number().int().min(0).max(30),
 });
 
@@ -101,13 +126,7 @@ export async function updateMyNotificationPreferences(input: unknown) {
  */
 export async function checkNotificationPreference(
   userId: string,
-  type:
-    | "disposisi_baru"
-    | "disposisi_deadline"
-    | "surat_keluar_approval"
-    | "surat_keluar_revisi"
-    | "surat_keluar_selesai"
-    | "surat_masuk_baru",
+  type: NotificationPreferenceType,
 ): Promise<{ inApp: boolean; email: boolean }> {
   const [pref] = await db
     .select()
@@ -116,7 +135,6 @@ export async function checkNotificationPreference(
     .limit(1);
 
   if (!pref) {
-    // Default: in-app on, email depends on type
     const emailDefault =
       type === "disposisi_baru" || type === "disposisi_deadline";
     return { inApp: true, email: emailDefault };
@@ -129,6 +147,11 @@ export async function checkNotificationPreference(
     surat_keluar_revisi: { inApp: pref.inAppSuratKeluarRevisi, email: pref.emailSuratKeluarRevisi },
     surat_keluar_selesai: { inApp: pref.inAppSuratKeluarSelesai, email: pref.emailSuratKeluarSelesai },
     surat_masuk_baru: { inApp: pref.inAppSuratMasukBaru, email: pref.emailSuratMasukBaru },
+    project_invitation: { inApp: pref.inAppProjectInvitation, email: pref.emailProjectInvitation },
+    mention: { inApp: pref.inAppProjectMention, email: pref.emailProjectMention },
+    project_update: { inApp: pref.inAppProjectUpdate, email: pref.emailProjectUpdate },
+    honorarium_status: { inApp: pref.inAppHonorariumStatus, email: pref.emailHonorariumStatus },
+    system: { inApp: pref.inAppSystem, email: pref.emailSystem },
   };
 
   return map[type];

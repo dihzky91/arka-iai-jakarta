@@ -31,6 +31,7 @@ import {
   users,
 } from "@/server/db/schema";
 import { createNotification } from "@/server/actions/notifications";
+import { checkNotificationPreference } from "@/server/actions/notificationPreferences";
 import { env } from "@/lib/env";
 import { parseDataUrl, sanitizeFileName } from "@/lib/storage/utils";
 import { parseIsoDateInJakarta } from "@/lib/utils";
@@ -259,6 +260,9 @@ async function notifyProjectUser(input: {
   message: string;
   entitasId: string;
 }) {
+  const pref = await checkNotificationPreference(input.userId, input.type);
+  if (!pref.inApp) return;
+
   await createNotification({
     userId: input.userId,
     type: input.type,

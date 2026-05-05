@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { AbsensiManager } from "@/components/absensi/AbsensiManager";
 import { requireSession } from "@/server/actions/auth";
-import { getCurrentUserAccess } from "@/server/actions/auth";
-import { syncAbsensiDariDingTalk } from "@/server/actions/dingtalk/sync-attendance";
 
 export const metadata: Metadata = {
   title: "Absensi Karyawan | ARKA",

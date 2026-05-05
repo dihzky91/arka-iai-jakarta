@@ -12,9 +12,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAbsensiStats, type AbsensiStats } from "@/server/actions/absensi";
+import type { AbsensiStats } from "@/server/actions/absensi";
 
-export function AbsensiStats() {
+export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
   const [month, setMonth] = useState(new Date());
   const [stats, setStats] = useState<AbsensiStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,15 +24,19 @@ export function AbsensiStats() {
     try {
       const from = format(startOfMonth(month), "yyyy-MM-dd");
       const to = format(endOfMonth(month), "yyyy-MM-dd");
-      const res = await getAbsensiStats({
+      const params = new URLSearchParams({
         tanggalMulai: from,
         tanggalSelesai: to,
       });
-      setStats(res);
+      const response = await fetch(`/api/absensi/stats?${params.toString()}`);
+      const res = (await response.json()) as
+        | { ok: true; data: AbsensiStats }
+        | { ok: false; error: string };
+      setStats(response.ok && res.ok ? res.data : null);
     } finally {
       setLoading(false);
     }
-  }, [month]);
+  }, [month, refreshKey]);
 
   useEffect(() => {
     fetchStats();

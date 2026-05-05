@@ -559,6 +559,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "project_invitation",
   "mention",
   "project_update",
+  "honorarium_status",
   "system",
 ]);
 
@@ -604,6 +605,19 @@ export const notificationPreferences = pgTable("notification_preferences", {
   inAppSuratMasukBaru: boolean("in_app_surat_masuk_baru")
     .default(true)
     .notNull(),
+  inAppProjectInvitation: boolean("in_app_project_invitation")
+    .default(true)
+    .notNull(),
+  inAppProjectMention: boolean("in_app_project_mention")
+    .default(true)
+    .notNull(),
+  inAppProjectUpdate: boolean("in_app_project_update")
+    .default(true)
+    .notNull(),
+  inAppHonorariumStatus: boolean("in_app_honorarium_status")
+    .default(true)
+    .notNull(),
+  inAppSystem: boolean("in_app_system").default(true).notNull(),
   // Email notification toggles
   emailDisposisiBaru: boolean("email_disposisi_baru").default(true).notNull(),
   emailDisposisiDeadline: boolean("email_disposisi_deadline")
@@ -621,6 +635,19 @@ export const notificationPreferences = pgTable("notification_preferences", {
   emailSuratMasukBaru: boolean("email_surat_masuk_baru")
     .default(false)
     .notNull(),
+  emailProjectInvitation: boolean("email_project_invitation")
+    .default(false)
+    .notNull(),
+  emailProjectMention: boolean("email_project_mention")
+    .default(false)
+    .notNull(),
+  emailProjectUpdate: boolean("email_project_update")
+    .default(false)
+    .notNull(),
+  emailHonorariumStatus: boolean("email_honorarium_status")
+    .default(false)
+    .notNull(),
+  emailSystem: boolean("email_system").default(false).notNull(),
   // Reminder threshold (hari sebelum deadline)
   deadlineReminderDays: integer("deadline_reminder_days").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

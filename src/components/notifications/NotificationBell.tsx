@@ -113,6 +113,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       project_invitation: "text-indigo-500",
       mention: "text-pink-500",
       project_update: "text-teal-500",
+      honorarium_status: "text-emerald-500",
       system: "text-gray-500",
     };
     return styles[type] || "text-gray-500";

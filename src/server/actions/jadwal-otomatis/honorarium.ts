@@ -31,6 +31,7 @@ import {
   users,
 } from "@/server/db/schema";
 import { createNotification } from "@/server/actions/notifications";
+import { checkNotificationPreference } from "@/server/actions/notificationPreferences";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -1138,16 +1139,19 @@ async function notifyHonorariumStatusTransition(params: {
   const message = `Batch ${params.documentNumber} ${template.actionText} oleh ${actorName}. Status: ${batchStatusLabel(params.from)} -> ${batchStatusLabel(params.to)}.`;
 
   await Promise.all(
-    targetUserIds.map((userId) =>
-      createNotification({
+    targetUserIds.map(async (userId) => {
+      const pref = await checkNotificationPreference(userId, "honorarium_status");
+      if (!pref.inApp) return;
+
+      await createNotification({
         userId,
-        type: "system",
+        type: "honorarium_status",
         title: template.title,
         message,
         entitasType: "honorarium_batch",
         entitasId: params.batchId,
-      })
-    )
+      });
+    })
   );
 
   revalidatePath("/dashboard");

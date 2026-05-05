@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -15,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { AbsensiCalendar } from "./AbsensiCalendar";
 import { AbsensiStats } from "./AbsensiStats";
-import { syncAbsensiDariDingTalk } from "@/server/actions/dingtalk/sync-attendance";
 import { getMonthRangeInJakarta, getTodayIsoInJakarta } from "@/lib/utils";
 
 export function AbsensiManager({
@@ -23,31 +21,47 @@ export function AbsensiManager({
 }: {
   currentUserId: string;
 }) {
-  const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
       const { start } = getMonthRangeInJakarta();
       const today = getTodayIsoInJakarta();
-      const res = await syncAbsensiDariDingTalk(start, today);
+      const response = await fetch("/api/absensi/sync-dingtalk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tanggalMulai: start, tanggalSelesai: today }),
+      });
+      const res = (await response.json()) as
+        | {
+            ok: true;
+            data: {
+              berhasil: number;
+              gagal?: number;
+              diperbarui?: number;
+              unlinked?: number;
+              totalUser: number;
+            };
+          }
+        | { ok: false; error: string };
 
-      if (res.ok) {
+      if (response.ok && res.ok) {
         toast.success(
           `Sync selesai: ${res.data.berhasil} record dari ${res.data.totalUser} user DingTalk` +
           (res.data.unlinked ? ` (${res.data.unlinked} belum punya akun ARKA)` : ""),
         );
-        router.refresh();
+        setRefreshKey((key) => key + 1);
       } else {
-        toast.error(res.error);
+        toast.error(res.ok ? "Gagal sync absensi." : res.error);
       }
     } catch {
       toast.error("Gagal sync absensi.");
     } finally {
       setSyncing(false);
     }
-  }, [router]);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -87,15 +101,15 @@ export function AbsensiManager({
         </TabsList>
 
         <TabsContent value="table">
-          <AbsensiCalendar viewMode="table" />
+          <AbsensiCalendar viewMode="table" refreshKey={refreshKey} />
         </TabsContent>
 
         <TabsContent value="calendar">
-          <AbsensiCalendar viewMode="calendar" />
+          <AbsensiCalendar viewMode="calendar" refreshKey={refreshKey} />
         </TabsContent>
 
         <TabsContent value="stats">
-          <AbsensiStats />
+          <AbsensiStats refreshKey={refreshKey} />
         </TabsContent>
       </Tabs>
     </div>

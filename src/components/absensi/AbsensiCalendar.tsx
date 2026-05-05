@@ -21,10 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  listAbsensiKaryawan,
-  type AbsensiRow,
-} from "@/server/actions/absensi";
+import type { AbsensiRow } from "@/server/actions/absensi";
 import { parseIsoDateInJakarta } from "@/lib/utils";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -50,9 +47,11 @@ const STATUS_LABEL: Record<string, string> = {
 export function AbsensiCalendar({
   viewMode = "table",
   userId,
+  refreshKey = 0,
 }: {
   viewMode?: "table" | "calendar";
   userId?: string;
+  refreshKey?: number;
 }) {
   const [month, setMonth] = useState(new Date());
   const [data, setData] = useState<AbsensiRow[]>([]);
@@ -63,17 +62,23 @@ export function AbsensiCalendar({
     try {
       const from = format(startOfMonth(month), "yyyy-MM-dd");
       const to = format(endOfMonth(month), "yyyy-MM-dd");
-      const res = await listAbsensiKaryawan({
+      const params = new URLSearchParams({
         tanggalMulai: from,
         tanggalSelesai: to,
-        userId,
-        pageSize: 500,
+        pageSize: "500",
       });
-      setData(res.rows);
+      if (userId) params.set("userId", userId);
+
+      const response = await fetch(`/api/absensi?${params.toString()}`);
+      const res = (await response.json()) as
+        | { ok: true; data: { rows: AbsensiRow[] } }
+        | { ok: false; error: string };
+
+      setData(response.ok && res.ok ? res.data.rows : []);
     } finally {
       setLoading(false);
     }
-  }, [month, userId]);
+  }, [month, userId, refreshKey]);
 
   useEffect(() => {
     fetchData();
@@ -192,12 +197,13 @@ export function AbsensiCalendar({
             <TableHead>Jam Pulang</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Keterlambatan</TableHead>
+            <TableHead>Catatan DingTalk</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
+              <TableCell colSpan={7} className="text-center text-muted-foreground">
                 Belum ada data absensi.
               </TableCell>
             </TableRow>
@@ -231,6 +237,7 @@ export function AbsensiCalendar({
                     ? `${row.keterlambatanMenit} mnt`
                     : "-"}
                 </TableCell>
+                <TableCell>{row.catatan ?? "-"}</TableCell>
               </TableRow>
             ))
           )}
