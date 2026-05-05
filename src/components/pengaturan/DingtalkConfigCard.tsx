@@ -33,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { APP_TIME_ZONE } from "@/lib/utils";
 import {
   updateDingtalkConfig,
   testDingtalkConnection,
@@ -361,7 +362,9 @@ export function DingtalkConfigCard({
                 <span className="text-muted-foreground">Sync Terakhir</span>
                 <span>
                   {initialSyncStatus.lastSyncAt
-                    ? new Date(initialSyncStatus.lastSyncAt).toLocaleString("id-ID")
+                    ? new Date(initialSyncStatus.lastSyncAt).toLocaleString("id-ID", {
+                        timeZone: APP_TIME_ZONE,
+                      })
                     : "Belum pernah"}
                 </span>
               </div>

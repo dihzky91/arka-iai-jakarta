@@ -9,6 +9,7 @@ import { Hash, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,20 +25,21 @@ import {
   type CertificateBatchClassOption,
 } from "@/server/actions/sertifikat/nomor/batches";
 import type { ClassType, Program } from "@/server/db/schema";
-import { cn } from "@/lib/utils";
+import { cn, getTodayIsoInJakarta } from "@/lib/utils";
 
 const formSchema = z
   .object({
     sourceMode: z.enum(["existing", "manual"]),
+    useCustomAngkatanFormat: z.boolean().default(false),
     kelasId: z.string().optional(),
-    overrideAngkatan: z.number().int().min(100).max(999).optional(),
+    overrideAngkatan: z.number().int().min(1).max(999).optional(),
     overrideCertificateClassCode: z.enum(["01", "02", "03"]).optional(),
     manualNamaKelas: z.string().trim().optional(),
     manualProgramId: z.string().optional(),
     manualClassTypeId: z.string().optional(),
     manualMode: z.enum(["offline", "online"]),
     manualStartDate: z.string().optional(),
-    manualAngkatan: z.number().int().min(100).max(999).optional(),
+    manualAngkatan: z.number().int().min(1).max(999).optional(),
     manualCertificateClassCode: z.enum(["01", "02", "03"]).optional(),
     quantity: z.coerce
       .number()
@@ -74,7 +76,7 @@ const formSchema = z
     }
   });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.input<typeof formSchema>;
 
 interface GenerateBatchFormProps {
   classes: CertificateBatchClassOption[];
@@ -96,13 +98,17 @@ function previewNumbers(
   classTypeCode: string | null | undefined,
   quantity: number | undefined,
   lastSerial: number,
+  useCustomAngkatanFormat: boolean,
 ) {
   if (!angkatan || !classTypeCode || !quantity) return null;
+  const angkatanPrefix = useCustomAngkatanFormat
+    ? String(angkatan)
+    : String(angkatan).padStart(3, "0");
   const start = lastSerial + 1;
   const end = lastSerial + quantity;
   return {
-    first: `${String(angkatan).padStart(3, "0")}${classTypeCode}.${start}`,
-    last: `${String(angkatan).padStart(3, "0")}${classTypeCode}.${end}`,
+    first: `${angkatanPrefix}${classTypeCode}.${start}`,
+    last: `${angkatanPrefix}${classTypeCode}.${end}`,
     start,
     end,
   };
@@ -121,6 +127,7 @@ export function GenerateBatchForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       sourceMode: "existing",
+      useCustomAngkatanFormat: false,
       kelasId: "",
       overrideAngkatan: undefined,
       overrideCertificateClassCode: undefined,
@@ -128,7 +135,7 @@ export function GenerateBatchForm({
       manualProgramId: "",
       manualClassTypeId: "",
       manualMode: "offline",
-      manualStartDate: new Date().toISOString().slice(0, 10),
+      manualStartDate: getTodayIsoInJakarta(),
       manualAngkatan: undefined,
       manualCertificateClassCode: undefined,
       quantity: undefined,
@@ -143,6 +150,7 @@ export function GenerateBatchForm({
     [classes, selectedClassId],
   );
   const watchQuantity = form.watch("quantity");
+  const useCustomAngkatanFormat = form.watch("useCustomAngkatanFormat") ?? false;
 
   const preview =
     sourceMode === "existing"
@@ -152,12 +160,14 @@ export function GenerateBatchForm({
             form.watch("overrideCertificateClassCode"),
           watchQuantity,
           lastSerial,
+          useCustomAngkatanFormat,
         )
       : previewNumbers(
           form.watch("manualAngkatan"),
           form.watch("manualCertificateClassCode"),
           watchQuantity,
           lastSerial,
+          useCustomAngkatanFormat,
         );
 
   const needsExistingOverride = Boolean(
@@ -221,6 +231,27 @@ export function GenerateBatchForm({
               </button>
             </div>
 
+            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-4">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="useCustomAngkatanFormat"
+                  checked={useCustomAngkatanFormat}
+                  onCheckedChange={(checked) =>
+                    form.setValue("useCustomAngkatanFormat", checked === true)
+                  }
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="useCustomAngkatanFormat" className="font-medium">
+                    Gunakan format angkatan khusus (tanpa 0 di depan)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Default sistem tetap 3 digit (contoh: 50 menjadi 050). Aktifkan opsi ini
+                    hanya untuk case khusus agar nomor memakai nilai angkatan apa adanya.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {sourceMode === "existing" ? (
               <>
                 <div className="space-y-1.5">
@@ -282,7 +313,7 @@ export function GenerateBatchForm({
                       <Label>Override Angkatan</Label>
                       <Input
                         type="number"
-                        min={100}
+                        min={1}
                         max={999}
                         placeholder="mis. 223"
                         value={form.watch("overrideAngkatan") ?? ""}
@@ -411,7 +442,7 @@ export function GenerateBatchForm({
                     <Label>Angkatan Sertifikat</Label>
                     <Input
                       type="number"
-                      min={100}
+                      min={1}
                       max={999}
                       placeholder="mis. 223"
                       value={form.watch("manualAngkatan") ?? ""}

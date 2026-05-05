@@ -20,6 +20,8 @@ export type SystemSettingsRow = {
   singkatan: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
+  financeContactName: string | null;
+  financeWhatsappNumber: string | null;
   defaultDisposisiDeadlineDays: number;
   notificationEmailEnabled: boolean;
   updatedAt: Date | null;
@@ -31,6 +33,8 @@ const FALLBACK: SystemSettingsRow = {
   singkatan: null,
   logoUrl: "/iai-logo.png",
   faviconUrl: null,
+  financeContactName: null,
+  financeWhatsappNumber: null,
   defaultDisposisiDeadlineDays: 7,
   notificationEmailEnabled: true,
   updatedAt: null,
@@ -102,6 +106,8 @@ export const getSystemSettings = cache(async (): Promise<SystemSettingsRow> => {
         singkatan: systemSettings.singkatan,
         logoUrl: systemSettings.logoUrl,
         faviconUrl: systemSettings.faviconUrl,
+        financeContactName: systemSettings.financeContactName,
+        financeWhatsappNumber: systemSettings.financeWhatsappNumber,
         defaultDisposisiDeadlineDays:
           systemSettings.defaultDisposisiDeadlineDays,
         notificationEmailEnabled: systemSettings.notificationEmailEnabled,

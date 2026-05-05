@@ -1,4 +1,5 @@
 import { getAccessToken } from "./auth";
+import { addDaysToIsoDate } from "@/lib/utils";
 
 const BATCH_USER_SIZE = 50;
 const MAX_DATE_RANGE_DAYS = 7;
@@ -69,19 +70,16 @@ function splitDateRange(
   maxDays: number,
 ): { from: string; to: string }[] {
   const ranges: { from: string; to: string }[] = [];
-  const startDate = new Date(start);
-  const endDate = new Date(end);
 
-  let current = new Date(startDate);
-  while (current <= endDate) {
-    const chunkEnd = new Date(current);
-    chunkEnd.setDate(chunkEnd.getDate() + maxDays - 1);
-    const to = chunkEnd > endDate ? endDate : chunkEnd;
+  let current = start;
+  while (current <= end) {
+    const chunkEnd = addDaysToIsoDate(current, maxDays - 1);
+    const to = chunkEnd > end ? end : chunkEnd;
     ranges.push({
-      from: current.toISOString().slice(0, 10) + " 00:00:00",
-      to: to.toISOString().slice(0, 10) + " 23:59:59",
+      from: `${current} 00:00:00`,
+      to: `${to} 23:59:59`,
     });
-    current.setDate(current.getDate() + maxDays);
+    current = addDaysToIsoDate(current, maxDays);
   }
 
   return ranges;

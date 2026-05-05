@@ -534,6 +534,8 @@ export const systemSettings = pgTable("system_settings", {
   singkatan: varchar("singkatan", { length: 20 }),
   logoUrl: text("logo_url"),
   faviconUrl: text("favicon_url"),
+  financeContactName: varchar("finance_contact_name", { length: 200 }),
+  financeWhatsappNumber: varchar("finance_whatsapp_number", { length: 30 }),
   // Non-secret runtime preferences (admin-editable from UI)
   defaultDisposisiDeadlineDays: integer("default_disposisi_deadline_days")
     .default(7)
@@ -1358,6 +1360,8 @@ export const programs = pgTable("programs", {
     .$defaultFn(() => crypto.randomUUID()),
   code: varchar("code", { length: 20 }).notNull().unique(),
   name: varchar("name", { length: 100 }).notNull(),
+  financeContactName: varchar("finance_contact_name", { length: 200 }),
+  financeWhatsappNumber: varchar("finance_whatsapp_number", { length: 30 }),
   totalSessions: integer("total_sessions").notNull(),
   totalMeetings: integer("total_meetings").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -1454,6 +1458,12 @@ export const kelasPelatihan = pgTable("kelas_pelatihan", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   lokasi: varchar("lokasi", { length: 300 }),
+  financeContactNameOverride: varchar("finance_contact_name_override", {
+    length: 200,
+  }),
+  financeWhatsappNumberOverride: varchar("finance_whatsapp_number_override", {
+    length: 30,
+  }),
   status: varchar("status", { length: 20 }).default("active").notNull(), // active | completed | cancelled
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1863,6 +1873,57 @@ export const honorariumPaymentProofs = pgTable(
   ],
 );
 
+// Template pesan WhatsApp operasional (jadwal/honorarium)
+export const whatsappMessageTemplates = pgTable(
+  "whatsapp_message_templates",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    templateKey: varchar("template_key", { length: 80 }).notNull().unique(),
+    templateName: varchar("template_name", { length: 200 }).notNull(),
+    description: varchar("description", { length: 300 }),
+    content: text("content").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    updatedBy: text("updated_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("wmt_active_idx").on(t.isActive)],
+);
+
+// Riwayat draft/kirim pesan WhatsApp per kelas
+export const whatsappMessageLogs = pgTable(
+  "whatsapp_message_logs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    kelasId: text("kelas_id")
+      .notNull()
+      .references(() => kelasPelatihan.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => classSessions.id, {
+      onDelete: "set null",
+    }),
+    assignmentId: text("assignment_id").references(() => sessionAssignments.id, {
+      onDelete: "set null",
+    }),
+    templateKey: varchar("template_key", { length: 80 }).notNull(),
+    recipientRole: varchar("recipient_role", { length: 40 }).notNull(), // instructor | finance
+    recipientName: varchar("recipient_name", { length: 200 }),
+    recipientWhatsappNumber: varchar("recipient_whatsapp_number", { length: 30 }),
+    messageContent: text("message_content").notNull(),
+    metadata: jsonb("metadata"),
+    sentBy: text("sent_by").references(() => users.id),
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("wml_kelas_sent_idx").on(t.kelasId, t.sentAt),
+    index("wml_template_idx").on(t.templateKey),
+    index("wml_role_idx").on(t.recipientRole),
+  ],
+);
+
 // ─── TABEL PESERTA KELAS (Peserta & Nilai — Program Pelatihan) ──────────────
 
 // 1. Enrollment peserta per kelas pelatihan + cached status
@@ -2064,6 +2125,10 @@ export type HonorariumDeduction = typeof honorariumDeductions.$inferSelect;
 export type NewHonorariumDeduction = typeof honorariumDeductions.$inferInsert;
 export type HonorariumAuditLog = typeof honorariumAuditLogs.$inferSelect;
 export type NewHonorariumAuditLog = typeof honorariumAuditLogs.$inferInsert;
+export type WhatsappMessageTemplate = typeof whatsappMessageTemplates.$inferSelect;
+export type NewWhatsappMessageTemplate = typeof whatsappMessageTemplates.$inferInsert;
+export type WhatsappMessageLog = typeof whatsappMessageLogs.$inferSelect;
+export type NewWhatsappMessageLog = typeof whatsappMessageLogs.$inferInsert;
 
 // ─── DINGTALK INTEGRATION ────────────────────────────────────────────────────
 

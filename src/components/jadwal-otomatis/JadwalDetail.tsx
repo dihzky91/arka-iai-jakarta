@@ -25,6 +25,10 @@ import {
   bulkUnassignInstructors,
   type InstructorRecommendation,
 } from "@/server/actions/jadwal-otomatis/assignments";
+import type { KelasHonorariumWhatsappSnapshot } from "@/server/actions/jadwal-otomatis/kelasOtomatis";
+import type { WhatsappTemplateKey } from "@/server/actions/jadwal-otomatis/whatsapp";
+import { WhatsAppClassActions } from "@/components/jadwal-otomatis/WhatsAppClassActions";
+import { APP_TIME_ZONE, parseIsoDateInJakarta } from "@/lib/utils";
 
 interface KelasDetail {
   id: string;
@@ -38,6 +42,11 @@ interface KelasDetail {
   startDate: string;
   endDate: string | null;
   lokasi: string | null;
+  financeContactNameOverride?: string | null;
+  financeWhatsappNumberOverride?: string | null;
+  financeContactName?: string | null;
+  financeWhatsappNumber?: string | null;
+  financeContactSource?: string | null;
   status: string;
   createdAt: Date;
 }
@@ -91,6 +100,23 @@ interface JadwalDetailProps {
   instructors: Instructor[];
   materiBlocks: string[];
   canManage: boolean;
+  honorariumSnapshot: KelasHonorariumWhatsappSnapshot | null;
+  whatsappTemplates: Array<{
+    templateKey: WhatsappTemplateKey;
+    templateName: string;
+    content: string;
+  }>;
+  whatsappLogs: Array<{
+    id: string;
+    templateKey: string;
+    recipientRole: string;
+    recipientName: string | null;
+    recipientWhatsappNumber: string | null;
+    messageContent: string;
+    metadata: unknown;
+    sentAt: Date;
+    sentByName: string | null;
+  }>;
   mode?: "informasi" | "jadwal" | "instruktur" | "full";
 }
 
@@ -122,17 +148,21 @@ const availabilityStatusBadgeVariant: Record<
 };
 
 function formatDate(dateStr: string) {
-  const date = new Date(`${dateStr}T00:00:00`);
+  const date = parseIsoDateInJakarta(dateStr);
   return date.toLocaleDateString("id-ID", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: APP_TIME_ZONE,
   });
 }
 
 function getDayName(dateStr: string) {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("id-ID", { weekday: "long" });
+  return parseIsoDateInJakarta(dateStr).toLocaleDateString("id-ID", {
+    weekday: "long",
+    timeZone: APP_TIME_ZONE,
+  });
 }
 
 type AvailabilityStatus = "pending_wa_confirmation" | "accepted" | "rejected" | "no_response";
@@ -157,6 +187,9 @@ export function JadwalDetail({
   instructors,
   materiBlocks,
   canManage,
+  honorariumSnapshot,
+  whatsappTemplates,
+  whatsappLogs,
   mode = "full",
 }: JadwalDetailProps) {
   const router = useRouter();
@@ -300,7 +333,7 @@ export function JadwalDetail({
     startUnassign(async () => {
       const result = await unassignInstructorFromSession(assignmentId);
       if (!result.ok) {
-        toast.error("Gagal menghapus penugasan.");
+        toast.error(result.error ?? "Gagal menghapus penugasan.");
         return;
       }
       toast.success("Penugasan dihapus.");
@@ -322,16 +355,22 @@ export function JadwalDetail({
     if (!confirm(`Hapus ${selectedAssignments.size} penugasan instruktur?`)) return;
 
     startUnassign(async () => {
-      const result = await bulkUnassignInstructors({
-        assignmentIds: Array.from(selectedAssignments),
-      });
-      if (!result.ok) {
+      try {
+        const result = await bulkUnassignInstructors({
+          assignmentIds: Array.from(selectedAssignments),
+        });
+        if (result.blockedCount > 0) {
+          toast.info(
+            `${result.deletedCount} penugasan dihapus, ${result.blockedCount} tidak bisa dihapus karena sudah masuk honorarium.`,
+          );
+        } else {
+          toast.success(`${result.deletedCount} penugasan dihapus.`);
+        }
+        setSelectedAssignments(new Set());
+        router.refresh();
+      } catch {
         toast.error("Gagal menghapus penugasan.");
-        return;
       }
-      toast.success(`${result.deletedCount} penugasan dihapus.`);
-      setSelectedAssignments(new Set());
-      router.refresh();
     });
   }
 
@@ -506,53 +545,66 @@ export function JadwalDetail({
   return (
     <div className="space-y-6">
       {(mode === "full" || mode === "informasi") && (
-        <Card className="rounded-[28px]">
-          <CardHeader className="border-b border-border">
-            <CardTitle>Informasi Kelas</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground">Program</p>
-                <p className="font-medium">{kelas.programName}</p>
+        <>
+          <Card className="rounded-[28px]">
+            <CardHeader className="border-b border-border">
+              <CardTitle>Informasi Kelas</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-sm text-muted-foreground">Program</p>
+                  <p className="font-medium">{kelas.programName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tipe Kelas</p>
+                  <p className="font-medium">{kelas.classTypeName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tanggal Mulai</p>
+                  <p className="font-medium">{formatDate(kelas.startDate)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tanggal Selesai</p>
+                  <p className="font-medium">{kelas.endDate ? formatDate(kelas.endDate) : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Metode</p>
+                  <Badge variant={kelas.mode === "online" ? "secondary" : "default"}>
+                    {kelas.mode === "online" ? "Online" : "Offline"}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Lokasi</p>
+                  <p className="font-medium">{kelas.lokasi ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={STATUS_COLORS[kelas.status] ?? "outline"}>{kelas.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Sesi</p>
+                  <p className="font-medium">{sessionCount}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Ujian</p>
+                  <p className="font-medium">{examCount}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tipe Kelas</p>
-                <p className="font-medium">{kelas.classTypeName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tanggal Mulai</p>
-                <p className="font-medium">{formatDate(kelas.startDate)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tanggal Selesai</p>
-                <p className="font-medium">{kelas.endDate ? formatDate(kelas.endDate) : "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Metode</p>
-                <Badge variant={kelas.mode === "online" ? "secondary" : "default"}>
-                  {kelas.mode === "online" ? "Online" : "Offline"}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Lokasi</p>
-                <p className="font-medium">{kelas.lokasi ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={STATUS_COLORS[kelas.status] ?? "outline"}>{kelas.status}</Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sesi</p>
-                <p className="font-medium">{sessionCount}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Ujian</p>
-                <p className="font-medium">{examCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <WhatsAppClassActions
+            kelas={kelas}
+            sessions={sessions}
+            assignments={assignments}
+            instructors={instructors}
+            honorariumSnapshot={honorariumSnapshot}
+            canManage={canManage}
+            templates={whatsappTemplates}
+            logs={whatsappLogs}
+          />
+        </>
       )}
 
       {(mode === "full" || mode === "instruktur") && canManage ? (
@@ -720,7 +772,7 @@ export function JadwalDetail({
                     {selectedAssignments.size > 0 ? (
                       <div className="flex items-center gap-2">
                         <Select
-                          value={bulkAvailabilityStatus || undefined}
+                          value={bulkAvailabilityStatus}
                           onValueChange={(value) => setBulkAvailabilityStatus(value as AvailabilityStatus)}
                           disabled={bulkStatusPending}
                         >
@@ -742,7 +794,7 @@ export function JadwalDetail({
                           {bulkStatusPending ? "Menyimpan..." : "Simpan Status"}
                         </Button>
                         <Select
-                          value={bulkSessionStatus || undefined}
+                          value={bulkSessionStatus}
                           onValueChange={(value) => setBulkSessionStatus(value as BulkSessionStatus)}
                           disabled={bulkSessionPending}
                         >

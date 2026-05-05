@@ -25,6 +25,7 @@ import {
   listAbsensiKaryawan,
   type AbsensiRow,
 } from "@/server/actions/absensi";
+import { parseIsoDateInJakarta } from "@/lib/utils";
 
 const STATUS_BADGE: Record<string, string> = {
   hadir: "bg-green-100 text-green-800",
@@ -127,7 +128,7 @@ export function AbsensiCalendar({
           ))}
           {days.map((day) => {
             const absen = data.find((r) =>
-              isSameDay(new Date(r.tanggal), day),
+              isSameDay(parseIsoDateInJakarta(r.tanggal), day),
             );
             const isToday = isSameDay(day, new Date());
 

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2, CalendarX, Banknote } from "lucide-react";
+import { Plus, Trash2, CalendarX, Banknote, Pencil } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +105,12 @@ export function InstrukturDetail({
 
   const [unavDate, setUnavDate] = useState("");
   const [unavReason, setUnavReason] = useState("");
+
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState(instructor.name as string);
+  const [editEmail, setEditEmail] = useState((instructor.email ?? "") as string);
+  const [editPhone, setEditPhone] = useState((instructor.phone ?? "") as string);
+  const [saving, startSave] = useTransition();
   const hasOverrides = rates.length > 0;
 
   const rateProgramOptions = useMemo(() => {
@@ -246,6 +252,22 @@ export function InstrukturDetail({
     });
   }
 
+  function handleSaveEdit() {
+    startSave(async () => {
+      const result = await updateInstructor({
+        id: instructor.id,
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+      });
+      if (result.ok) {
+        toast.success("Data instruktur diperbarui");
+        setEditMode(false);
+        router.refresh();
+      }
+    });
+  }
+
   function handleToggleActive() {
     startToggle(async () => {
       await updateInstructor({
@@ -267,27 +289,62 @@ export function InstrukturDetail({
               <CardTitle>Data Instruktur</CardTitle>
               <CardDescription>Informasi dasar instruktur.</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={handleToggleActive} disabled={toggling}>
-              {instructor.isActive ? "Nonaktifkan" : "Aktifkan"}
-            </Button>
+            <div className="flex gap-2">
+              {!editMode && (
+                <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleToggleActive} disabled={toggling}>
+                {instructor.isActive ? "Nonaktifkan" : "Aktifkan"}
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-sm text-muted-foreground">Email</p>
-            <p className="font-medium">{instructor.email ?? "-"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Telepon</p>
-            <p className="font-medium">{instructor.phone ?? "-"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Status</p>
-            <Badge variant={instructor.isActive ? "default" : "secondary"}>
-              {instructor.isActive ? "Aktif" : "Nonaktif"}
-            </Badge>
-          </div>
-        </CardContent>
+        {editMode ? (
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Nama</p>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email (opsional)" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Telepon</p>
+                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Telepon (opsional)" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveEdit} disabled={saving}>
+                {saving ? "Menyimpan..." : "Simpan"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setEditMode(false); setEditName(instructor.name); setEditEmail(instructor.email ?? ""); setEditPhone(instructor.phone ?? ""); }} disabled={saving}>
+                Batal
+              </Button>
+            </div>
+          </CardContent>
+        ) : (
+          <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="font-medium">{instructor.email ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Telepon</p>
+              <p className="font-medium">{instructor.phone ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <Badge variant={instructor.isActive ? "default" : "secondary"}>
+                {instructor.isActive ? "Aktif" : "Nonaktif"}
+              </Badge>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       <Card className="rounded-[28px]">

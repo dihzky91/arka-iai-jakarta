@@ -9,6 +9,7 @@ import {
   divisi,
 } from "@/server/db/schema";
 import { eq, or, and, ilike, gte, lte, sql, desc, type SQL } from "drizzle-orm";
+import { getTodayIsoInJakarta, parseIsoDateInJakarta } from "@/lib/utils";
 
 export interface SearchFilters {
   query?: string;
@@ -28,6 +29,10 @@ export interface SearchResult {
   status: string | null;
   date: Date | null;
   url: string;
+}
+
+function toIsoDateForFilter(date: Date): string {
+  return getTodayIsoInJakarta(date);
 }
 
 export async function globalSearch(
@@ -64,12 +69,12 @@ export async function globalSearch(
   }
 
   if (filters.dateFrom) {
-    const dateStr = filters.dateFrom.toISOString().split('T')[0] ?? '';
+    const dateStr = toIsoDateForFilter(filters.dateFrom);
     if (dateStr) suratKeluarConditions.push(gte(suratKeluar.tanggalSurat, dateStr));
   }
 
   if (filters.dateTo) {
-    const dateStr = filters.dateTo.toISOString().split('T')[0] ?? '';
+    const dateStr = toIsoDateForFilter(filters.dateTo);
     if (dateStr) suratKeluarConditions.push(lte(suratKeluar.tanggalSurat, dateStr));
   }
 
@@ -98,7 +103,7 @@ export async function globalSearch(
       title: sk.perihal,
       subtitle: `Ke: ${sk.tujuan}${sk.nomorSurat ? ` | No: ${sk.nomorSurat}` : ""}`,
       status: sk.status,
-      date: sk.tanggalSurat ? new Date(sk.tanggalSurat) : null,
+      date: sk.tanggalSurat ? parseIsoDateInJakarta(sk.tanggalSurat) : null,
       url: `/surat-keluar/${sk.id}`,
     }))
   );
@@ -127,12 +132,12 @@ export async function globalSearch(
   }
 
   if (filters.dateFrom) {
-    const dateStr = filters.dateFrom.toISOString().split('T')[0] ?? '';
+    const dateStr = toIsoDateForFilter(filters.dateFrom);
     if (dateStr) suratMasukConditions.push(gte(suratMasuk.tanggalSurat, dateStr));
   }
 
   if (filters.dateTo) {
-    const dateStr = filters.dateTo.toISOString().split('T')[0] ?? '';
+    const dateStr = toIsoDateForFilter(filters.dateTo);
     if (dateStr) suratMasukConditions.push(lte(suratMasuk.tanggalSurat, dateStr));
   }
 
@@ -157,7 +162,7 @@ export async function globalSearch(
       title: sm.perihal,
       subtitle: `Dari: ${sm.pengirim}${sm.nomorSuratAsal ? ` | No: ${sm.nomorSuratAsal}` : ""}`,
       status: sm.status,
-      date: sm.tanggalSurat ? new Date(sm.tanggalSurat) : null,
+      date: sm.tanggalSurat ? parseIsoDateInJakarta(sm.tanggalSurat) : null,
       url: `/surat-masuk/${sm.id}`,
     }))
   );

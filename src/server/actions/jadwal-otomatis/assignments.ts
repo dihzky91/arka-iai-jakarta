@@ -12,8 +12,10 @@ import {
   programs,
   instructors,
   instructorExpertise,
+  honorariumItems,
 } from "@/server/db/schema";
 import { requirePermission } from "@/server/actions/auth";
+import { addDaysToIsoDate, getTodayIsoInJakarta } from "@/lib/utils";
 
 const bulkUnassignSchema = z.object({
   assignmentIds: z.array(z.string().min(1)).min(1, "Pilih minimal satu assignment").max(200),
@@ -45,10 +47,6 @@ function expertiseLevelLabel(level: ExpertiseLevel) {
   if (level === "basic") return "Basic";
   if (level === "middle") return "Middle";
   return "Senior";
-}
-
-function toISODate(date: Date) {
-  return date.toISOString().slice(0, 10);
 }
 
 // ASSIGN
@@ -239,6 +237,23 @@ const bulkSessionStatusUpdateSchema = z.object({
   sessionStatus: z.enum(["scheduled", "completed"]),
 });
 
+async function splitDeletableAssignmentIds(assignmentIds: string[]) {
+  if (assignmentIds.length === 0) {
+    return { deletableIds: [] as string[], blockedIds: [] as string[] };
+  }
+
+  const linkedRows = await db
+    .select({ assignmentId: honorariumItems.assignmentId })
+    .from(honorariumItems)
+    .where(inArray(honorariumItems.assignmentId, assignmentIds));
+
+  const blockedIds = Array.from(new Set(linkedRows.map((row) => row.assignmentId)));
+  const blockedSet = new Set(blockedIds);
+  const deletableIds = assignmentIds.filter((id) => !blockedSet.has(id));
+
+  return { deletableIds, blockedIds };
+}
+
 export async function updateAssignmentAvailabilityStatus(
   data: z.infer<typeof availabilityUpdateSchema>,
 ) {
@@ -386,14 +401,9 @@ export async function getInstructorRecommendationsForBlock(
   if (activeInstructors.length === 0) return [];
 
   const instructorIds = activeInstructors.map((instructor) => instructor.id);
-  const today = new Date();
-  const todayStr = toISODate(today);
-  const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const monthEnd = new Date(today);
-  monthEnd.setDate(monthEnd.getDate() + 29);
-  const weekEndStr = toISODate(weekEnd);
-  const monthEndStr = toISODate(monthEnd);
+  const todayStr = getTodayIsoInJakarta();
+  const weekEndStr = addDaysToIsoDate(todayStr, 6);
+  const monthEndStr = addDaysToIsoDate(todayStr, 29);
 
   const [expertiseRows, upcomingRows, similarHistoryRows] = await Promise.all([
     db
@@ -548,14 +558,9 @@ export async function getInstructorAllocationSummary(
 ): Promise<InstructorAllocationSummary> {
   await requirePermission("jadwalUjian", "view");
 
-  const today = new Date();
-  const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const monthEnd = new Date(today);
-  monthEnd.setDate(monthEnd.getDate() + 29);
-  const todayStr = toISODate(today);
-  const weekEndStr = toISODate(weekEnd);
-  const monthEndStr = toISODate(monthEnd);
+  const todayStr = getTodayIsoInJakarta();
+  const weekEndStr = addDaysToIsoDate(todayStr, 6);
+  const monthEndStr = addDaysToIsoDate(todayStr, 29);
 
   const rows = await db
     .select({
@@ -693,10 +698,22 @@ export async function checkInstructorConflict(instructorId: string, tanggal: str
 export async function unassignInstructorFromSession(assignmentId: string) {
   await requirePermission("jadwalUjian", "manage");
 
-  await db.delete(sessionAssignments).where(eq(sessionAssignments.id, assignmentId));
+  const { deletableIds, blockedIds } = await splitDeletableAssignmentIds([assignmentId]);
+  if (blockedIds.length > 0) {
+    return {
+      ok: false as const,
+      blockedByHonorarium: true as const,
+      error:
+        "Penugasan tidak bisa dihapus karena sudah masuk perhitungan honorarium.",
+    };
+  }
+
+  if (deletableIds.length > 0) {
+    await db.delete(sessionAssignments).where(eq(sessionAssignments.id, assignmentId));
+  }
 
   revalidatePath("/jadwal-otomatis");
-  return { ok: true as const };
+  return { ok: true as const, deletedCount: deletableIds.length };
 }
 
 // UNASSIGN BLOCK
@@ -718,12 +735,28 @@ export async function unassignInstructorFromBlock(kelasId: string, materiBlock: 
   if (sessions.length === 0) return { ok: true as const, deletedCount: 0 };
 
   const sessionIds = sessions.map((s) => s.id);
-  const result = await db
-    .delete(sessionAssignments)
+  const assignmentRows = await db
+    .select({ id: sessionAssignments.id })
+    .from(sessionAssignments)
     .where(inArray(sessionAssignments.sessionId, sessionIds));
 
+  const assignmentIds = assignmentRows.map((row) => row.id);
+  const { deletableIds, blockedIds } = await splitDeletableAssignmentIds(assignmentIds);
+
+  let deletedCount = 0;
+  if (deletableIds.length > 0) {
+    const result = await db
+      .delete(sessionAssignments)
+      .where(inArray(sessionAssignments.id, deletableIds));
+    deletedCount = result.rowCount ?? 0;
+  }
+
   revalidatePath("/jadwal-otomatis");
-  return { ok: true as const, deletedCount: result.rowCount ?? 0 };
+  return {
+    ok: true as const,
+    deletedCount,
+    blockedCount: blockedIds.length,
+  };
 }
 
 // BULK UNASSIGN
@@ -732,10 +765,23 @@ export async function bulkUnassignInstructors(data: z.infer<typeof bulkUnassignS
   const parsed = bulkUnassignSchema.parse(data);
   await requirePermission("jadwalUjian", "manage");
 
-  const result = await db
-    .delete(sessionAssignments)
-    .where(inArray(sessionAssignments.id, parsed.assignmentIds));
+  const { deletableIds, blockedIds } = await splitDeletableAssignmentIds(
+    parsed.assignmentIds,
+  );
+
+  let deletedCount = 0;
+  if (deletableIds.length > 0) {
+    const result = await db
+      .delete(sessionAssignments)
+      .where(inArray(sessionAssignments.id, deletableIds));
+    deletedCount = result.rowCount ?? 0;
+  }
 
   revalidatePath("/jadwal-otomatis");
-  return { ok: true as const, deletedCount: result.rowCount ?? 0 };
+  return {
+    ok: true as const,
+    deletedCount,
+    blockedCount: blockedIds.length,
+    blockedByHonorarium: blockedIds.length > 0,
+  };
 }

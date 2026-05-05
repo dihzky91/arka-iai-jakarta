@@ -30,15 +30,16 @@ const batchFilterSchema = z.object({
 
 const generateSchema = z.object({
   sourceMode: z.enum(["existing", "manual"]).default("existing"),
+  useCustomAngkatanFormat: z.boolean().default(false),
   kelasId: z.string().optional(),
-  overrideAngkatan: z.number().int().min(100).max(999).optional(),
+  overrideAngkatan: z.number().int().min(1).max(999).optional(),
   overrideCertificateClassCode: z.enum(["01", "02", "03"]).optional(),
   manualNamaKelas: z.string().trim().min(2).max(200).optional(),
   manualProgramId: z.string().optional(),
   manualClassTypeId: z.string().optional(),
   manualMode: z.enum(["offline", "online"]).optional(),
   manualStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  manualAngkatan: z.number().int().min(100).max(999).optional(),
+  manualAngkatan: z.number().int().min(1).max(999).optional(),
   manualCertificateClassCode: z.enum(["01", "02", "03"]).optional(),
   quantity: z.number().int().min(1, "Jumlah minimal 1.").max(1000, "Jumlah maksimal 1000."),
   notes: z.string().trim().max(1000).optional(),
@@ -47,10 +48,8 @@ const generateSchema = z.object({
 const idSchema = z.string().min(1, "ID tidak valid.");
 
 const updateQuantitySchema = z.object({
-  batchId:       z.string().min(1),
-  newQuantity:   z.number().int().min(1, "Jumlah minimal 1."),
-  classTypeCode: z.string().regex(/^\d{2}$/),
-  angkatan:      z.number().int(),
+  batchId: z.string().min(1),
+  newQuantity: z.number().int().min(1, "Jumlah minimal 1."),
 });
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -147,6 +146,17 @@ async function setLastSerial(value: number): Promise<void> {
       target: certificateSerialConfig.key,
       set: { value: String(value), updatedAt: new Date() },
     });
+}
+
+function formatAngkatanPrefix(angkatan: number, useCustomAngkatanFormat: boolean) {
+  return useCustomAngkatanFormat
+    ? String(angkatan)
+    : String(angkatan).padStart(3, "0");
+}
+
+function extractNumberPrefix(firstCertificateNumber: string, fallbackPrefix: string) {
+  const [prefix] = firstCertificateNumber.split(".");
+  return prefix || fallbackPrefix;
 }
 
 function certificateClassLabel(code: string) {
@@ -349,7 +359,7 @@ export async function generateBatch(data: unknown) {
     return { ok: false as const, error: result.error.issues[0]?.message ?? "Data tidak valid." };
   }
   const parsed = result.data;
-  const { quantity, notes } = parsed;
+  const { quantity, notes, useCustomAngkatanFormat } = parsed;
   const session = await requirePermission("sertifikat", "manage");
 
   try {
@@ -496,10 +506,10 @@ export async function generateBatch(data: unknown) {
     const startSerial = lastSerial + 1;
     const endSerial = startSerial + quantity - 1;
 
-    // 2. Format nomor: {angkatan 3-digit}{kode}.{serial}
-    const angkatanStr = String(angkatan).padStart(3, "0");
-    const firstNumber = `${angkatanStr}${classTypeCode}.${startSerial}`;
-    const lastNumber  = `${angkatanStr}${classTypeCode}.${endSerial}`;
+    // 2. Format nomor: default 3-digit, bisa override per batch untuk case khusus
+    const numberPrefix = `${formatAngkatanPrefix(angkatan, useCustomAngkatanFormat)}${classTypeCode}`;
+    const firstNumber = `${numberPrefix}.${startSerial}`;
+    const lastNumber  = `${numberPrefix}.${endSerial}`;
 
     // 3. Insert batch
     const [batch] = await db
@@ -526,7 +536,7 @@ export async function generateBatch(data: unknown) {
     for (let i = startSerial; i <= endSerial; i++) {
       itemValues.push({
         batchId:       batch.id,
-        fullNumber:    `${angkatanStr}${classTypeCode}.${i}`,
+        fullNumber:    `${numberPrefix}.${i}`,
         angkatan,
         classTypeCode,
         serialNumber:  i,
@@ -561,6 +571,7 @@ export async function generateBatch(data: unknown) {
         quantity,
         firstNumber,
         lastNumber,
+        useCustomAngkatanFormat,
         startSerial,
         endSerial,
       },
@@ -591,8 +602,24 @@ export async function updateBatchQuantity(rawData: unknown) {
   if (!result.success) {
     return { ok: false as const, error: result.error.issues[0]?.message ?? "Data tidak valid." };
   }
-  const { batchId, newQuantity, classTypeCode, angkatan } = result.data;
+  const { batchId, newQuantity } = result.data;
   const session = await requirePermission("sertifikat", "manage");
+
+  const [batchMeta] = await db
+    .select({
+      id: certificateBatches.id,
+      firstCertificateNumber: certificateBatches.firstCertificateNumber,
+      angkatan: certificateBatches.angkatan,
+      classTypeCode: certificateClassTypes.code,
+    })
+    .from(certificateBatches)
+    .innerJoin(certificateClassTypes, eq(certificateBatches.classTypeId, certificateClassTypes.id))
+    .where(eq(certificateBatches.id, batchId))
+    .limit(1);
+
+  if (!batchMeta) {
+    return { ok: false as const, error: "Batch tidak ditemukan." };
+  }
 
   // Ambil semua items batch ini
   const batchItems = await db
@@ -673,14 +700,18 @@ export async function updateBatchQuantity(rawData: unknown) {
     const startSerial = lastSerial + 1;
     const endSerial = startSerial + addCount - 1;
 
-    const angkatanStr = String(angkatan).padStart(3, "0");
+    const fallbackPrefix = `${String(batchMeta.angkatan).padStart(3, "0")}${batchMeta.classTypeCode}`;
+    const numberPrefix = extractNumberPrefix(
+      batchMeta.firstCertificateNumber,
+      fallbackPrefix,
+    );
     const newItems = [];
     for (let i = startSerial; i <= endSerial; i++) {
       newItems.push({
         batchId,
-        fullNumber:    `${angkatanStr}${classTypeCode}.${i}`,
-        angkatan,
-        classTypeCode,
+        fullNumber:    `${numberPrefix}.${i}`,
+        angkatan: batchMeta.angkatan,
+        classTypeCode: batchMeta.classTypeCode,
         serialNumber:  i,
         status:        "active" as const,
       });
@@ -694,7 +725,7 @@ export async function updateBatchQuantity(rawData: unknown) {
     await setLastSerial(endSerial);
 
     // Ambil lastNumber terbaru untuk update batch
-    const lastNumber = `${angkatanStr}${classTypeCode}.${endSerial}`;
+    const lastNumber = `${numberPrefix}.${endSerial}`;
     await db
       .update(certificateBatches)
       .set({

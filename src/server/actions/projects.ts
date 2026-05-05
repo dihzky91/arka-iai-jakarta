@@ -33,6 +33,7 @@ import {
 import { createNotification } from "@/server/actions/notifications";
 import { env } from "@/lib/env";
 import { parseDataUrl, sanitizeFileName } from "@/lib/storage/utils";
+import { parseIsoDateInJakarta } from "@/lib/utils";
 import { getStorageProvider } from "@/lib/storage";
 import { calculateSKP } from "@/lib/skp-calculator";
 import { sanitizeAnnouncementHtml } from "@/lib/html/announcementHtml";
@@ -228,7 +229,13 @@ function resolveSkp(data: z.infer<typeof projectSchema>) {
   if (!data.startDate || !data.endDate) return null;
 
   const halfDay = data.halfDaySkp ? Number(data.halfDaySkp) : null;
-  return String(calculateSKP(new Date(data.startDate), new Date(data.endDate), halfDay));
+  return String(
+    calculateSKP(
+      parseIsoDateInJakarta(data.startDate),
+      parseIsoDateInJakarta(data.endDate),
+      halfDay,
+    ),
+  );
 }
 
 async function logProjectActivity(

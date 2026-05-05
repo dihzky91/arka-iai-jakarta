@@ -16,6 +16,21 @@ const DAY_MAP: Record<string, number> = {
   Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
 };
 
+function parseIsoDateLocal(isoDate: string): Date {
+  const [yearText, monthText, dayText] = isoDate.split("-");
+  const year = Number.parseInt(yearText ?? "", 10);
+  const month = Number.parseInt(monthText ?? "", 10);
+  const day = Number.parseInt(dayText ?? "", 10);
+  return new Date(year, month - 1, day);
+}
+
+function formatIsoDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getActiveDayNumbers(activeDaysStr: string): number[] {
   return activeDaysStr
     .split(",")
@@ -34,7 +49,7 @@ function findNextActiveDate(
   let attempts = 0;
   while (attempts < 365) {
     if (activeDayNumbers.includes(d.getDay())) {
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = formatIsoDateLocal(d);
       if (!excludedSet.has(dateStr)) {
         return d;
       }
@@ -157,7 +172,7 @@ export async function generateSchedule(input: GenerateInput) {
   for (const h of holidayRows) excludedSet.add(h.date);
 
   const queue = await buildSessionQueue(input.programId);
-  const startDate = new Date(input.startDate);
+  const startDate = parseIsoDateLocal(input.startDate);
   startDate.setHours(0, 0, 0, 0);
 
   let currentDate = new Date(startDate);
@@ -172,7 +187,7 @@ export async function generateSchedule(input: GenerateInput) {
         kelasId: input.kelasId,
         sessionNumber: item.session1Num,
         isExamDay: false,
-        scheduledDate: currentDate.toISOString().slice(0, 10),
+        scheduledDate: formatIsoDateLocal(currentDate),
         timeSlotStart: ct.slot1Start,
         timeSlotEnd: ct.slot1End,
         materiName: item.session1Materi,
@@ -183,7 +198,7 @@ export async function generateSchedule(input: GenerateInput) {
         kelasId: input.kelasId,
         sessionNumber: item.session2Num,
         isExamDay: false,
-        scheduledDate: currentDate.toISOString().slice(0, 10),
+        scheduledDate: formatIsoDateLocal(currentDate),
         timeSlotStart: ct.slot2Start,
         timeSlotEnd: ct.slot2End,
         materiName: item.session2Materi,
@@ -198,7 +213,7 @@ export async function generateSchedule(input: GenerateInput) {
           sessionNumber: null,
           isExamDay: true,
           examSubjects: item.examSubjects,
-          scheduledDate: currentDate.toISOString().slice(0, 10),
+          scheduledDate: formatIsoDateLocal(currentDate),
           timeSlotStart: ct.slot1Start,
           timeSlotEnd: ct.slot1End,
           materiName: null,
@@ -212,7 +227,7 @@ export async function generateSchedule(input: GenerateInput) {
           sessionNumber: null,
           isExamDay: true,
           examSubjects: item.examSubjects,
-          scheduledDate: currentDate.toISOString().slice(0, 10),
+          scheduledDate: formatIsoDateLocal(currentDate),
           timeSlotStart: ct.slot2Start,
           timeSlotEnd: ct.slot2End,
           materiName: null,
@@ -226,7 +241,7 @@ export async function generateSchedule(input: GenerateInput) {
         kelasId: input.kelasId,
         sessionNumber: item.sessionNum,
         isExamDay: false,
-        scheduledDate: currentDate.toISOString().slice(0, 10),
+        scheduledDate: formatIsoDateLocal(currentDate),
         timeSlotStart: ct.slot1Start,
         timeSlotEnd: ct.slot1End,
         materiName: item.materiName,
@@ -238,7 +253,7 @@ export async function generateSchedule(input: GenerateInput) {
         sessionNumber: null,
         isExamDay: true,
         examSubjects: item.examSubjects,
-        scheduledDate: currentDate.toISOString().slice(0, 10),
+        scheduledDate: formatIsoDateLocal(currentDate),
         timeSlotStart: ct.slot2Start,
         timeSlotEnd: ct.slot2End,
         materiName: null,
@@ -251,7 +266,7 @@ export async function generateSchedule(input: GenerateInput) {
         kelasId: input.kelasId,
         sessionNumber: item.sessionNum,
         isExamDay: false,
-        scheduledDate: currentDate.toISOString().slice(0, 10),
+        scheduledDate: formatIsoDateLocal(currentDate),
         timeSlotStart: ct.slot1Start,
         timeSlotEnd: ct.slot1End,
         materiName: item.materiName,

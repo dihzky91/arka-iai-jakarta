@@ -1,9 +1,10 @@
 "use server";
 
-import { desc, eq, and, gte, lte, like, inArray, sql } from "drizzle-orm";
+import { desc, eq, and, gte, lt, like, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import { auditLog, users } from "@/server/db/schema";
 import { requirePermission } from "./auth";
+import { addDaysToIsoDate, parseIsoDateTimeInJakarta } from "@/lib/utils";
 
 export type AuditLogRow = {
   id: number;
@@ -63,14 +64,13 @@ async function listAuditLogInternal(filter: AuditLogFilter = {}): Promise<AuditL
   }
 
   if (filter.startDate) {
-    conditions.push(gte(auditLog.createdAt, new Date(filter.startDate)));
+    conditions.push(gte(auditLog.createdAt, parseIsoDateTimeInJakarta(filter.startDate, "00:00")));
   }
 
   if (filter.endDate) {
-    // Akhir hari
-    const end = new Date(filter.endDate);
-    end.setHours(23, 59, 59, 999);
-    conditions.push(lte(auditLog.createdAt, end));
+    // Inclusive sampai akhir hari (approach: < hari berikutnya 00:00)
+    const nextDay = addDaysToIsoDate(filter.endDate, 1);
+    conditions.push(lt(auditLog.createdAt, parseIsoDateTimeInJakarta(nextDay, "00:00")));
   }
 
   if (filter.search) {

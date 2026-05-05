@@ -29,6 +29,7 @@ import {
   type PenugasanRow,
 } from "@/server/actions/jadwal-ujian/penugasan";
 import type { PengawasRow } from "@/server/actions/jadwal-ujian/pengawas";
+import { APP_TIME_ZONE, parseIsoDateInJakarta } from "@/lib/utils";
 
 interface PenugasanManagerProps {
   ujianId: string;
@@ -89,12 +90,13 @@ export function PenugasanManager({
     });
   }
 
-  const d = new Date(tanggalUjian + "T00:00:00");
+  const d = parseIsoDateInJakarta(tanggalUjian);
   const tanggalFormatted = d.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: APP_TIME_ZONE,
   });
 
   return (

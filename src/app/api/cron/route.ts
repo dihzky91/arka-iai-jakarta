@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { disposisi, users, notificationPreferences } from "@/server/db/schema";
 import { and, eq, lt, gte, isNull } from "drizzle-orm";
 import { notifyDisposisiDeadline, pruneOldNotifications } from "@/server/actions/notifications";
+import { addDaysToIsoDate, getTodayIsoInJakarta } from "@/lib/utils";
 
 async function processDeadlineNotifications() {
   const batchResult: string[] = [];
@@ -19,9 +20,8 @@ async function processDeadlineNotifications() {
   );
 
   for (const [userId, days] of prefMap) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() + days);
-    const now = new Date();
+    const todayIso = getTodayIsoInJakarta();
+    const cutoffIso = addDaysToIsoDate(todayIso, days);
 
     const nearingDeadlines = await db
       .select({
@@ -35,8 +35,8 @@ async function processDeadlineNotifications() {
           eq(disposisi.kepadaUserId, userId),
           eq(disposisi.status, "dibaca"),
           isNull(disposisi.tanggalSelesai),
-          gte(disposisi.batasWaktu, now.toISOString().split("T")[0]!),
-          lt(disposisi.batasWaktu, cutoff.toISOString().split("T")[0]!)
+          gte(disposisi.batasWaktu, todayIso),
+          lt(disposisi.batasWaktu, cutoffIso)
         )
       );
 

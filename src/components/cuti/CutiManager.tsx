@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listPengajuanCuti, type CutiRow } from "@/server/actions/cuti";
 import { kirimCutiKeDingTalk } from "@/server/actions/dingtalk/submit-leave";
+import { APP_TIME_ZONE } from "@/lib/utils";
 
 const STATUS_BADGE: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
@@ -133,7 +134,9 @@ export function CutiManager({
                       <TableRow key={row.id}>
                         <TableCell>
                           {row.createdAt
-                            ? new Date(row.createdAt).toLocaleDateString("id-ID")
+                            ? new Date(row.createdAt).toLocaleDateString("id-ID", {
+                                timeZone: APP_TIME_ZONE,
+                              })
                             : "-"}
                         </TableCell>
                         <TableCell>{JENIS_LABEL[row.jenisCuti] ?? row.jenisCuti}</TableCell>

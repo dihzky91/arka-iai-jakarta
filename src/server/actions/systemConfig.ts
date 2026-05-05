@@ -17,6 +17,8 @@ import { APP_BRAND_FULL_NAME } from "@/lib/branding";
 const configSchema = z.object({
   defaultDisposisiDeadlineDays: z.number().int().min(0).max(365),
   notificationEmailEnabled: z.boolean(),
+  financeContactName: z.string().trim().max(200).optional().nullable(),
+  financeWhatsappNumber: z.string().trim().max(30).optional().nullable(),
 });
 
 export async function updateSystemConfig(input: unknown) {
@@ -29,6 +31,14 @@ export async function updateSystemConfig(input: unknown) {
       error: parsed.error.issues[0]?.message ?? "Data tidak valid.",
     };
   }
+  const financeContactName = parsed.data.financeContactName?.trim() || null;
+  const financeWhatsappNumber = parsed.data.financeWhatsappNumber?.trim() || null;
+  const normalizedConfig = {
+    defaultDisposisiDeadlineDays: parsed.data.defaultDisposisiDeadlineDays,
+    notificationEmailEnabled: parsed.data.notificationEmailEnabled,
+    financeContactName,
+    financeWhatsappNumber,
+  };
 
   const existing = await db
     .select({ id: systemSettings.id })
@@ -37,7 +47,7 @@ export async function updateSystemConfig(input: unknown) {
 
   if (existing.length === 0) {
     await db.insert(systemSettings).values({
-      ...parsed.data,
+      ...normalizedConfig,
       logoUrl: "/iai-logo.png",
       updatedBy: session.user.id,
       updatedAt: new Date(),
@@ -46,7 +56,7 @@ export async function updateSystemConfig(input: unknown) {
     await db
       .update(systemSettings)
       .set({
-        ...parsed.data,
+        ...normalizedConfig,
         updatedBy: session.user.id,
         updatedAt: new Date(),
       })
@@ -58,7 +68,7 @@ export async function updateSystemConfig(input: unknown) {
     aksi: "UPDATE_SYSTEM_CONFIG",
     entitasType: "system_settings",
     entitasId: String(existing[0]?.id ?? "new"),
-    detail: parsed.data,
+    detail: normalizedConfig,
   });
 
   revalidatePath("/pengaturan");

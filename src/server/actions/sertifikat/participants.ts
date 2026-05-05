@@ -9,6 +9,7 @@ import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
 import { auditLog, eventCertificateCounters, events, participantRevisions, participants, users } from "@/server/db/schema";
 import { requirePermission, requireSession } from "../auth";
+import { getTodayIsoInJakarta } from "@/lib/utils";
 
 type RevisionChangeType =
   | "create"
@@ -141,7 +142,7 @@ function pickCell(row: ImportRecord, candidates: string[]) {
 
 function stringifyCell(value: unknown) {
   if (value === null || value === undefined) return "";
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) return getTodayIsoInJakarta(value);
   return String(value).trim();
 }
 

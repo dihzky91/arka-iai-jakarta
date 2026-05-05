@@ -12,6 +12,7 @@ import {
   Mail,
   ShieldCheck,
 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ export function LoginPageClient({
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dingtalkLoading, setDingtalkLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,6 +94,20 @@ export function LoginPageClient({
       setError(err instanceof Error ? err.message : "Terjadi kesalahan");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDingTalkLogin() {
+    setDingtalkLoading(true);
+    setError(null);
+    try {
+      await authClient.signIn.oauth2({
+        providerId: "dingtalk",
+        callbackURL: redirectTo || "/dashboard",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal login dengan DingTalk");
+      setDingtalkLoading(false);
     }
   }
 
@@ -270,7 +286,45 @@ export function LoginPageClient({
             </Button>
           </form>
 
-          <div className="mt-6 border-t border-border pt-4 text-center text-xs text-muted-foreground">
+          <div className="relative mt-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-2 text-muted-foreground">atau</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={dingtalkLoading || loading}
+            onClick={handleDingTalkLogin}
+            className="mt-4 h-11 w-full"
+            size="lg"
+          >
+            {dingtalkLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Menghubungkan ke DingTalk...
+              </>
+            ) : (
+              <>
+                {/* DingTalk logo inline SVG */}
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                  fill="currentColor"
+                >
+                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.293 13.657c-.195.195-.512.195-.707 0l-2.586-2.586-2.586 2.586c-.195.195-.512.195-.707 0-.195-.195-.195-.512 0-.707L12.293 12 9.707 9.414c-.195-.195-.195-.512 0-.707.195-.195.512-.195.707 0L12 11.293l2.586-2.586c.195-.195.512-.195.707 0 .195.195.195.512 0 .707L12.707 12l2.586 2.586c.195.195.195.512 0 .707z" />
+                </svg>
+                Login dengan DingTalk
+              </>
+            )}
+          </Button>
+
+          <div className="mt-4 border-t border-border pt-4 text-center text-xs text-muted-foreground">
             Belum punya akses?{" "}
             <a
               href="mailto:admin@iai-jakarta.or.id?subject=Permohonan%20Akses%20Sistem"

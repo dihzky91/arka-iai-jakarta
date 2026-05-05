@@ -8,12 +8,24 @@ export const kelasOtomatisCreateSchema = z.object({
   angkatan: z
     .number()
     .int("Angkatan harus bilangan bulat")
-    .min(100, "Angkatan minimal 3 digit")
+    .min(1, "Angkatan minimal 1")
     .max(999, "Angkatan maksimal 3 digit")
     .optional(),
   certificateClassCode: z.enum(["01", "02", "03"]).optional().or(z.literal("")),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
   lokasi: z.string().trim().max(300).optional().or(z.literal("")),
+  financeContactNameOverride: z
+    .string()
+    .trim()
+    .max(200, "Nama kontak keuangan maksimal 200 karakter")
+    .optional()
+    .or(z.literal("")),
+  financeWhatsappNumberOverride: z
+    .string()
+    .trim()
+    .max(30, "Nomor WhatsApp keuangan maksimal 30 karakter")
+    .optional()
+    .or(z.literal("")),
   excludedDates: z.array(
     z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid"),

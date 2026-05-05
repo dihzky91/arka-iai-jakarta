@@ -35,6 +35,7 @@ import {
   notifySuratKeluarSelesai,
 } from "./notifications";
 import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
+import { parseIsoDateInJakarta } from "@/lib/utils";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -860,7 +861,7 @@ export async function assignNomorSuratKeluar(data: { id: string }) {
     };
   }
 
-  const tanggal = new Date(surat.tanggalSurat);
+  const tanggal = parseIsoDateInJakarta(surat.tanggalSurat);
   const bulan = tanggal.getMonth() + 1;
   const tahun = tanggal.getFullYear();
   const jenisSurat = surat.jenisSurat;
@@ -1032,7 +1033,8 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
 
   const orderedRows = [...rows].sort((a, b) => {
     const tanggalCompare =
-      new Date(a.tanggalSurat).getTime() - new Date(b.tanggalSurat).getTime();
+      parseIsoDateInJakarta(a.tanggalSurat).getTime() -
+      parseIsoDateInJakarta(b.tanggalSurat).getTime();
     if (tanggalCompare !== 0) return tanggalCompare;
 
     const createdCompare =
@@ -1047,7 +1049,7 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
     const results: Array<{ id: string; nomorSurat: string; perihal: string }> = [];
 
     for (const row of orderedRows) {
-      const tanggal = new Date(row.tanggalSurat);
+      const tanggal = parseIsoDateInJakarta(row.tanggalSurat);
       const result = await allocateNomorSurat(
         {
           tahun: tanggal.getFullYear(),

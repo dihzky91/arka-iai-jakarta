@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, asc, and, gte, inArray } from "drizzle-orm";
+import { eq, asc, and, gte, inArray, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import {
   kelasPelatihan,
 } from "@/server/db/schema";
 import { requirePermission } from "@/server/actions/auth";
+import { addDaysToIsoDate, getTodayIsoInJakarta } from "@/lib/utils";
 
 const expertiseLevelSchema = z.enum(["basic", "middle", "senior"]);
 
@@ -74,14 +75,9 @@ export async function listInstructors() {
   if (rows.length === 0) return [];
 
   const instructorIds = rows.map((row) => row.id);
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const weekEndStr = weekEnd.toISOString().slice(0, 10);
-  const monthEnd = new Date(today);
-  monthEnd.setDate(monthEnd.getDate() + 29);
-  const monthEndStr = monthEnd.toISOString().slice(0, 10);
+  const todayStr = getTodayIsoInJakarta();
+  const weekEndStr = addDaysToIsoDate(todayStr, 6);
+  const monthEndStr = addDaysToIsoDate(todayStr, 29);
 
   const [expertiseRows, upcomingRows] = await Promise.all([
     db
@@ -225,8 +221,60 @@ export async function updateInstructor(data: z.infer<typeof instructorUpdateSche
 export async function deleteInstructor(id: string) {
   await requirePermission("jadwalUjian", "configure");
 
+  const existing = await db
+    .select({
+      id: instructors.id,
+      name: instructors.name,
+      isActive: instructors.isActive,
+    })
+    .from(instructors)
+    .where(eq(instructors.id, id))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  if (!existing) {
+    return { ok: false as const, error: "Instruktur tidak ditemukan." };
+  }
+
+  const referenceCountRow = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+    })
+    .from(sessionAssignments)
+    .where(
+      or(
+        eq(sessionAssignments.plannedInstructorId, id),
+        eq(sessionAssignments.actualInstructorId, id),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  const referenceCount = Number(referenceCountRow?.total ?? 0);
+
+  if (referenceCount > 0) {
+    if (existing.isActive) {
+      await db
+        .update(instructors)
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(instructors.id, id));
+    }
+
+    revalidatePath("/jadwal-otomatis/instruktur");
+    revalidatePath(`/jadwal-otomatis/instruktur/${id}`);
+    return {
+      ok: true as const,
+      mode: "deactivated" as const,
+      referenceCount,
+    };
+  }
+
   await db.delete(instructors).where(eq(instructors.id, id));
 
   revalidatePath("/jadwal-otomatis/instruktur");
-  return { ok: true as const };
+  revalidatePath(`/jadwal-otomatis/instruktur/${id}`);
+  return { ok: true as const, mode: "deleted" as const, referenceCount: 0 };
 }

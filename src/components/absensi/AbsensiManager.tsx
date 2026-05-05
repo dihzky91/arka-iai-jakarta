@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AbsensiCalendar } from "./AbsensiCalendar";
 import { AbsensiStats } from "./AbsensiStats";
 import { syncAbsensiDariDingTalk } from "@/server/actions/dingtalk/sync-attendance";
+import { getMonthRangeInJakarta, getTodayIsoInJakarta } from "@/lib/utils";
 
 export function AbsensiManager({
   currentUserId,
@@ -28,11 +29,9 @@ export function AbsensiManager({
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
-      const now = new Date();
-      const from = new Date(now.getFullYear(), now.getMonth(), 1);
-      const fmt = (d: Date) => d.toISOString().slice(0, 10);
-
-      const res = await syncAbsensiDariDingTalk(fmt(from), fmt(now));
+      const { start } = getMonthRangeInJakarta();
+      const today = getTodayIsoInJakarta();
+      const res = await syncAbsensiDariDingTalk(start, today);
 
       if (res.ok) {
         toast.success(

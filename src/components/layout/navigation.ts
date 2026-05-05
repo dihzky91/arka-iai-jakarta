@@ -48,12 +48,14 @@ export interface NavigationItem {
 
 export interface NavigationSection {
   title: string;
+  collapsedHref?: string;
   items: NavigationItem[];
 }
 
 export const navigationSections: NavigationSection[] = [
   {
     title: "Utama",
+    collapsedHref: "/dashboard",
     items: [
       {
         href: "/dashboard",
@@ -87,6 +89,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Kepegawaian",
+    collapsedHref: "/pegawai",
     items: [
       {
         href: "/pegawai",
@@ -122,6 +125,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Persuratan",
+    collapsedHref: "/surat-keluar",
     items: [
       {
         href: "/surat-keluar",
@@ -149,6 +153,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Sertifikat & Kegiatan",
+    collapsedHref: "/sertifikat/kegiatan",
     items: [
       {
         href: "/sertifikat/kegiatan",
@@ -226,6 +231,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Program Pelatihan",
+    collapsedHref: "/jadwal-otomatis",
     items: [
       {
         href: "/jadwal-otomatis",
@@ -263,6 +269,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Keuangan",
+    collapsedHref: "/keuangan",
     items: [
       {
         href: "/keuangan",
@@ -282,6 +289,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Manajemen Ujian",
+    collapsedHref: "/jadwal-ujian/admin-jaga",
     items: [
       {
         href: "/jadwal-ujian/admin-jaga",
@@ -342,6 +350,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Administrasi",
+    collapsedHref: "/surat-keputusan",
     items: [
       {
         href: "/surat-keputusan",

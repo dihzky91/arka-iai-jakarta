@@ -1,0 +1,1481 @@
+enum calendar_event_type {
+  surat_deadline
+  disposisi_deadline
+  rapat
+  reminder
+  other
+  ujian
+  ujian_pengawas
+  admin_jaga
+}
+
+enum certificate_batch_status {
+  active
+  revised
+  cancelled
+}
+
+enum certificate_item_status {
+  active
+  cancelled
+}
+
+enum class_session_status {
+  scheduled
+  cancelled
+  makeup
+  completed
+}
+
+enum gender {
+  "Laki-laki"
+  Perempuan
+}
+
+enum jenis_cuti {
+  tahunan
+  sakit
+  melahirkan
+  menikah
+  kematian
+  lainnya
+}
+
+enum jenis_pegawai {
+  Tetap
+  Kontrak
+  Magang
+  "Paruh Waktu"
+}
+
+enum jenis_surat {
+  undangan
+  pemberitahuan
+  permohonan
+  keputusan
+  mou
+  balasan
+  edaran
+  keterangan
+  tugas
+  lainnya
+}
+
+enum kategori_kegiatan {
+  Workshop
+  "Brevet AB"
+  "Brevet C"
+  BFA
+  Lainnya
+}
+
+enum notification_type {
+  disposisi_baru
+  disposisi_deadline
+  surat_keluar_approval
+  surat_keluar_revisi
+  surat_keluar_selesai
+  surat_masuk_baru
+  project_invitation
+  mention
+  project_update
+  system
+}
+
+enum project_type {
+  Workshop
+  Seminar
+  Lokakarya
+  Pelatihan
+  Lainnya
+}
+
+enum role {
+  admin
+  staff
+  pejabat
+  viewer
+}
+
+enum status_absensi {
+  hadir
+  terlambat
+  alpha
+  cuti
+  dinas_luar
+  izin
+  sakit
+}
+
+enum status_cuti {
+  draft
+  diajukan
+  disetujui
+  ditolak
+  dibatalkan
+}
+
+enum status_dingtalk_sync {
+  success
+  partial
+  failed
+}
+
+enum status_disposisi {
+  belum_dibaca
+  dibaca
+  diproses
+  selesai
+}
+
+enum status_event {
+  aktif
+  dibatalkan
+  ditunda
+  arsip
+}
+
+enum status_pernikahan {
+  BM
+  M
+  C
+  D
+  J
+}
+
+enum status_peserta {
+  aktif
+  dicabut
+}
+
+enum status_surat_keluar {
+  draft
+  permohonan_persetujuan
+  reviu
+  pengarsipan
+  selesai
+  dibatalkan
+}
+
+enum status_surat_masuk {
+  diterima
+  diproses
+  diarsip
+  dibatalkan
+}
+
+enum sumber_absensi {
+  dingtalk
+  manual
+}
+
+enum user_invitation_status {
+  pending
+  accepted
+  expired
+  cancelled
+}
+
+table absensi_karyawan {
+  id text [pk, not null]
+  user_id text
+  dingtalk_user_id text
+  dingtalk_nama varchar(200)
+  tanggal date [not null]
+  jam_masuk "timestamp with time zone"
+  jam_pulang "timestamp with time zone"
+  status status_absensi [not null, default: 'hadir']
+  keterlambatan_menit integer [default: 0]
+  sumber sumber_absensi [not null, default: 'dingtalk']
+  dingtalk_record_id text
+  catatan text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, tanggal, sumber) [name: 'uniq_absensi_arka_user', unique]
+    (dingtalk_user_id, tanggal, sumber) [name: 'uniq_absensi_dtk_user', unique]
+    tanggal [name: 'idx_absensi_tanggal']
+    user_id [name: 'idx_absensi_user_id']
+    dingtalk_user_id [name: 'idx_absensi_dtk_user_id']
+  }
+}
+
+table absensi_pelatihan {
+  id text [pk, not null]
+  peserta_id text [not null]
+  session_id text [not null]
+  hadir boolean [not null]
+  catatan text
+  input_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (peserta_id, session_id) [name: 'uniq_absensi_peserta_session', unique]
+    peserta_id [name: 'absensi_pelatihan_peserta_idx']
+  }
+}
+
+table absensi_ujian {
+  id text [pk, not null]
+  peserta_id text [not null]
+  jadwal_ujian_id text [not null]
+  status varchar(20) [not null, default: 'hadir']
+  catatan text
+  input_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (peserta_id, jadwal_ujian_id) [name: 'uniq_absensi_ujian_peserta', unique]
+    peserta_id [name: 'absensi_ujian_peserta_idx']
+  }
+}
+
+table account {
+  id text [pk, not null]
+  account_id text [not null]
+  provider_id text [not null]
+  user_id text [not null]
+  access_token text
+  refresh_token text
+  id_token text
+  access_token_expires_at timestamp
+  refresh_token_expires_at timestamp
+  scope text
+  password text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table admin_jaga {
+  id text [pk, not null]
+  ujian_id text [not null]
+  pengawas_id text [not null]
+  catatan text
+  konflik boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (ujian_id, pengawas_id) [name: 'uniq_admin_jaga_ujian_pengawas', unique]
+  }
+}
+
+table announcement_reads {
+  announcement_id text [not null]
+  user_id text [not null]
+  read_at timestamp [not null, default: `now()`]
+  acknowledged_at timestamp
+
+  indexes {
+    (announcement_id, user_id) [pk]
+    announcement_id [name: 'announcement_reads_announcement_idx']
+    user_id [name: 'announcement_reads_user_idx']
+  }
+}
+
+table announcements {
+  id text [pk, not null]
+  title varchar(220) [not null]
+  description text [not null]
+  start_date date [not null]
+  end_date date [not null]
+  audience jsonb [not null]
+  attachments jsonb [not null, default: `[]`]
+  is_pinned boolean [not null, default: false]
+  requires_ack boolean [not null, default: false]
+  status text [not null, default: 'published']
+  created_by text [not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table audit_log {
+  id serial [pk, not null, increment]
+  user_id text
+  aksi varchar(100)
+  entitas_type varchar(50)
+  entitas_id varchar(100)
+  detail jsonb
+  ip_address varchar(50)
+  created_at timestamp [default: `now()`]
+}
+
+table calendar_events {
+  id text [pk, not null]
+  title varchar(200) [not null]
+  description text
+  event_type calendar_event_type [not null]
+  entitas_type varchar(50)
+  entitas_id varchar(100)
+  start_date timestamp [not null]
+  end_date timestamp
+  all_day boolean [not null, default: false]
+  user_id text
+  is_public boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table certificate_batches {
+  id text [pk, not null]
+  program_id text [not null]
+  class_type_id text [not null]
+  kelas_id text
+  angkatan integer [not null]
+  quantity_requested integer [not null]
+  first_certificate_number varchar(50) [not null]
+  last_certificate_number varchar(50) [not null]
+  status certificate_batch_status [not null, default: 'active']
+  notes text
+  created_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    program_id [name: 'cert_batches_program_idx']
+    angkatan [name: 'cert_batches_angkatan_idx']
+    status [name: 'cert_batches_status_idx']
+  }
+}
+
+table certificate_class_types {
+  id text [pk, not null]
+  name varchar(200) [not null]
+  code varchar(2) [not null, unique]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table certificate_items {
+  id text [pk, not null]
+  batch_id text [not null]
+  full_number varchar(50) [not null, unique]
+  angkatan integer [not null]
+  class_type_code varchar(2) [not null]
+  serial_number integer [not null]
+  status certificate_item_status [not null, default: 'active']
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    batch_id [name: 'cert_items_batch_idx']
+    serial_number [name: 'cert_items_serial_idx']
+    status [name: 'cert_items_status_idx']
+  }
+}
+
+table certificate_programs {
+  id text [pk, not null]
+  name varchar(200) [not null, unique]
+  code varchar(50)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table certificate_serial_config {
+  key text [pk, not null]
+  value text [not null]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table certificate_templates {
+  id serial [pk, not null, increment]
+  nama varchar(200) [not null]
+  kategori kategori_kegiatan [not null]
+  image_url text [not null]
+  image_width integer [not null]
+  image_height integer [not null]
+  field_positions jsonb [not null, default: `{}`]
+  is_default boolean [default: false]
+  is_active boolean [default: true]
+  created_by text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    kategori [name: 'certificate_templates_kategori_idx']
+  }
+}
+
+table class_excluded_dates {
+  id text [pk, not null]
+  kelas_id text [not null]
+  date date [not null]
+  reason varchar(200)
+
+  indexes {
+    (kelas_id, date) [name: 'uniq_kelas_excluded_date', unique]
+  }
+}
+
+table class_sessions {
+  id text [pk, not null]
+  kelas_id text [not null]
+  session_number integer
+  is_exam_day boolean [not null, default: false]
+  exam_subjects text[]
+  scheduled_date date [not null]
+  time_slot_start varchar(5) [not null]
+  time_slot_end varchar(5) [not null]
+  materi_name varchar(200)
+  status class_session_status [not null, default: 'scheduled']
+  cancelled_at timestamp
+  cancelled_by text
+  cancellation_reason varchar(300)
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (kelas_id, scheduled_date) [name: 'cs_kelas_date']
+    status [name: 'cs_status_idx']
+  }
+}
+
+table class_types {
+  id text [pk, not null]
+  code varchar(30) [not null, unique]
+  name varchar(100) [not null]
+  active_days varchar(100) [not null]
+  slot1_start varchar(5) [not null]
+  slot1_end varchar(5) [not null]
+  slot2_start varchar(5) [not null]
+  slot2_end varchar(5) [not null]
+  created_at timestamp [not null, default: `now()`]
+}
+
+table curriculum_exam_points {
+  id text [pk, not null]
+  program_id text [not null]
+  after_session_number integer [not null]
+  is_mixed_day boolean [not null, default: false]
+  exam_slot_count integer [not null]
+  exam_subjects text[] [not null]
+  has_exam boolean [not null, default: true]
+
+  indexes {
+    (program_id, after_session_number) [name: 'cep_program_session']
+  }
+}
+
+table curriculum_template {
+  id text [pk, not null]
+  program_id text [not null]
+  session_number integer [not null]
+  materi_block varchar(100) [not null]
+  materi_name varchar(200) [not null]
+  slot integer [not null]
+
+  indexes {
+    (program_id, session_number) [name: 'ct_program_session']
+  }
+}
+
+table dingtalk_config {
+  id serial [pk, not null, increment]
+  app_key text [not null]
+  app_secret text [not null]
+  is_active boolean [not null, default: true]
+  sync_interval_menit integer [not null, default: 60]
+  last_sync_at "timestamp with time zone"
+  last_sync_status status_dingtalk_sync
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table disposisi {
+  id text [pk, not null]
+  surat_masuk_id text [not null]
+  dari_user_id text [not null]
+  kepada_user_id text [not null]
+  catatan text
+  instruksi text
+  batas_waktu date
+  status status_disposisi [default: 'belum_dibaca']
+  tanggal_disposisi timestamp [default: `now()`]
+  tanggal_dibaca timestamp
+  tanggal_selesai timestamp
+  parent_disposisi_id text
+}
+
+table divisi {
+  id serial [pk, not null, increment]
+  nama varchar(150) [not null]
+  kode varchar(20) [unique]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table event_certificate_counters {
+  event_id integer [pk, not null]
+  last_counter integer [not null, default: 0]
+  updated_at timestamp [default: `now()`]
+}
+
+table event_signatories {
+  event_id integer [not null]
+  signatory_id integer [not null]
+  urutan integer [not null, default: 1]
+
+  indexes {
+    (event_id, signatory_id) [pk]
+  }
+}
+
+table events {
+  id serial [pk, not null, increment]
+  kode_event varchar(30) [not null, unique]
+  nama_kegiatan varchar(255) [not null]
+  kategori kategori_kegiatan [not null, default: 'Workshop']
+  status_event status_event [not null, default: 'aktif']
+  tanggal_mulai date [not null]
+  tanggal_selesai date [not null]
+  lokasi varchar(255)
+  skp varchar(50)
+  keterangan text
+  certificate_template_id integer
+  created_by text
+  deleted_at timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table honorarium_audit_logs {
+  id text [pk, not null]
+  batch_id text [not null]
+  actor_id text
+  action varchar(60) [not null]
+  payload jsonb
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    batch_id [name: 'hal_batch_idx']
+    action [name: 'hal_action_idx']
+  }
+}
+
+table honorarium_batches {
+  id text [pk, not null]
+  document_number varchar(80) [not null, unique]
+  period_start date [not null]
+  period_end date [not null]
+  status varchar(40) [not null, default: 'draft']
+  generated_by text
+  approved_by text
+  paid_by text
+  submitted_at timestamp
+  approved_at timestamp
+  paid_at timestamp
+  locked_at timestamp
+  internal_notes text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (period_start, period_end) [name: 'hb_period_idx']
+    status [name: 'hb_status_idx']
+  }
+}
+
+table honorarium_deductions {
+  id text [pk, not null]
+  batch_id text [not null]
+  instructor_id text [not null]
+  deduction_type varchar(40) [not null]
+  description varchar(200) [not null]
+  amount "numeric(12, 2)" [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    batch_id [name: 'hd_batch_idx']
+    instructor_id [name: 'hd_instructor_idx']
+  }
+}
+
+table honorarium_items {
+  id text [pk, not null]
+  batch_id text [not null]
+  assignment_id text [not null]
+  session_id text [not null]
+  kelas_id text [not null]
+  program_id text [not null]
+  scheduled_date date [not null]
+  paid_instructor_id text [not null]
+  paid_instructor_name varchar(200) [not null]
+  source varchar(20) [not null]
+  materi_block varchar(100) [not null]
+  expertise_level_snapshot varchar(20) [not null, default: 'middle']
+  rate_snapshot "numeric(12, 2)" [not null]
+  amount "numeric(12, 2)" [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    assignment_id [name: 'uniq_honorarium_assignment_once', unique]
+    (batch_id, assignment_id) [name: 'uniq_honorarium_batch_assignment', unique]
+    batch_id [name: 'hi_batch_idx']
+    paid_instructor_id [name: 'hi_instructor_idx']
+    scheduled_date [name: 'hi_date_idx']
+  }
+}
+
+table honorarium_payment_proofs {
+  id text [pk, not null]
+  batch_id text [not null]
+  file_name varchar(500) [not null]
+  file_url varchar(1000) [not null]
+  storage_key varchar(1000)
+  file_size integer [not null]
+  mime_type varchar(255) [not null]
+  uploaded_by text [not null]
+  uploaded_at timestamp [not null, default: `now()`]
+
+  indexes {
+    batch_id [name: 'hpp_batch_idx']
+    uploaded_at [name: 'hpp_uploaded_at_idx']
+  }
+}
+
+table honorarium_rate_rules {
+  id text [pk, not null]
+  program_id text [not null]
+  level varchar(20) [not null]
+  mode varchar(10) [not null]
+  honor_per_session "numeric(12, 2)" [not null]
+  transport_amount "numeric(12, 2)" [not null]
+  effective_from date [not null]
+  effective_to date
+  location_scope varchar(200) [not null, default: '']
+  is_active boolean [not null, default: true]
+  notes varchar(300)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (program_id, level, mode, effective_from, location_scope) [name: 'uniq_honorarium_rate_rule', unique]
+    program_id [name: 'hrr_program_idx']
+    (effective_from, effective_to) [name: 'hrr_effective_idx']
+    is_active [name: 'hrr_active_idx']
+  }
+}
+
+table instructor_expertise {
+  id text [pk, not null]
+  instructor_id text [not null]
+  program_id text [not null]
+  materi_block varchar(100) [not null]
+  level varchar(20) [not null, default: 'middle']
+
+  indexes {
+    (instructor_id, program_id, materi_block) [name: 'uniq_instructor_expertise', unique]
+    (program_id, materi_block) [name: 'ie_program_block']
+  }
+}
+
+table instructor_rates {
+  id text [pk, not null]
+  instructor_id text [not null]
+  program_id text [not null]
+  materi_block varchar(100) [not null]
+  mode varchar(10) [not null, default: 'offline']
+  rate_amount "numeric(12, 2)" [not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (instructor_id, program_id, materi_block, mode) [name: 'uniq_instructor_rate', unique]
+    instructor_id [name: 'ir_instructor_idx']
+    program_id [name: 'ir_program_idx']
+  }
+}
+
+table instructor_unavailability {
+  id text [pk, not null]
+  instructor_id text [not null]
+  date date [not null]
+  reason varchar(200)
+
+  indexes {
+    (instructor_id, date) [name: 'uniq_instructor_unavail', unique]
+    date [name: 'iu_date_idx']
+  }
+}
+
+table instructors {
+  id text [pk, not null]
+  name varchar(200) [not null]
+  email varchar(150)
+  phone varchar(30)
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table jadwal_admin_jaga {
+  id text [pk, not null]
+  kelas_id text [not null]
+  tanggal date [not null]
+  jam_mulai varchar(5) [not null, default: '17:15']
+  jam_selesai varchar(5) [not null, default: '21:30']
+  materi varchar(300) [not null]
+  pengawas_id text [not null]
+  catatan text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table jadwal_ujian {
+  id text [pk, not null]
+  kelas_id text [not null]
+  mata_pelajaran text[] [not null]
+  tanggal_ujian date [not null]
+  jam_mulai varchar(5) [not null]
+  jam_selesai varchar(5) [not null]
+  catatan text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table jadwal_ujian_config {
+  id text [pk, not null]
+  jenis varchar(20) [not null]
+  nilai varchar(100) [not null]
+  urutan integer [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (jenis, nilai) [name: 'uniq_config_jenis_nilai', unique]
+  }
+}
+
+table kelas_pelatihan {
+  id text [pk, not null]
+  nama_kelas varchar(200) [not null]
+  program_id text [not null]
+  class_type_id text [not null]
+  mode varchar(10) [not null, default: 'offline']
+  angkatan integer
+  certificate_class_code varchar(2)
+  source varchar(20) [not null, default: 'system']
+  certificate_notes text
+  start_date date [not null]
+  end_date date
+  lokasi varchar(300)
+  finance_contact_name_override varchar(200)
+  finance_whatsapp_number_override varchar(30)
+  status varchar(20) [not null, default: 'active']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table kelas_ujian {
+  id text [pk, not null]
+  nama_kelas varchar(200) [not null]
+  program varchar(100) [not null]
+  tipe varchar(100) [not null]
+  mode varchar(50) [not null]
+  lokasi varchar(300)
+  catatan text
+  kelas_pelatihan_id text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table makeup_sessions {
+  id text [pk, not null]
+  original_session_id text [not null]
+  kelas_id text [not null]
+  session_number integer
+  is_exam_day boolean [not null, default: false]
+  exam_subjects text[]
+  materi_name varchar(200)
+  scheduled_date date [not null]
+  time_slot_start varchar(5) [not null]
+  time_slot_end varchar(5) [not null]
+  status class_session_status [not null, default: 'scheduled']
+  created_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (kelas_id, scheduled_date) [name: 'ms_kelas_date']
+    original_session_id [name: 'ms_original_session']
+    status [name: 'ms_status_idx']
+  }
+}
+
+table materi_ujian {
+  id text [pk, not null]
+  nama varchar(200) [not null]
+  program varchar(100) [not null]
+  urutan integer [not null, default: 0]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table national_holidays {
+  id text [pk, not null]
+  date date [not null]
+  name varchar(200) [not null]
+  year integer [not null]
+
+  indexes {
+    date [name: 'uniq_holiday_date', unique]
+    year [name: 'holiday_year_idx']
+  }
+}
+
+table nilai_ujian {
+  id text [pk, not null]
+  peserta_id text [not null]
+  jadwal_ujian_id text [not null]
+  mata_pelajaran varchar(100) [not null]
+  nilai varchar(2) [not null]
+  is_perbaikan boolean [not null, default: false]
+  perbaikan_dari_id text
+  input_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (peserta_id, jadwal_ujian_id, mata_pelajaran, is_perbaikan) [name: 'uniq_nilai_peserta_ujian_mapel', unique]
+    peserta_id [name: 'nilai_ujian_peserta_idx']
+    jadwal_ujian_id [name: 'nilai_ujian_jadwal_idx']
+  }
+}
+
+table nomor_surat_counter {
+  id serial [pk, not null, increment]
+  tahun integer [not null]
+  bulan integer [not null]
+  jenis_surat jenis_surat [not null]
+  counter integer [not null, default: 0]
+  prefix varchar(80)
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    (tahun, bulan, jenis_surat) [name: 'nomor_surat_counter_period_uniq', unique]
+  }
+}
+
+table notification_preferences {
+  id serial [pk, not null, increment]
+  user_id text [not null, unique]
+  in_app_disposisi_baru boolean [not null, default: true]
+  in_app_disposisi_deadline boolean [not null, default: true]
+  in_app_surat_keluar_approval boolean [not null, default: true]
+  in_app_surat_keluar_revisi boolean [not null, default: true]
+  in_app_surat_keluar_selesai boolean [not null, default: true]
+  in_app_surat_masuk_baru boolean [not null, default: true]
+  email_disposisi_baru boolean [not null, default: true]
+  email_disposisi_deadline boolean [not null, default: true]
+  email_surat_keluar_approval boolean [not null, default: false]
+  email_surat_keluar_revisi boolean [not null, default: false]
+  email_surat_keluar_selesai boolean [not null, default: false]
+  email_surat_masuk_baru boolean [not null, default: false]
+  deadline_reminder_days integer [not null, default: 1]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table notifications {
+  id text [pk, not null]
+  user_id text [not null]
+  type notification_type [not null]
+  title varchar(200) [not null]
+  message text [not null]
+  entitas_type varchar(50)
+  entitas_id varchar(100)
+  is_read boolean [not null, default: false]
+  is_email_sent boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+  read_at timestamp
+}
+
+table participant_revisions {
+  id serial [pk, not null, increment]
+  participant_id integer [not null]
+  changed_by text
+  change_type varchar(30) [not null]
+  before jsonb
+  after jsonb
+  note text
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    participant_id [name: 'participant_revisions_participant_idx']
+  }
+}
+
+table participants {
+  id serial [pk, not null, increment]
+  event_id integer [not null]
+  no_sertifikat varchar(100) [not null]
+  nama varchar(255) [not null]
+  role varchar(50) [not null, default: 'Peserta']
+  email varchar(150)
+  email_sent_at timestamp
+  status_peserta status_peserta [not null, default: 'aktif']
+  revoked_at timestamp
+  revoked_by text
+  revoke_reason text
+  deleted_at timestamp
+  last_pdf_hash varchar(64)
+  last_pdf_generated_at timestamp
+  replaces_participant_id integer
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    event_id [name: 'participants_event_id_idx']
+    status_peserta [name: 'participants_status_idx']
+    replaces_participant_id [name: 'participants_replaces_idx']
+  }
+}
+
+table pegawai_biodata {
+  id serial [pk, not null, increment]
+  user_id text [not null, unique]
+  no_ktp varchar(20)
+  gender gender
+  status_pernikahan status_pernikahan
+  tempat_lahir varchar(100)
+  tanggal_lahir date
+  alamat_tinggal text
+  kode_pos varchar(10)
+  provinsi varchar(100)
+  kota_kabupaten varchar(100)
+  alamat_ktp text
+  updated_at timestamp [default: `now()`]
+}
+
+table pegawai_kelengkapan {
+  id serial [pk, not null, increment]
+  user_id text [not null, unique]
+  foto_url text
+  ktp_url text
+  npwp_url text
+  bpjs_url text
+  ijazah_url text
+  dokumen_lain_url text
+  updated_at timestamp [default: `now()`]
+}
+
+table pegawai_keluarga {
+  id serial [pk, not null, increment]
+  user_id text [not null]
+  hubungan varchar(50)
+  nama_anggota varchar(200) [not null]
+  tempat_lahir varchar(100)
+  tanggal_lahir date
+  pekerjaan varchar(150)
+  created_at timestamp [default: `now()`]
+}
+
+table pegawai_kesehatan {
+  id serial [pk, not null, increment]
+  user_id text [not null, unique]
+  golongan_darah varchar(5)
+  tinggi_badan integer
+  berat_badan integer
+  riwayat_penyakit text
+  alergi text
+  catatan_kesehatan text
+  updated_at timestamp [default: `now()`]
+}
+
+table pegawai_pendidikan {
+  id serial [pk, not null, increment]
+  user_id text [not null]
+  jenjang varchar(20)
+  nama_institusi varchar(200)
+  jurusan varchar(150)
+  tahun_masuk integer
+  tahun_lulus integer
+  ijazah_url text
+  created_at timestamp [default: `now()`]
+}
+
+table pegawai_pernyataan_integritas {
+  id serial [pk, not null, increment]
+  user_id text [not null, unique]
+  tanggal_pernyataan date
+  file_url text
+  status_tanda_tangan boolean [default: false]
+  catatan text
+  created_at timestamp [default: `now()`]
+}
+
+table pegawai_riwayat_pekerjaan {
+  id serial [pk, not null, increment]
+  user_id text [not null]
+  nama_perusahaan varchar(200)
+  jabatan varchar(150)
+  tanggal_mulai date
+  tanggal_selesai date
+  keterangan text
+  created_at timestamp [default: `now()`]
+}
+
+table pejabat_penandatangan {
+  id serial [pk, not null, increment]
+  user_id text
+  nama_jabatan varchar(200) [not null]
+  wilayah varchar(100)
+  ttd_url text
+  is_active boolean [default: true]
+  created_at timestamp [default: `now()`]
+}
+
+table pengajuan_cuti {
+  id text [pk, not null]
+  user_id text [not null]
+  jenis_cuti jenis_cuti [not null]
+  tanggal_mulai date [not null]
+  tanggal_selesai date [not null]
+  jumlah_hari integer [not null]
+  alasan text
+  status status_cuti [not null, default: 'draft']
+  dingtalk_process_id text
+  dingtalk_form_code text
+  approved_by text
+  approved_at "timestamp with time zone"
+  rejected_reason text
+  lampiran_url text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    user_id [name: 'idx_cuti_user_id']
+    status [name: 'idx_cuti_status']
+    (tanggal_mulai, tanggal_selesai) [name: 'idx_cuti_tanggal']
+  }
+}
+
+table pengawas {
+  id text [pk, not null]
+  nama varchar(200) [not null]
+  catatan text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table penugasan_pengawas {
+  id text [pk, not null]
+  ujian_id text [not null]
+  pengawas_id text [not null]
+  konflik boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (ujian_id, pengawas_id) [name: 'uniq_ujian_pengawas', unique]
+  }
+}
+
+table peserta_kelas {
+  id text [pk, not null]
+  kelas_id text [not null]
+  nama varchar(200) [not null]
+  nomor_peserta varchar(50)
+  email varchar(150)
+  telepon varchar(30)
+  catatan text
+  status_enrollment varchar(20) [not null, default: 'aktif']
+  status_akhir varchar(30)
+  alasan_status varchar(50)
+  status_computed_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    kelas_id [name: 'pk_kelas_idx']
+    status_akhir [name: 'pk_status_akhir_idx']
+  }
+}
+
+table programs {
+  id text [pk, not null]
+  code varchar(20) [not null, unique]
+  name varchar(100) [not null]
+  finance_contact_name varchar(200)
+  finance_whatsapp_number varchar(30)
+  total_sessions integer [not null]
+  total_meetings integer [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+table project_activity_log {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  project_id uuid [not null]
+  user_id text [not null]
+  action varchar(100) [not null]
+  description text
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    project_id [name: 'project_activity_project_idx']
+    created_at [name: 'project_activity_created_at_idx']
+  }
+}
+
+table project_comment_mentions {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  comment_id uuid [not null]
+  user_id text [not null]
+  is_read boolean [default: false]
+
+  indexes {
+    (comment_id, user_id) [name: 'mention_unique', unique]
+  }
+}
+
+table project_comments {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  project_id uuid [not null]
+  user_id text [not null]
+  parent_id uuid
+  content text [not null]
+  is_internal boolean [default: false]
+  is_edited boolean [default: false]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    project_id [name: 'project_comments_project_idx']
+    parent_id [name: 'project_comments_parent_idx']
+  }
+}
+
+table project_files {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  project_id uuid [not null]
+  user_id text [not null]
+  file_name varchar(500) [not null]
+  file_url varchar(1000) [not null]
+  storage_key varchar(1000)
+  file_size integer [not null]
+  mime_type varchar(255) [not null]
+  uploaded_at timestamp [not null, default: `now()`]
+
+  indexes {
+    project_id [name: 'project_files_project_idx']
+  }
+}
+
+table project_labels {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  name varchar(100) [not null]
+  color varchar(7) [not null, default: '#6B7280']
+  created_at timestamp [not null, default: `now()`]
+}
+
+table project_members {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  project_id uuid [not null]
+  user_id text [not null]
+  role varchar(50) [not null, default: 'member']
+  added_by text [not null]
+  added_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (project_id, user_id) [name: 'project_member_unique', unique]
+    project_id [name: 'project_members_project_idx']
+    user_id [name: 'project_members_user_idx']
+  }
+}
+
+table project_to_labels {
+  project_id uuid [not null]
+  label_id uuid [not null]
+
+  indexes {
+    (project_id, label_id) [pk]
+  }
+}
+
+table projects {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  title varchar(255) [not null]
+  type project_type [not null]
+  description text
+  start_date date
+  end_date date
+  price "numeric(15, 2)"
+  status varchar(50) [not null, default: 'not_started']
+  skp_mode varchar(20) [not null, default: 'auto']
+  skp "numeric(5, 2)"
+  half_day_skp varchar(5)
+  event_id integer
+  created_by text [not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    status [name: 'projects_status_idx']
+    created_by [name: 'projects_created_by_idx']
+    event_id [name: 'projects_event_idx']
+  }
+}
+
+table role_capabilities {
+  role_id integer [not null]
+  capability varchar(100) [not null]
+
+  indexes {
+    (role_id, capability) [pk]
+    capability [name: 'role_capabilities_capability_idx']
+  }
+}
+
+table roles {
+  id serial [pk, not null, increment]
+  nama varchar(150) [not null]
+  kode varchar(50) [not null, unique]
+  is_system boolean [not null, default: false]
+  created_by text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table session {
+  id text [pk, not null]
+  expires_at timestamp [not null]
+  token text [not null, unique]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  ip_address text
+  user_agent text
+  user_id text [not null]
+}
+
+table session_assignments {
+  id text [pk, not null]
+  session_id text [not null]
+  planned_instructor_id text [not null]
+  actual_instructor_id text
+  substitution_reason varchar(300)
+  availability_status varchar(30) [not null, default: 'pending_wa_confirmation']
+  availability_checked_at timestamp
+  availability_note varchar(300)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (session_id, planned_instructor_id) [name: 'uniq_session_instructor', unique]
+    planned_instructor_id [name: 'sa_instructor_idx']
+    actual_instructor_id [name: 'sa_actual_instructor_idx']
+  }
+}
+
+table signatories {
+  id serial [pk, not null, increment]
+  nama varchar(255) [not null]
+  jabatan varchar(255)
+  pejabat_id integer
+  created_at timestamp [default: `now()`]
+}
+
+table surat_keluar {
+  id text [pk, not null]
+  nomor_surat varchar(200) [unique]
+  perihal text [not null]
+  tujuan varchar(300) [not null]
+  tujuan_alamat text
+  tanggal_surat date [not null]
+  jenis_surat jenis_surat [not null]
+  isi_singkat text
+  status status_surat_keluar [default: 'draft']
+  file_draft_url text
+  file_final_url text
+  lampiran_url text
+  qr_code_url text
+  pejabat_id integer
+  dibuat_oleh text
+  divisi_id integer
+  disetujui_oleh text
+  tanggal_disetujui timestamp
+  catatan_reviu text
+  catatan_reviu_at timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table surat_keputusan {
+  id text [pk, not null]
+  nomor_sk varchar(200) [not null, unique]
+  perihal text [not null]
+  tentang text [not null]
+  tanggal_sk date [not null]
+  tanggal_berlaku date
+  tanggal_berakhir date
+  pejabat_id integer
+  file_url text
+  qr_code_url text
+  dibuat_oleh text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table surat_masuk {
+  id text [pk, not null]
+  nomor_agenda varchar(50)
+  nomor_surat_asal varchar(200)
+  perihal text [not null]
+  pengirim varchar(200) [not null]
+  pengirim_alamat text
+  tanggal_surat date [not null]
+  tanggal_diterima date [not null]
+  jenis_surat jenis_surat [not null]
+  status status_surat_masuk [default: 'diterima']
+  isi_singkat text
+  file_url text
+  dicatat_oleh text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table surat_mou {
+  id text [pk, not null]
+  nomor_mou varchar(200) [not null, unique]
+  perihal text [not null]
+  pihak_kedua varchar(200) [not null]
+  pihak_kedua_alamat text
+  tanggal_mou date [not null]
+  tanggal_berlaku date
+  tanggal_berakhir date
+  nilai_kerjasama text
+  file_url text
+  qr_code_url text
+  pejabat_id integer
+  dibuat_oleh text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table system_settings {
+  id serial [pk, not null, increment]
+  nama_sistem varchar(200) [not null, default: 'ARKA']
+  singkatan varchar(20)
+  logo_url text
+  favicon_url text
+  finance_contact_name varchar(200)
+  finance_whatsapp_number varchar(30)
+  default_disposisi_deadline_days integer [not null, default: 7]
+  notification_email_enabled boolean [not null, default: true]
+  updated_at timestamp [default: `now()`]
+  updated_by text
+}
+
+table ujian_susulan_peserta {
+  id text [pk, not null]
+  peserta_id text [not null]
+  jadwal_ujian_original_id text [not null]
+  tanggal_usulan date
+  tanggal_disepakati date
+  jam_mulai varchar(5)
+  jam_selesai varchar(5)
+  status varchar(20) [not null, default: 'pending']
+  alasan_permohonan text
+  catatan_admin text
+  approved_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    peserta_id [name: 'usp_peserta_idx']
+    jadwal_ujian_original_id [name: 'usp_original_jadwal_idx']
+    status [name: 'usp_status_idx']
+  }
+}
+
+table user_invitations {
+  id text [pk, not null]
+  email varchar(150) [not null]
+  nama_lengkap varchar(200) [not null]
+  role role [not null, default: 'staff']
+  role_id integer
+  divisi_id integer
+  jabatan varchar(150)
+  token text [not null, unique]
+  status user_invitation_status [not null, default: 'pending']
+  expired_at timestamp [not null]
+  used_at timestamp
+  invited_by text [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    email [name: 'user_invitations_email_idx']
+    token [name: 'user_invitations_token_idx']
+    status [name: 'user_invitations_status_idx']
+  }
+}
+
+table users {
+  id text [pk, not null]
+  nama_lengkap varchar(200) [not null]
+  email varchar(150) [not null, unique]
+  email_verified boolean [not null, default: false]
+  email_pribadi varchar(150)
+  no_hp varchar(20)
+  role role [default: 'staff']
+  is_super_admin boolean [not null, default: false]
+  role_id integer
+  divisi_id integer
+  jabatan varchar(150)
+  level_jabatan varchar(50)
+  jenis_pegawai jenis_pegawai [default: 'Tetap']
+  tanggal_masuk date
+  avatar_url text
+  qr_contact_url text
+  is_active boolean [default: true]
+  activated_at timestamp
+  dingtalk_user_id text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table verification {
+  id text [pk, not null]
+  identifier text [not null]
+  value text [not null]
+  expires_at timestamp [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+table whatsapp_message_logs {
+  id text [pk, not null]
+  kelas_id text [not null]
+  session_id text
+  assignment_id text
+  template_key varchar(80) [not null]
+  recipient_role varchar(40) [not null]
+  recipient_name varchar(200)
+  recipient_whatsapp_number varchar(30)
+  message_content text [not null]
+  metadata jsonb
+  sent_by text
+  sent_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (kelas_id, sent_at) [name: 'wml_kelas_sent_idx']
+    template_key [name: 'wml_template_idx']
+    recipient_role [name: 'wml_role_idx']
+  }
+}
+
+table whatsapp_message_templates {
+  id text [pk, not null]
+  template_key varchar(80) [not null, unique]
+  template_name varchar(200) [not null]
+  description varchar(300)
+  content text [not null]
+  is_active boolean [not null, default: true]
+  updated_by text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    is_active [name: 'wmt_active_idx']
+  }
+}

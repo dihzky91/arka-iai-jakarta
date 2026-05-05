@@ -22,10 +22,13 @@ import { cn } from "@/lib/utils";
 import { KonfigurasiSistemCard } from "./KonfigurasiSistemCard";
 import { TestConnectionCard } from "./TestConnectionCard";
 import type { SystemSettingsRow } from "@/server/actions/systemSettings";
+import { WhatsappTemplateSettingsCard } from "./WhatsappTemplateSettingsCard";
+import type { WhatsappTemplateRow } from "@/server/actions/jadwal-otomatis/whatsapp";
 
 interface SistemStatusSectionProps {
   systemSettings: SystemSettingsRow;
   isAdmin: boolean;
+  whatsappTemplates: WhatsappTemplateRow[];
 }
 
 type StatusTone = "ready" | "warning" | "neutral";
@@ -48,6 +51,7 @@ function normalizeStorageProvider(provider: string) {
 export function SistemStatusSection({
   systemSettings,
   isAdmin,
+  whatsappTemplates,
 }: SistemStatusSectionProps) {
   const storageProvider = normalizeStorageProvider(env.STORAGE_PROVIDER);
   const allowedMimeTypes = env.STORAGE_ALLOWED_MIME_TYPES.split(",")
@@ -135,6 +139,13 @@ export function SistemStatusSection({
       <section className="grid gap-6 xl:grid-cols-2">
         <KonfigurasiSistemCard initial={systemSettings} isAdmin={isAdmin} />
         <TestConnectionCard isAdmin={isAdmin} />
+      </section>
+
+      <section>
+        <WhatsappTemplateSettingsCard
+          templates={whatsappTemplates}
+          isAdmin={isAdmin}
+        />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

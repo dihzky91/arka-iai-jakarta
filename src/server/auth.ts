@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { genericOAuth } from "better-auth/plugins";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "./db";
 import {
@@ -8,12 +10,14 @@ import {
   session as sessionTable,
   account as accountTable,
   verification as verificationTable,
+  absensiKaryawan,
 } from "./db/schema";
 import {
   buildInviteEmail,
   buildResetPasswordEmail,
   sendEmail,
 } from "@/lib/email/mailjet";
+import { env } from "@/lib/env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -103,11 +107,104 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
+      dingtalkUserId: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+    },
+  },
+
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["dingtalk"],
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          const dtUserId = (user as Record<string, unknown>).dingtalkUserId as string | undefined;
+          if (!dtUserId) return;
+          await db
+            .update(absensiKaryawan)
+            .set({ userId: user.id })
+            .where(
+              and(
+                eq(absensiKaryawan.dingtalkUserId, dtUserId),
+                isNull(absensiKaryawan.userId),
+              ),
+            );
+        },
+      },
     },
   },
 
   plugins: [
-    nextCookies(), // Next.js cookie integration
+    nextCookies(),
+    genericOAuth({
+      config: [
+        {
+          providerId: "dingtalk",
+          clientId: env.DINGTALK_APP_KEY,
+          clientSecret: env.DINGTALK_APP_SECRET,
+          authorizationUrl: "https://login.dingtalk.com/oauth2/auth",
+          tokenUrl: "https://api.dingtalk.com/v1.0/oauth2/userAccessToken",
+          scopes: ["openid", "Contact.User.Read"],
+          prompt: "consent",
+          getToken: async ({ code }) => {
+            const res = await fetch("https://api.dingtalk.com/v1.0/oauth2/userAccessToken", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clientId: env.DINGTALK_APP_KEY,
+                clientSecret: env.DINGTALK_APP_SECRET,
+                code,
+                grantType: "authorization_code",
+              }),
+            });
+            const data = (await res.json()) as {
+              accessToken: string;
+              refreshToken?: string;
+              expireIn?: number;
+            };
+            return {
+              accessToken: data.accessToken,
+              refreshToken: data.refreshToken,
+              accessTokenExpiresAt: data.expireIn
+                ? new Date(Date.now() + data.expireIn * 1000)
+                : undefined,
+            };
+          },
+          getUserInfo: async (tokens) => {
+            const res = await fetch("https://api.dingtalk.com/v1.0/contact/users/me", {
+              headers: { "x-acs-dingtalk-access-token": tokens.accessToken ?? "" },
+            });
+            const profile = (await res.json()) as Record<string, unknown>;
+            const dtUserId = (profile.userId ?? profile.unionId ?? profile.openId) as string | undefined;
+            const displayName = (profile.name ?? profile.nick) as string | undefined;
+            if (!dtUserId || !displayName) return null;
+            return {
+              id: dtUserId,
+              name: displayName,
+              email: (profile.email as string | undefined) || `${dtUserId}@dingtalk.noemail`,
+              image: (profile.avatarUrl ?? profile.avatar) as string | undefined,
+              emailVerified: false,
+              dingtalkUserId: dtUserId,
+            };
+          },
+          mapProfileToUser: (profile) => ({
+            name: (profile.name ?? profile.nick) as string,
+            email: (profile.email as string | undefined) || `${profile.id as string}@dingtalk.noemail`,
+            dingtalkUserId: (profile.dingtalkUserId ?? profile.id) as string,
+            isActive: true,
+            role: "staff" as const,
+          }),
+        },
+      ],
+    }),
   ],
 });
 

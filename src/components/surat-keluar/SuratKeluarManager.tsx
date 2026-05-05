@@ -54,7 +54,12 @@ import type {
   PejabatOption,
   DivisiOption,
 } from "@/server/actions/suratKeluar";
-import { cn, formatTanggalPendek, formatTanggalWaktuJakarta } from "@/lib/utils";
+import {
+  cn,
+  formatTanggalPendek,
+  formatTanggalWaktuJakarta,
+  parseIsoDateInJakarta,
+} from "@/lib/utils";
 import { exportRowsToCsv } from "@/lib/csv";
 
 interface SuratKeluarManagerProps {
@@ -154,7 +159,8 @@ export function SuratKeluarManager({
         .filter((row) => row.status === "pengarsipan" && !row.nomorSurat)
         .sort((a, b) => {
           const tanggalCompare =
-            new Date(a.tanggalSurat).getTime() - new Date(b.tanggalSurat).getTime();
+            parseIsoDateInJakarta(a.tanggalSurat).getTime() -
+            parseIsoDateInJakarta(b.tanggalSurat).getTime();
           if (tanggalCompare !== 0) return tanggalCompare;
 
           const createdCompare =

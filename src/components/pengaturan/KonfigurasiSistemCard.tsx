@@ -28,6 +28,10 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
     initial.defaultDisposisiDeadlineDays,
   );
   const [emailEnabled, setEmailEnabled] = useState(initial.notificationEmailEnabled);
+  const [financeContactName, setFinanceContactName] = useState(initial.financeContactName ?? "");
+  const [financeWhatsappNumber, setFinanceWhatsappNumber] = useState(
+    initial.financeWhatsappNumber ?? "",
+  );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -35,6 +39,8 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
       const result = await updateSystemConfig({
         defaultDisposisiDeadlineDays: defaultDeadline,
         notificationEmailEnabled: emailEnabled,
+        financeContactName: financeContactName.trim() || null,
+        financeWhatsappNumber: financeWhatsappNumber.trim() || null,
       });
       if (result.ok) {
         toast.success("Konfigurasi sistem berhasil disimpan.");
@@ -87,6 +93,41 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                 Jumlah hari default yang disarankan saat membuat disposisi tanpa
                 batas waktu eksplisit. Set 0 untuk menonaktifkan saran.
               </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
+              <div>
+                <Label className="text-sm font-medium">
+                  Kontak Keuangan Global (WhatsApp)
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Dipakai sebagai fallback terakhir untuk reminder pengajuan honorarium.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="financeContactName">Nama Kontak</Label>
+                  <Input
+                    id="financeContactName"
+                    value={financeContactName}
+                    onChange={(event) => setFinanceContactName(event.target.value)}
+                    placeholder="Mis. Tim Keuangan Pusat"
+                    maxLength={200}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="financeWhatsappNumber">Nomor WhatsApp</Label>
+                  <Input
+                    id="financeWhatsappNumber"
+                    value={financeWhatsappNumber}
+                    onChange={(event) => setFinanceWhatsappNumber(event.target.value)}
+                    placeholder="Mis. 6281234567890"
+                    maxLength={30}
+                  />
+                </div>
+              </div>
             </div>
 
             <Separator />

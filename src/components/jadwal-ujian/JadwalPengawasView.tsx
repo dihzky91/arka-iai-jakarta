@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ConflictBadge } from "./ConflictBadge";
 import type { JadwalPengawasRow } from "@/server/actions/jadwal-ujian/penugasan";
+import { APP_TIME_ZONE, parseIsoDateInJakarta } from "@/lib/utils";
 
 interface JadwalPengawasViewProps {
   pengawasList: { id: string; nama: string }[];
@@ -41,13 +42,14 @@ export function JadwalPengawasView({ pengawasList, allPenugasan }: JadwalPengawa
         accessorKey: "tanggalUjian",
         header: "Tanggal",
         cell: ({ row }) => {
-          const d = new Date(row.original.tanggalUjian + "T00:00:00");
+          const d = parseIsoDateInJakarta(row.original.tanggalUjian);
           return (
             <span className="tabular-nums text-sm whitespace-nowrap">
               {d.toLocaleDateString("id-ID", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
+                timeZone: APP_TIME_ZONE,
               })}
             </span>
           );

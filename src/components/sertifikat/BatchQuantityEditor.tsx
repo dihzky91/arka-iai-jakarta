@@ -37,8 +37,6 @@ interface BatchQuantityEditorProps {
   onOpenChange:    (v: boolean) => void;
   batchId:         string;
   currentQuantity: number;
-  angkatan:        number;
-  classTypeCode:   string;
   onSuccess:       () => void;
 }
 
@@ -49,8 +47,6 @@ export function BatchQuantityEditor({
   onOpenChange,
   batchId,
   currentQuantity,
-  angkatan,
-  classTypeCode,
   onSuccess,
 }: BatchQuantityEditorProps) {
   const [isPending, startTransition] = useTransition();
@@ -72,9 +68,7 @@ export function BatchQuantityEditor({
     startTransition(async () => {
       const result = await updateBatchQuantity({
         batchId,
-        newQuantity:   values.newQuantity,
-        classTypeCode,
-        angkatan,
+        newQuantity: values.newQuantity,
       });
 
       if (result.ok) {

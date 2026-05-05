@@ -30,17 +30,19 @@ import {
   getDingtalkSyncStatus,
   getDingtalkUserMappings,
 } from "@/server/actions/dingtalk/config";
+import { listWhatsappMessageTemplates } from "@/server/actions/jadwal-otomatis/whatsapp";
 
 export const metadata: Metadata = {
   title: "Pengaturan | ARKA",
 };
 
 export default async function PengaturanPage() {
-  const [systemSettingsData, role, profile, notifPrefs] = await Promise.all([
+  const [systemSettingsData, role, profile, notifPrefs, whatsappTemplates] = await Promise.all([
     getSystemSettings(),
     getSessionRole(),
     getMyProfile(),
     getMyNotificationPreferences(),
+    listWhatsappMessageTemplates(),
   ]);
 
   if (!profile) {
@@ -104,6 +106,7 @@ export default async function PengaturanPage() {
           <SistemStatusSection
             systemSettings={systemSettingsData}
             isAdmin={isAdmin}
+            whatsappTemplates={whatsappTemplates}
           />
         }
         manajemenUser={

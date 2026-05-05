@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ajukanCuti, kirimCutiKeDingTalk } from "@/server/actions/dingtalk/submit-leave";
+import { parseIsoDateInJakarta } from "@/lib/utils";
 
 const JENIS_CUTI = [
   { value: "tahunan", label: "Cuti Tahunan" },
@@ -48,8 +49,8 @@ export function CutiForm({
 
   const hitungHari = () => {
     if (!form.tanggalMulai || !form.tanggalSelesai) return 0;
-    const start = new Date(form.tanggalMulai);
-    const end = new Date(form.tanggalSelesai);
+    const start = parseIsoDateInJakarta(form.tanggalMulai);
+    const end = parseIsoDateInJakarta(form.tanggalSelesai);
     return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
 

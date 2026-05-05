@@ -14,6 +14,7 @@ import { eq, and, or, gte, lte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { requirePermission } from "@/server/actions/auth";
+import { parseIsoDateInJakarta } from "@/lib/utils";
 
 export interface CancelSessionInput {
   sessionId: string;
@@ -155,7 +156,7 @@ async function validateMakeupDate(
     where: eq(classTypes.id, kelas.classTypeId),
   });
 
-  const date = new Date(scheduledDate);
+  const date = parseIsoDateInJakarta(scheduledDate);
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const dayName = dayNames[date.getDay()] ?? "";
   const activeDays = kelasClassType?.activeDays.split(",") ?? [];

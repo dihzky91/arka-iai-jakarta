@@ -44,6 +44,30 @@ function StatusBadge({ status }: { status: BatchDetailRow["status"] }) {
   return <Badge variant="outline" className={className}>{label}</Badge>;
 }
 
+function NumberFormatBadge({
+  angkatan,
+  classTypeCode,
+  firstCertificateNumber,
+}: {
+  angkatan: number;
+  classTypeCode: string;
+  firstCertificateNumber: string;
+}) {
+  const [numberPrefix] = firstCertificateNumber.split(".");
+  const defaultPrefix = `${String(angkatan).padStart(3, "0")}${classTypeCode}`;
+  const isDefault = numberPrefix === defaultPrefix;
+
+  return isDefault ? (
+    <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+      Format Default (3 digit)
+    </Badge>
+  ) : (
+    <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">
+      Format Khusus
+    </Badge>
+  );
+}
+
 function ItemStatusBadge({ status }: { status: "active" | "cancelled" }) {
   return status === "active" ? (
     <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-xs">Aktif</Badge>
@@ -144,6 +168,13 @@ export function BatchDetailView({ batch, role }: BatchDetailViewProps) {
                 <span className="font-mono">({batchData.classTypeCode})</span>
                 {batchData.kelasName ? ` - ${batchData.kelasName}` : ""}
               </p>
+              <div className="mt-2">
+                <NumberFormatBadge
+                  angkatan={batchData.angkatan}
+                  classTypeCode={batchData.classTypeCode}
+                  firstCertificateNumber={batchData.firstCertificateNumber}
+                />
+              </div>
             </div>
             <StatusBadge status={batchData.status} />
           </div>
@@ -255,8 +286,6 @@ export function BatchDetailView({ batch, role }: BatchDetailViewProps) {
         onOpenChange={setEditorOpen}
         batchId={batchData.id}
         currentQuantity={batchData.quantityRequested}
-        angkatan={batchData.angkatan}
-        classTypeCode={batchData.classTypeCode}
         onSuccess={() => window.location.reload()}
       />
     </div>

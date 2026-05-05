@@ -118,10 +118,23 @@ export function Sidebar({
     <>
       <aside
         className={cn(
-          "sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card transition-[width] duration-200 lg:flex lg:flex-col",
+          "relative sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card transition-[width] duration-200 lg:flex lg:flex-col",
           desktopCollapsed ? "w-20" : "w-80",
         )}
       >
+        <button
+          type="button"
+          onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+          className="absolute -right-4 top-5 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+          aria-label={desktopCollapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
+          title={desktopCollapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
+        >
+          {desktopCollapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </button>
         <SidebarContent
           pathname={pathname}
           visibleSections={visibleSections}
@@ -304,24 +317,6 @@ function SidebarContent({
             <p className="text-xs text-muted-foreground">{APP_BRAND_TAGLINE}</p>
             </div>
           )}
-          {!mobile ? (
-            <button
-              type="button"
-              onClick={() => onCollapsedChange?.(!collapsed)}
-              className={cn(
-                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                collapsed && "mx-auto",
-              )}
-              aria-label={collapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
-              title={collapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="h-4 w-4" />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" />
-              )}
-            </button>
-          ) : null}
         </div>
       </div>
 
@@ -333,23 +328,34 @@ function SidebarContent({
       >
         {collapsed ? (
           <ul className="space-y-1">
-            {visibleSections.flatMap((section) => section.items).map((item) => {
-              const isActive = activeItemHref === item.href;
-              const unreadCount =
-                item.href === "/disposisi"
-                  ? unreadDisposisiCount
-                  : item.href === "/pengumuman"
-                    ? unreadAnnouncementCount
-                    : 0;
+            {visibleSections.map((section) => {
+              const primaryItem =
+                section.items.find(
+                  (item) => item.href === section.collapsedHref && item.active,
+                ) ??
+                section.items.find((item) => item.active) ??
+                section.items[0];
 
-              if (!item.active) {
+              if (!primaryItem) return null;
+
+              const isActive = activeSectionTitle === section.title;
+              const sectionTooltip = `${section.title} - ${primaryItem.label}`;
+              const unreadCount =
+                (section.items.some((item) => item.href === "/disposisi")
+                  ? unreadDisposisiCount
+                  : 0) +
+                (section.items.some((item) => item.href === "/pengumuman")
+                  ? unreadAnnouncementCount
+                  : 0);
+
+              if (!primaryItem.active) {
                 return (
-                  <li key={item.href}>
+                  <li key={section.title}>
                     <div
                       className="relative flex h-12 items-center justify-center rounded-2xl text-muted-foreground opacity-80"
-                      title={`${item.label} (${item.statusLabel ?? "Nonaktif"})`}
+                      title={`${sectionTooltip} (${primaryItem.statusLabel ?? "Nonaktif"})`}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <primaryItem.icon className="h-5 w-5" />
                       <LockKeyhole className="absolute bottom-2 right-2 h-3 w-3" />
                     </div>
                   </li>
@@ -357,12 +363,12 @@ function SidebarContent({
               }
 
               return (
-                <li key={item.href}>
+                <li key={section.title}>
                   <Link
-                    href={item.href}
+                    href={primaryItem.href}
                     onClick={onNavigate}
-                    title={item.label}
-                    aria-label={item.label}
+                    title={sectionTooltip}
+                    aria-label={sectionTooltip}
                     className={cn(
                       "relative flex h-12 items-center justify-center rounded-2xl transition-colors",
                       isActive
@@ -370,7 +376,7 @@ function SidebarContent({
                         : "text-foreground hover:bg-muted",
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <primaryItem.icon className="h-5 w-5" />
                     {unreadCount > 0 ? (
                       <span
                         className={cn(

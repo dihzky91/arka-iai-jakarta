@@ -7,12 +7,17 @@ import { JadwalUjianIntegrasi } from "@/components/jadwal-otomatis/JadwalUjianIn
 import { PesertaDanNilaiTab } from "@/components/jadwal-otomatis/PesertaDanNilaiTab";
 import {
   getKelasOtomatisDetail,
+  getLatestHonorariumWhatsappSnapshotByKelas,
   getSessionsByKelas,
 } from "@/server/actions/jadwal-otomatis/kelasOtomatis";
 import { getAssignmentsByKelas } from "@/server/actions/jadwal-otomatis/assignments";
 import { listInstructors } from "@/server/actions/jadwal-otomatis/instructors";
 import { getMateriBlocksByProgram } from "@/server/actions/jadwal-otomatis/expertise";
 import { getKelasUjianByPelatihan } from "@/server/actions/jadwal-otomatis/integrasi";
+import {
+  listWhatsappMessageLogsByKelas,
+  listWhatsappTemplatesForClassActions,
+} from "@/server/actions/jadwal-otomatis/whatsapp";
 import { getSession } from "@/server/actions/auth";
 
 interface Props {
@@ -40,6 +45,9 @@ export default async function Page({ params }: Props) {
     instructors,
     materiBlocks,
     linkedKelasUjian,
+    honorariumSnapshot,
+    whatsappTemplates,
+    whatsappLogs,
     session,
   ] = await Promise.all([
     getSessionsByKelas(id),
@@ -47,6 +55,9 @@ export default async function Page({ params }: Props) {
     listInstructors(),
     getMateriBlocksByProgram(kelas.programId),
     getKelasUjianByPelatihan(id),
+    getLatestHonorariumWhatsappSnapshotByKelas(id),
+    listWhatsappTemplatesForClassActions(),
+    listWhatsappMessageLogsByKelas(id, 30),
     getSession(),
   ]);
 
@@ -85,6 +96,9 @@ export default async function Page({ params }: Props) {
             materiBlocks={materiBlocks}
             canManage={canManage}
             mode="informasi"
+            honorariumSnapshot={honorariumSnapshot}
+            whatsappTemplates={whatsappTemplates}
+            whatsappLogs={whatsappLogs}
           />
         </TabsContent>
 
@@ -97,6 +111,9 @@ export default async function Page({ params }: Props) {
             materiBlocks={materiBlocks}
             canManage={canManage}
             mode="jadwal"
+            honorariumSnapshot={honorariumSnapshot}
+            whatsappTemplates={whatsappTemplates}
+            whatsappLogs={whatsappLogs}
           />
         </TabsContent>
 
@@ -109,6 +126,9 @@ export default async function Page({ params }: Props) {
             materiBlocks={materiBlocks}
             canManage={canManage}
             mode="instruktur"
+            honorariumSnapshot={honorariumSnapshot}
+            whatsappTemplates={whatsappTemplates}
+            whatsappLogs={whatsappLogs}
           />
         </TabsContent>
 

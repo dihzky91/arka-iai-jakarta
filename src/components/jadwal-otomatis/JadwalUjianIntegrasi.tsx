@@ -21,6 +21,7 @@ import {
   type PreviewData,
   type KelasUjianLinked,
 } from "@/server/actions/jadwal-otomatis/integrasi";
+import { APP_TIME_ZONE, parseIsoDateInJakarta } from "@/lib/utils";
 
 interface JadwalUjianIntegrasiProps {
   kelasId: string;
@@ -30,12 +31,13 @@ interface JadwalUjianIntegrasiProps {
 }
 
 function formatDate(dateStr: string) {
-  const date = new Date(`${dateStr}T00:00:00`);
+  const date = parseIsoDateInJakarta(dateStr);
   return date.toLocaleDateString("id-ID", {
     weekday: "short",
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: APP_TIME_ZONE,
   });
 }
 

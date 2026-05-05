@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { listPengajuanCuti, type CutiRow } from "@/server/actions/cuti";
 import { approveCuti } from "@/server/actions/dingtalk/submit-leave";
+import { APP_TIME_ZONE } from "@/lib/utils";
 
 const STATUS_BADGE: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
@@ -154,7 +155,9 @@ export function CutiApproval() {
                     <TableRow key={row.id}>
                       <TableCell>
                         {row.createdAt
-                          ? new Date(row.createdAt).toLocaleDateString("id-ID")
+                          ? new Date(row.createdAt).toLocaleDateString("id-ID", {
+                              timeZone: APP_TIME_ZONE,
+                            })
                           : "-"}
                       </TableCell>
                       <TableCell>{row.namaUser ?? "-"}</TableCell>

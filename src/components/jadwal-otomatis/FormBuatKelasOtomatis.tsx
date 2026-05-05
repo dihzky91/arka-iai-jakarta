@@ -42,6 +42,8 @@ const defaultValues: KelasOtomatisCreateInput = {
   certificateClassCode: "",
   startDate: "",
   lokasi: "",
+  financeContactNameOverride: "",
+  financeWhatsappNumberOverride: "",
   excludedDates: [],
 };
 
@@ -216,7 +218,7 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
                     <FormControl>
                       <Input
                         type="number"
-                        min={100}
+                        min={1}
                         max={999}
                         placeholder="mis. 223"
                         value={field.value ?? ""}
@@ -291,8 +293,58 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
+                )}
             />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="financeContactNameOverride"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Override Nama Kontak Keuangan{" "}
+                      <span className="text-muted-foreground font-normal">(opsional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Mis. Tim Keuangan Kelas Ini"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Kosongkan untuk pakai default global.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="financeWhatsappNumberOverride"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Override Nomor WA Keuangan{" "}
+                      <span className="text-muted-foreground font-normal">(opsional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Mis. 6281234567890"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Diisi hanya jika kelas ini punya kontak keuangan khusus.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormItem>
               <FormLabel>Tanggal Eksklusi <span className="text-muted-foreground font-normal">(opsional)</span></FormLabel>

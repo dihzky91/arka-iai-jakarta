@@ -139,10 +139,16 @@ export function InstrukturTable({ initialData, canManage }: InstrukturTableProps
     startDeleteTransition(async () => {
       const result = await deleteInstructor(deleteTarget.id);
       if (!result.ok) {
-        toast.error("Gagal menghapus.");
+        toast.error(result.error ?? "Gagal menghapus instruktur.");
         return;
       }
-      toast.success(`Instruktur "${deleteTarget.name}" dihapus.`);
+      if (result.mode === "deactivated") {
+        toast.info(
+          `Instruktur "${deleteTarget.name}" tidak bisa dihapus karena masih dipakai (${result.referenceCount} assignment). Status diubah jadi nonaktif.`,
+        );
+      } else {
+        toast.success(`Instruktur "${deleteTarget.name}" dihapus.`);
+      }
       setDeleteTarget(null);
       router.refresh();
     });
@@ -171,6 +177,7 @@ export function InstrukturTable({ initialData, canManage }: InstrukturTableProps
             <DialogTitle>Hapus Instruktur?</DialogTitle>
             <DialogDescription>
               Instruktur <span className="font-medium">{deleteTarget?.name}</span> akan dihapus permanen.
+              Jika masih terhubung ke jadwal, sistem otomatis mengubah menjadi nonaktif.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

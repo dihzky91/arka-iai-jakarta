@@ -4,8 +4,7 @@ import { db } from "@/server/db";
 import { calendarEvents, type CalendarEvent, disposisi, suratKeluar, jadwalUjian, kelasUjian, penugasanPengawas, pengawas, adminJaga, jadwalAdminJaga as jadwalAdminJagaTable } from "@/server/db/schema";
 import { eq, and, gte, lte, desc, or, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { revalidatePath } from "next/cache";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { parseIsoDateTimeInJakarta } from "@/lib/utils";
 
 export interface CalendarEventInput {
   title: string;
@@ -93,8 +92,12 @@ export async function getCalendarEventsByMonth(
   month: number,
   userId?: string
 ): Promise<CalendarEvent[]> {
-  const start = startOfMonth(new Date(year, month - 1));
-  const end = endOfMonth(new Date(year, month - 1));
+  const monthText = String(month).padStart(2, "0");
+  const startIso = `${year}-${monthText}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const endIso = `${year}-${monthText}-${String(lastDay).padStart(2, "0")}`;
+  const start = parseIsoDateTimeInJakarta(startIso, "00:00");
+  const end = parseIsoDateTimeInJakarta(endIso, "23:59");
 
   return getCalendarEvents({
     userId,
@@ -248,8 +251,8 @@ export async function syncUjianEvent(
   adminJagaNama: string[],
 ): Promise<void> {
   const title = `Ujian: ${mataPelajaran.join(", ")} - ${namaKelas}`;
-  const startDate = new Date(`${tanggalUjian}T${jamMulai}:00`);
-  const endDate = new Date(`${tanggalUjian}T${jamSelesai}:00`);
+  const startDate = parseIsoDateTimeInJakarta(tanggalUjian, jamMulai);
+  const endDate = parseIsoDateTimeInJakarta(tanggalUjian, jamSelesai);
   const descParts: string[] = [];
   if (catatan) descParts.push(catatan);
   if (pengawasNama.length > 0) descParts.push(`Pengawas: ${pengawasNama.join(", ")}`);
@@ -304,8 +307,8 @@ export async function syncPenugasanPengawasEvent(
   jamSelesai: string,
 ): Promise<void> {
   const title = `Pengawas: ${pengawasNama} — ${mataPelajaran.join(", ")}`;
-  const startDate = new Date(`${tanggalUjian}T${jamMulai}:00`);
-  const endDate = new Date(`${tanggalUjian}T${jamSelesai}:00`);
+  const startDate = parseIsoDateTimeInJakarta(tanggalUjian, jamMulai);
+  const endDate = parseIsoDateTimeInJakarta(tanggalUjian, jamSelesai);
 
   const existing = await db
     .select()
@@ -355,8 +358,8 @@ export async function syncAdminJagaEvent(
   jamSelesai: string,
 ): Promise<void> {
   const title = `Admin Jaga: ${pengawasNama} — ${mataPelajaran.join(", ")}`;
-  const startDate = new Date(`${tanggalUjian}T${jamMulai}:00`);
-  const endDate = new Date(`${tanggalUjian}T${jamSelesai}:00`);
+  const startDate = parseIsoDateTimeInJakarta(tanggalUjian, jamMulai);
+  const endDate = parseIsoDateTimeInJakarta(tanggalUjian, jamSelesai);
 
   const existing = await db
     .select()
@@ -406,8 +409,8 @@ export async function syncJadwalAdminJagaEvent(
   materi: string,
 ): Promise<void> {
   const title = `Admin Jaga: ${pengawasNama} — ${materi}`;
-  const startDate = new Date(`${tanggal}T${jamMulai ?? "17:15"}:00`);
-  const endDate = new Date(`${tanggal}T${jamSelesai ?? "21:30"}:00`);
+  const startDate = parseIsoDateTimeInJakarta(tanggal, jamMulai ?? "17:15");
+  const endDate = parseIsoDateTimeInJakarta(tanggal, jamSelesai ?? "21:30");
 
   const existing = await db
     .select()

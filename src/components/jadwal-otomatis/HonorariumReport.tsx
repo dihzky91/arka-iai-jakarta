@@ -23,6 +23,7 @@ import {
   listHonorariumBatches,
   previewHonorariumBatchGeneration,
 } from "@/server/actions/jadwal-otomatis/honorarium";
+import { APP_TIME_ZONE } from "@/lib/utils";
 
 type Option = {
   id: string;
@@ -547,7 +548,11 @@ export function HonorariumReport({
                       <td className="px-6 py-3 text-right tabular-nums">{batch.itemCount}</td>
                       <td className="px-6 py-3 text-right tabular-nums">{formatCurrency(batch.grossAmount)}</td>
                       <td className="px-6 py-3 text-right tabular-nums">{formatCurrency(batch.netAmount)}</td>
-                      <td className="px-6 py-3">{new Date(batch.createdAt).toLocaleString("id-ID")}</td>
+                      <td className="px-6 py-3">
+                        {new Date(batch.createdAt).toLocaleString("id-ID", {
+                          timeZone: APP_TIME_ZONE,
+                        })}
+                      </td>
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-2">
                           <Button asChild variant="ghost" size="sm">

@@ -25,6 +25,7 @@ import {
   checkSertifikatRateLimit,
   formatRetryAfter,
 } from "@/lib/rate-limit/user-bucket";
+import { parseIsoDateInJakarta } from "@/lib/utils";
 
 type TemplateKategori = (typeof certificateTemplates.$inferSelect)["kategori"];
 
@@ -52,7 +53,7 @@ function formatTanggalIndonesia(value: string) {
     month: "long",
     year: "numeric",
     timeZone: "Asia/Jakarta",
-  }).format(new Date(`${value}T00:00:00+07:00`));
+  }).format(parseIsoDateInJakarta(value));
 }
 
 function buildVerificationUrl(noSertifikat: string) {

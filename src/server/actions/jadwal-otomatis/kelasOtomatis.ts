@@ -1,15 +1,18 @@
 "use server";
 
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 import { db } from "@/server/db";
 import {
   kelasPelatihan,
   classExcludedDates,
   classSessions,
   honorariumItems,
+  honorariumBatches,
   programs,
+  systemSettings,
   sessionAssignments,
   classTypes,
 } from "@/server/db/schema";
@@ -20,6 +23,7 @@ import {
   kelasOtomatisUpdateStartDateSchema,
   type KelasOtomatisUpdateStartDateInput,
 } from "@/lib/validators/jadwalOtomatis.schema";
+import { addDaysToIsoDate } from "@/lib/utils";
 import { generateSchedule } from "./generate";
 
 export type KelasOtomatisRow = {
@@ -35,9 +39,32 @@ export type KelasOtomatisRow = {
   startDate: string;
   endDate: string | null;
   lokasi: string | null;
+  financeContactNameOverride: string | null;
+  financeWhatsappNumberOverride: string | null;
   status: string;
   totalSessions: number;
   createdAt: Date;
+};
+
+export type ResolvedFinanceWhatsappContact = {
+  financeContactName: string | null;
+  financeWhatsappNumber: string | null;
+  source: "kelas_override" | "global_default" | "unconfigured";
+};
+
+export type KelasHonorariumWhatsappSnapshot = {
+  batchId: string;
+  documentNumber: string;
+  status: string;
+  periodStart: string;
+  periodEnd: string;
+  paidAt: string | null;
+  totalAmount: number;
+  perInstructor: Array<{
+    instructorId: string;
+    instructorName: string;
+    amount: number;
+  }>;
 };
 
 function parseIsoDateToUtc(date: string) {
@@ -54,8 +81,55 @@ function dateDiffInDays(fromDate: string, toDate: string) {
 }
 
 function shiftIsoDate(date: string, offsetDays: number) {
-  const utcMs = parseIsoDateToUtc(date) + offsetDays * 24 * 60 * 60 * 1000;
-  return new Date(utcMs).toISOString().slice(0, 10);
+  return addDaysToIsoDate(date, offsetDays);
+}
+
+function normalizeContactValue(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function resolveFinanceContactFromCandidates(values: {
+  kelasContactNameOverride: string | null | undefined;
+  kelasWhatsappNumberOverride: string | null | undefined;
+  globalContactName: string | null | undefined;
+  globalWhatsappNumber: string | null | undefined;
+}): ResolvedFinanceWhatsappContact {
+  const kelasContactNameOverride = normalizeContactValue(values.kelasContactNameOverride);
+  const kelasWhatsappNumberOverride = normalizeContactValue(values.kelasWhatsappNumberOverride);
+  const globalContactName = normalizeContactValue(values.globalContactName);
+  const globalWhatsappNumber = normalizeContactValue(values.globalWhatsappNumber);
+
+  if (kelasWhatsappNumberOverride) {
+    return {
+      financeContactName: kelasContactNameOverride ?? globalContactName,
+      financeWhatsappNumber: kelasWhatsappNumberOverride,
+      source: "kelas_override",
+    };
+  }
+
+  if (globalWhatsappNumber) {
+    return {
+      financeContactName: globalContactName,
+      financeWhatsappNumber: globalWhatsappNumber,
+      source: "global_default",
+    };
+  }
+
+  return {
+    financeContactName: null,
+    financeWhatsappNumber: null,
+    source: "unconfigured",
+  };
 }
 
 export async function listKelasOtomatis(): Promise<KelasOtomatisRow[]> {
@@ -75,6 +149,8 @@ export async function listKelasOtomatis(): Promise<KelasOtomatisRow[]> {
       startDate: kelasPelatihan.startDate,
       endDate: kelasPelatihan.endDate,
       lokasi: kelasPelatihan.lokasi,
+      financeContactNameOverride: kelasPelatihan.financeContactNameOverride,
+      financeWhatsappNumberOverride: kelasPelatihan.financeWhatsappNumberOverride,
       status: kelasPelatihan.status,
       totalSessions:
         sql<number>`COALESCE((SELECT COUNT(*) FROM ${classSessions} WHERE ${classSessions.kelasId} = ${kelasPelatihan.id})::int, 0)`.as(
@@ -127,6 +203,8 @@ export async function createKelasOtomatis(data: KelasOtomatisCreateInput) {
       source: "system",
       startDate: parsed.startDate,
       lokasi: parsed.lokasi || null,
+      financeContactNameOverride: parsed.financeContactNameOverride || null,
+      financeWhatsappNumberOverride: parsed.financeWhatsappNumberOverride || null,
       status: "active",
     })
     .returning();
@@ -180,6 +258,8 @@ export async function getKelasOtomatisDetail(id: string) {
       startDate: kelasPelatihan.startDate,
       endDate: kelasPelatihan.endDate,
       lokasi: kelasPelatihan.lokasi,
+      financeContactNameOverride: kelasPelatihan.financeContactNameOverride,
+      financeWhatsappNumberOverride: kelasPelatihan.financeWhatsappNumberOverride,
       status: kelasPelatihan.status,
       createdAt: kelasPelatihan.createdAt,
     })
@@ -189,7 +269,121 @@ export async function getKelasOtomatisDetail(id: string) {
     .where(eq(kelasPelatihan.id, id))
     .then((r) => r[0] ?? null);
 
-  return row;
+  if (!row) return null;
+
+  const settings = await db
+    .select({
+      globalFinanceContactName: systemSettings.financeContactName,
+      globalFinanceWhatsappNumber: systemSettings.financeWhatsappNumber,
+    })
+    .from(systemSettings)
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  const resolvedFinanceContact = resolveFinanceContactFromCandidates({
+    kelasContactNameOverride: row.financeContactNameOverride,
+    kelasWhatsappNumberOverride: row.financeWhatsappNumberOverride,
+    globalContactName: settings?.globalFinanceContactName,
+    globalWhatsappNumber: settings?.globalFinanceWhatsappNumber,
+  });
+
+  return {
+    ...row,
+    financeContactName: resolvedFinanceContact.financeContactName,
+    financeWhatsappNumber: resolvedFinanceContact.financeWhatsappNumber,
+    financeContactSource: resolvedFinanceContact.source,
+  };
+}
+
+export async function resolveFinanceWhatsappContactForKelas(
+  kelasId: string,
+): Promise<ResolvedFinanceWhatsappContact | null> {
+  await requirePermission("jadwalUjian", "view");
+
+  const kelas = await db
+    .select({
+      financeContactNameOverride: kelasPelatihan.financeContactNameOverride,
+      financeWhatsappNumberOverride: kelasPelatihan.financeWhatsappNumberOverride,
+    })
+    .from(kelasPelatihan)
+    .where(eq(kelasPelatihan.id, kelasId))
+    .then((rows) => rows[0] ?? null);
+
+  if (!kelas) return null;
+
+  const settings = await db
+    .select({
+      globalFinanceContactName: systemSettings.financeContactName,
+      globalFinanceWhatsappNumber: systemSettings.financeWhatsappNumber,
+    })
+    .from(systemSettings)
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  return resolveFinanceContactFromCandidates({
+    kelasContactNameOverride: kelas.financeContactNameOverride,
+    kelasWhatsappNumberOverride: kelas.financeWhatsappNumberOverride,
+    globalContactName: settings?.globalFinanceContactName,
+    globalWhatsappNumber: settings?.globalFinanceWhatsappNumber,
+  });
+}
+
+export async function getLatestHonorariumWhatsappSnapshotByKelas(
+  kelasId: string,
+): Promise<KelasHonorariumWhatsappSnapshot | null> {
+  await requirePermission("jadwalUjian", "view");
+
+  const latestBatch = await db
+    .select({
+      batchId: honorariumBatches.id,
+      documentNumber: honorariumBatches.documentNumber,
+      status: honorariumBatches.status,
+      periodStart: honorariumBatches.periodStart,
+      periodEnd: honorariumBatches.periodEnd,
+      paidAt: honorariumBatches.paidAt,
+      createdAt: honorariumBatches.createdAt,
+    })
+    .from(honorariumItems)
+    .innerJoin(honorariumBatches, eq(honorariumItems.batchId, honorariumBatches.id))
+    .where(eq(honorariumItems.kelasId, kelasId))
+    .orderBy(desc(honorariumBatches.createdAt), desc(honorariumBatches.periodEnd))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  if (!latestBatch) return null;
+
+  const itemRows = await db
+    .select({
+      instructorId: honorariumItems.paidInstructorId,
+      instructorName: honorariumItems.paidInstructorName,
+      amount: sql<string>`SUM(${honorariumItems.amount})`,
+    })
+    .from(honorariumItems)
+    .where(
+      and(
+        eq(honorariumItems.kelasId, kelasId),
+        eq(honorariumItems.batchId, latestBatch.batchId),
+      ),
+    )
+    .groupBy(honorariumItems.paidInstructorId, honorariumItems.paidInstructorName)
+    .orderBy(asc(honorariumItems.paidInstructorName));
+
+  const perInstructor = itemRows.map((row) => ({
+    instructorId: row.instructorId,
+    instructorName: row.instructorName,
+    amount: toNumber(row.amount),
+  }));
+
+  return {
+    batchId: latestBatch.batchId,
+    documentNumber: latestBatch.documentNumber,
+    status: latestBatch.status,
+    periodStart: latestBatch.periodStart,
+    periodEnd: latestBatch.periodEnd,
+    paidAt: latestBatch.paidAt ? latestBatch.paidAt.toISOString() : null,
+    totalAmount: perInstructor.reduce((total, row) => total + row.amount, 0),
+    perInstructor,
+  };
 }
 
 export async function getSessionsByKelas(kelasId: string) {
@@ -200,6 +394,46 @@ export async function getSessionsByKelas(kelasId: string) {
     .from(classSessions)
     .where(eq(classSessions.kelasId, kelasId))
     .orderBy(asc(classSessions.scheduledDate));
+}
+
+const kelasFinanceOverrideSchema = z.object({
+  id: z.string().min(1),
+  financeContactNameOverride: z.string().trim().max(200).optional().or(z.literal("")),
+  financeWhatsappNumberOverride: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .or(z.literal("")),
+});
+
+export async function updateKelasFinanceContactOverride(input: unknown) {
+  await requirePermission("jadwalUjian", "manage");
+  const parsed = kelasFinanceOverrideSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Data tidak valid.",
+    };
+  }
+
+  const updated = await db
+    .update(kelasPelatihan)
+    .set({
+      financeContactNameOverride: parsed.data.financeContactNameOverride?.trim() || null,
+      financeWhatsappNumberOverride: parsed.data.financeWhatsappNumberOverride?.trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(kelasPelatihan.id, parsed.data.id))
+    .returning({ id: kelasPelatihan.id });
+
+  if (updated.length === 0) {
+    return { ok: false as const, error: "Kelas tidak ditemukan." };
+  }
+
+  revalidatePath("/jadwal-otomatis");
+  revalidatePath(`/jadwal-otomatis/${parsed.data.id}`);
+  return { ok: true as const };
 }
 
 export async function deleteKelasOtomatis(id: string) {

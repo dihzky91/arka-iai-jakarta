@@ -44,6 +44,11 @@ import { deleteUjian, type UjianRow } from "@/server/actions/jadwal-ujian/ujian"
 import type { KelasRow } from "@/server/actions/jadwal-ujian/kelas";
 import type { PengawasRow } from "@/server/actions/jadwal-ujian/pengawas";
 import type { MateriRow } from "@/server/actions/jadwal-ujian/materi";
+import {
+  APP_TIME_ZONE,
+  getTodayIsoInJakarta,
+  parseIsoDateInJakarta,
+} from "@/lib/utils";
 
 interface UjianTableProps {
   initialData: UjianRow[];
@@ -82,7 +87,7 @@ export function UjianTable({
   const [showPastExams, setShowPastExams] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const today = useMemo(() => new Date().toISOString().split("T")[0]!, []);
+  const today = useMemo(() => getTodayIsoInJakarta(), []);
 
   const archivedCount = useMemo(
     () => initialData.filter((u) => u.tanggalUjian < today).length,
@@ -280,7 +285,7 @@ export function UjianTable({
                           </TableCell>
                         </TableRow>
                         {rows.map((row) => {
-                          const d = new Date(`${row.tanggalUjian}T00:00:00`);
+                          const d = parseIsoDateInJakarta(row.tanggalUjian);
                           return (
                             <TableRow key={row.id}>
                               <TableCell className="whitespace-nowrap text-sm">
@@ -288,6 +293,7 @@ export function UjianTable({
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",
+                                  timeZone: APP_TIME_ZONE,
                                 })}
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-sm text-muted-foreground">

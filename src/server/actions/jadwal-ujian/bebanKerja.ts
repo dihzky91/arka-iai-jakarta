@@ -5,6 +5,12 @@ import { db } from "@/server/db";
 import { penugasanPengawas, jadwalUjian, kelasUjian, pengawas } from "@/server/db/schema";
 import { requireSession } from "@/server/actions/auth";
 import { bebanKerjaFilterSchema, type BebanKerjaFilter } from "@/lib/validators/jadwalUjian.schema";
+import {
+  addDaysToIsoDate,
+  getMonthRangeInJakarta,
+  getTodayIsoInJakarta,
+  getWeekdayInJakarta,
+} from "@/lib/utils";
 
 export type BebanKerjaRow = {
   pengawasId: string;
@@ -78,18 +84,11 @@ export async function getStatistikUjian(): Promise<StatistikUjian> {
   await requireSession();
 
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  const weekStart = startOfWeek.toISOString().slice(0, 10);
-  const weekEnd = endOfWeek.toISOString().slice(0, 10);
-
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const todayStr = getTodayIsoInJakarta(now);
+  const weekday = getWeekdayInJakarta(now);
+  const weekStart = addDaysToIsoDate(todayStr, -weekday);
+  const weekEnd = addDaysToIsoDate(weekStart, 6);
+  const { start: monthStart, end: monthEnd } = getMonthRangeInJakarta(now);
 
   const [hariIniResult, mingguIniResult, bulanIniResult, pengawasResult] = await Promise.all([
     db
