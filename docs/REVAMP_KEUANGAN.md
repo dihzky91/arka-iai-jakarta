@@ -206,8 +206,8 @@ Problem yang harus ditangani:
 ## 6. Checklist Developer
 
 - [ ] Buat file dokumen baru: `docs/REVAMP_KEUANGAN.md`.
-- [ ] Buat route `keuangan/laporan`.
-- [ ] Refactor batch detail ke komponen terpisah.
+- [x] Buat route `keuangan/laporan`.
+- [x] Refactor batch detail ke komponen terpisah.
 - [ ] Implement dashboard pipeline visual.
 - [ ] Upgrade `FinanceBatchList` ke TanStack Table.
 - [ ] Tambahkan aging/SLA alert.

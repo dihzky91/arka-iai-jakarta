@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
-import { HonorariumBatchDetail } from "@/components/jadwal-otomatis/HonorariumBatchDetail";
+import { HonorariumBatchDetailKeuangan } from "@/components/keuangan/batch-detail/HonorariumBatchDetailKeuangan";
 import { Button } from "@/components/ui/button";
 import { getCurrentUserAccess } from "@/server/actions/auth";
 import {
@@ -54,14 +54,13 @@ export default async function Page({ params }: PageProps) {
         </Button>
       </div>
 
-      <HonorariumBatchDetail
+      <HonorariumBatchDetailKeuangan
         initialData={detail}
         initialDeductions={deductions}
         initialPaymentProofs={paymentProofs}
-        canManage={false}
-        isAdmin={isSuperAdmin}
         canProcess={canProcess}
         canPay={canPay}
+        isAdmin={isSuperAdmin}
         systemIdentity={{
           namaSistem: systemSettings.namaSistem,
           logoUrl: systemSettings.logoUrl,
