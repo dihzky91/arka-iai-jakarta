@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { KelasOtomatisTable } from "@/components/jadwal-otomatis/KelasOtomatisTable";
@@ -26,12 +26,20 @@ export default async function Page() {
       description="Kelola kelas pelatihan dengan penjadwalan otomatis berdasarkan kurikulum."
       action={
         canManage ? (
-          <Link href="/jadwal-otomatis/buat">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Buat Kelas Baru
-            </Button>
-          </Link>
+          <>
+            <Link href="/jadwal-otomatis/master-data">
+              <Button variant="outline">
+                <Settings className="h-4 w-4" />
+                Master Data
+              </Button>
+            </Link>
+            <Link href="/jadwal-otomatis/buat">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Buat Kelas Baru
+              </Button>
+            </Link>
+          </>
         ) : undefined
       }
     >

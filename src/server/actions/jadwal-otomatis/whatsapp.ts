@@ -145,7 +145,7 @@ export async function listWhatsappTemplatesForClassActions(): Promise<
     content: string;
   }>
 > {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
   await ensureWhatsappTemplateSeeds();
 
   const rows = await db
@@ -212,7 +212,7 @@ const createWhatsappLogSchema = z.object({
 });
 
 export async function createWhatsappMessageLog(input: unknown) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const parsed = createWhatsappLogSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -240,7 +240,7 @@ export async function createWhatsappMessageLog(input: unknown) {
 }
 
 export async function listWhatsappMessageLogsByKelas(kelasId: string, limit = 50) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
   const finalLimit = Math.min(Math.max(limit, 1), 200);
 
   return db

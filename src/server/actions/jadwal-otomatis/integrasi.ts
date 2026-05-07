@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { eq, and, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -33,7 +33,7 @@ export type PreviewData = {
 export async function previewKelasUjianFromPelatihan(
   kelasPelatihanId: string,
 ): Promise<PreviewData> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const kelas = await db
     .select({
@@ -85,7 +85,7 @@ export async function previewKelasUjianFromPelatihan(
 }
 
 export async function createKelasUjianFromPelatihan(kelasPelatihanId: string) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
 
   const existing = await db
     .select({ id: kelasUjian.id })
@@ -205,7 +205,7 @@ export type KelasUjianLinked = {
 export async function getKelasUjianByPelatihan(
   kelasPelatihanId: string,
 ): Promise<KelasUjianLinked | null> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const row = await db
     .select({

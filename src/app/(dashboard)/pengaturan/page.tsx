@@ -8,6 +8,8 @@ import { SistemStatusSection } from "@/components/pengaturan/SistemStatusSection
 import { ManajemenUserCard } from "@/components/pengaturan/ManajemenUserCard";
 import { RoleManagementCard } from "@/components/pengaturan/RoleManagementCard";
 import { DingtalkConfigCard } from "@/components/pengaturan/DingtalkConfigCard";
+import { DivisiManager } from "@/components/divisi/DivisiManager";
+import { PejabatManager } from "@/components/pejabat/PejabatManager";
 import { PengaturanTabs } from "@/components/pengaturan/PengaturanTabs";
 import {
   getSystemSettings,
@@ -19,7 +21,7 @@ import {
   listInvitations,
   listUsersForManagement,
 } from "@/server/actions/invitations";
-import { listDivisi } from "@/server/actions/divisi";
+import { listDivisi, type DivisiRow } from "@/server/actions/divisi";
 import {
   listCapabilityMetadata,
   listRoleManagementRows,
@@ -30,6 +32,8 @@ import {
   getDingtalkSyncStatus,
   getDingtalkUserMappings,
 } from "@/server/actions/dingtalk/config";
+import { listPejabat, type PejabatRow } from "@/server/actions/pejabat";
+import { listPegawaiReference } from "@/server/actions/pegawai";
 import { listWhatsappMessageTemplates } from "@/server/actions/jadwal-otomatis/whatsapp";
 
 export const metadata: Metadata = {
@@ -53,8 +57,11 @@ export default async function PengaturanPage() {
 
   // Fetch data manajemen user hanya untuk admin
   let invitations: Awaited<ReturnType<typeof listInvitations>> = [];
-  let userRows: Awaited<ReturnType<typeof listUsersForManagement>> = [];
+  let userRows: Awaited<ReturnType<typeof listUsersForManagement>>["rows"] = [];
   let divisiOptions: Array<{ id: number; nama: string }> = [];
+  let divisiRows: DivisiRow[] = [];
+  let pejabatRows: PejabatRow[] = [];
+  let pegawaiRef: Awaited<ReturnType<typeof listPegawaiReference>> = [];
   let roleOptions: Awaited<ReturnType<typeof listRoleOptions>> = [];
   let roleRows: Awaited<ReturnType<typeof listRoleManagementRows>> = [];
   let capabilityMetadata: Awaited<
@@ -70,6 +77,9 @@ export default async function PengaturanPage() {
       invitations,
       userRows,
       divisiOptions,
+      divisiRows,
+      pejabatRows,
+      pegawaiRef,
       roleOptions,
       roleRows,
       capabilityMetadata,
@@ -78,10 +88,13 @@ export default async function PengaturanPage() {
       dingtalkMappings,
     ] = await Promise.all([
       listInvitations(),
-      listUsersForManagement(),
+      listUsersForManagement().then((r) => r.rows),
       listDivisi().then((rows) =>
         rows.map((r) => ({ id: r.id, nama: r.nama })),
       ),
+      listDivisi(),
+      listPejabat(),
+      listPegawaiReference(),
       listRoleOptions(),
       listRoleManagementRows(),
       listCapabilityMetadata(),
@@ -134,6 +147,23 @@ export default async function PengaturanPage() {
               initialConfig={dingtalkConfig?.data ?? null}
               initialSyncStatus={dingtalkSyncStatus?.data ?? null}
               initialMappings={dingtalkMappings}
+            />
+          ) : undefined
+        }
+        divisi={
+          isAdmin ? (
+            <DivisiManager initialData={divisiRows} canManage={isAdmin} />
+          ) : undefined
+        }
+        pejabat={
+          isAdmin ? (
+            <PejabatManager
+              initialData={pejabatRows}
+              canManage={isAdmin}
+              userOptions={pegawaiRef.map((item) => ({
+                id: item.id,
+                label: `${item.namaLengkap} - ${item.email}`,
+              }))}
             />
           ) : undefined
         }

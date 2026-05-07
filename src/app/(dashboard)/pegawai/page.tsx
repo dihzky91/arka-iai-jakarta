@@ -10,14 +10,14 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [session, pegawaiRows, divisiRows] = await Promise.all([
+  const [session, pegawaiResult, divisiRows] = await Promise.all([
     getSession(),
     listPegawai(),
     listDivisi(),
   ]);
 
   const detailRows = await Promise.all(
-    pegawaiRows.map(async (row) => {
+    pegawaiResult.rows.map(async (row) => {
       const detail = await getPegawaiById(row.id);
       return {
         ...row,

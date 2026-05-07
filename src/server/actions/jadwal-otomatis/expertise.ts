@@ -25,7 +25,7 @@ const expertiseCreateSchema = z.object({
 });
 
 export async function listExpertise(instructorId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select()
@@ -36,7 +36,7 @@ export async function listExpertise(instructorId: string) {
 
 export async function addExpertise(data: z.infer<typeof expertiseCreateSchema>) {
   const parsed = expertiseCreateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   try {
     await db
@@ -58,7 +58,7 @@ export async function addExpertise(data: z.infer<typeof expertiseCreateSchema>) 
 }
 
 export async function removeExpertise(id: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   await db.delete(instructorExpertise).where(eq(instructorExpertise.id, id));
 
@@ -75,7 +75,7 @@ const unavailabilityCreateSchema = z.object({
 });
 
 export async function listUnavailability(instructorId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select()
@@ -86,7 +86,7 @@ export async function listUnavailability(instructorId: string) {
 
 export async function addUnavailability(data: z.infer<typeof unavailabilityCreateSchema>) {
   const parsed = unavailabilityCreateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   try {
     await db
@@ -102,7 +102,7 @@ export async function addUnavailability(data: z.infer<typeof unavailabilityCreat
 }
 
 export async function removeUnavailability(id: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   await db.delete(instructorUnavailability).where(eq(instructorUnavailability.id, id));
 
@@ -113,7 +113,7 @@ export async function removeUnavailability(id: string) {
 // ─── AUTO-SUGGEST INSTRUKTUR ───────────────────────────────────────────────
 
 export async function suggestInstructors(programId: string, materiBlock: string, date: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const qualifiedRows = await db
     .select({ instructorId: instructorExpertise.instructorId })
@@ -164,7 +164,7 @@ export async function suggestInstructors(programId: string, materiBlock: string,
 // ─── MATERI BLOCKS FOR SUGGEST ──────────────────────────────────────────────
 
 export async function getMateriBlocksByProgram(programId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const rows = await db
     .select({ materiBlock: curriculumTemplate.materiBlock })
@@ -177,7 +177,7 @@ export async function getMateriBlocksByProgram(programId: string) {
 }
 
 export async function listProgramMateriBlocks() {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select({

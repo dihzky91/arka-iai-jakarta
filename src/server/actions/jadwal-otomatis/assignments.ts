@@ -16,6 +16,7 @@ import {
 } from "@/server/db/schema";
 import { requirePermission } from "@/server/actions/auth";
 import { addDaysToIsoDate, getTodayIsoInJakarta } from "@/lib/utils";
+import { recomputeStatusPesertaByKelas } from "./peserta/recompute-status";
 
 const bulkUnassignSchema = z.object({
   assignmentIds: z.array(z.string().min(1)).min(1, "Pilih minimal satu assignment").max(200),
@@ -58,7 +59,7 @@ const assignSchema = z.object({
 
 export async function assignInstructorToSession(data: z.infer<typeof assignSchema>) {
   const parsed = assignSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const session = await db
     .select({
@@ -131,7 +132,7 @@ export async function assignInstructorToBlock(
   instrukturId: string,
   materiBlock: string,
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const kelas = await db
     .select({ programId: kelasPelatihan.programId })
@@ -202,7 +203,7 @@ export async function substituteInstructor(
   newInstructorId: string,
   reason: string,
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   await db
     .update(sessionAssignments)
@@ -258,7 +259,7 @@ export async function updateAssignmentAvailabilityStatus(
   data: z.infer<typeof availabilityUpdateSchema>,
 ) {
   const parsed = availabilityUpdateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   await db
     .update(sessionAssignments)
@@ -279,7 +280,7 @@ export async function bulkUpdateAssignmentAvailabilityStatus(
   data: z.infer<typeof bulkAvailabilityUpdateSchema>,
 ) {
   const parsed = bulkAvailabilityUpdateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const result = await db
     .update(sessionAssignments)
@@ -300,11 +301,15 @@ export async function bulkUpdateSessionStatus(
   data: z.infer<typeof bulkSessionStatusUpdateSchema>,
 ) {
   const parsed = bulkSessionStatusUpdateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const assignmentRows = await db
-    .select({ sessionId: sessionAssignments.sessionId })
+    .select({
+      sessionId: sessionAssignments.sessionId,
+      kelasId: classSessions.kelasId,
+    })
     .from(sessionAssignments)
+    .innerJoin(classSessions, eq(sessionAssignments.sessionId, classSessions.id))
     .where(inArray(sessionAssignments.id, parsed.assignmentIds));
 
   const sessionIds = Array.from(new Set(assignmentRows.map((row) => row.sessionId)));
@@ -319,6 +324,12 @@ export async function bulkUpdateSessionStatus(
     })
     .where(inArray(classSessions.id, sessionIds));
 
+  const kelasIds = Array.from(new Set(assignmentRows.map((row) => row.kelasId)));
+  for (const kelasId of kelasIds) {
+    await recomputeStatusPesertaByKelas(kelasId);
+    revalidatePath(`/jadwal-otomatis/${kelasId}`);
+  }
+
   revalidatePath("/jadwal-otomatis");
   return { ok: true as const, updatedCount: result.rowCount ?? 0 };
 }
@@ -326,7 +337,7 @@ export async function bulkUpdateSessionStatus(
 // GET ASSIGNMENTS FOR KELAS
 
 export async function getAssignmentsByKelas(kelasId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select({
@@ -354,7 +365,7 @@ export async function getAssignmentsByKelas(kelasId: string) {
 // GET ASSIGNMENTS FOR SESSION
 
 export async function getAssignmentsBySession(sessionId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select()
@@ -387,7 +398,7 @@ export async function getInstructorRecommendationsForBlock(
   data: z.infer<typeof recommendationSchema>,
 ): Promise<InstructorRecommendation[]> {
   const parsed = recommendationSchema.parse(data);
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const activeInstructors = await db
     .select({
@@ -556,7 +567,7 @@ export type InstructorAllocationSummary = {
 export async function getInstructorAllocationSummary(
   instructorId: string,
 ): Promise<InstructorAllocationSummary> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const todayStr = getTodayIsoInJakarta();
   const weekEndStr = addDaysToIsoDate(todayStr, 6);
@@ -635,7 +646,7 @@ export async function getInstructorAllocationSummary(
 // HISTORI MENGAJAR
 
 export async function getTeachingHistory(instructorId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select({
@@ -669,7 +680,7 @@ export async function getTeachingHistory(instructorId: string) {
 // CONFLICT DETECTION
 
 export async function checkInstructorConflict(instructorId: string, tanggal: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const conflictingAssignments = await db
     .select({
@@ -696,7 +707,7 @@ export async function checkInstructorConflict(instructorId: string, tanggal: str
 // UNASSIGN SINGLE
 
 export async function unassignInstructorFromSession(assignmentId: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const { deletableIds, blockedIds } = await splitDeletableAssignmentIds([assignmentId]);
   if (blockedIds.length > 0) {
@@ -719,7 +730,7 @@ export async function unassignInstructorFromSession(assignmentId: string) {
 // UNASSIGN BLOCK
 
 export async function unassignInstructorFromBlock(kelasId: string, materiBlock: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const sessions = await db
     .select({ id: classSessions.id })
@@ -763,7 +774,7 @@ export async function unassignInstructorFromBlock(kelasId: string, materiBlock: 
 
 export async function bulkUnassignInstructors(data: z.infer<typeof bulkUnassignSchema>) {
   const parsed = bulkUnassignSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const { deletableIds, blockedIds } = await splitDeletableAssignmentIds(
     parsed.assignmentIds,

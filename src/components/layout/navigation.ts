@@ -44,6 +44,7 @@ export interface NavigationItem {
   /** Jika diset, hanya role yang terdaftar di sini yang akan melihat item ini. */
   allowedRoles?: NavRole[];
   requiredCapability?: Capability;
+  fallbackCapabilities?: Capability[];
 }
 
 export interface NavigationSection {
@@ -239,7 +240,8 @@ export const navigationSections: NavigationSection[] = [
         icon: Calendar,
         active: true,
         allowedRoles: ["admin", "staff"],
-        requiredCapability: "jadwal_ujian:view",
+        requiredCapability: "jadwal_pelatihan:view",
+        fallbackCapabilities: ["jadwal_ujian:view"],
       },
       {
         href: "/jadwal-ujian",
@@ -255,7 +257,8 @@ export const navigationSections: NavigationSection[] = [
         icon: Banknote,
         active: true,
         allowedRoles: ["admin", "staff"],
-        requiredCapability: "jadwal_ujian:view",
+        requiredCapability: "jadwal_pelatihan:view",
+        fallbackCapabilities: ["jadwal_ujian:view"],
       },
       {
         href: "/jadwal-otomatis/instruktur",
@@ -263,7 +266,8 @@ export const navigationSections: NavigationSection[] = [
         icon: Users,
         active: true,
         allowedRoles: ["admin", "staff"],
-        requiredCapability: "jadwal_ujian:manage",
+        requiredCapability: "jadwal_pelatihan:manage",
+        fallbackCapabilities: ["jadwal_ujian:manage"],
       },
     ],
   },

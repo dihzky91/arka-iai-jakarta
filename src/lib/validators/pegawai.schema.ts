@@ -16,6 +16,7 @@ export const pegawaiCreateSchema = z.object({
   emailPribadi: z.string().email().optional(),
   noHp: z.string().optional(),
   role: z.enum(["admin", "staff", "pejabat", "viewer"]).default("staff"),
+  roleId: z.number().int().positive().optional(),
   divisiId: z.number().int().positive().optional(),
   jabatan: z.string().optional(),
   levelJabatan: z.string().optional(),

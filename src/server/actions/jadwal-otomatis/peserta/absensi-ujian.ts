@@ -22,7 +22,7 @@ export async function inputAbsensiUjian(
   jadwalUjianId: string,
   absensiList: AbsensiUjianInput[],
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const userId = session.user.id;
 
   const jadwal = await db.query.jadwalUjian.findFirst({
@@ -75,7 +75,7 @@ export async function inputAbsensiUjian(
 }
 
 export async function getAbsensiUjianByKelas(kelasId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const pesertaList = await db.query.pesertaKelas.findMany({
     where: and(

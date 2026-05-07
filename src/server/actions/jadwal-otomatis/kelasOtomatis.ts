@@ -15,13 +15,24 @@ import {
   systemSettings,
   sessionAssignments,
   classTypes,
+  pesertaKelas,
+  kelasUjian,
 } from "@/server/db/schema";
 import { requirePermission } from "@/server/actions/auth";
+import { writeAuditLog } from "@/server/lib/audit";
 import {
   kelasOtomatisCreateSchema,
   type KelasOtomatisCreateInput,
   kelasOtomatisUpdateStartDateSchema,
   type KelasOtomatisUpdateStartDateInput,
+  kelasOtomatisUpdateStatusSchema,
+  type KelasOtomatisUpdateStatusInput,
+  kelasOtomatisUpdateMetadataSchema,
+  type KelasOtomatisUpdateMetadataInput,
+  kelasOtomatisExcludedDateSchema,
+  type KelasOtomatisExcludedDateInput,
+  kelasOtomatisRemoveExcludedDateSchema,
+  type KelasOtomatisRemoveExcludedDateInput,
 } from "@/lib/validators/jadwalOtomatis.schema";
 import { addDaysToIsoDate } from "@/lib/utils";
 import { generateSchedule } from "./generate";
@@ -132,8 +143,15 @@ function resolveFinanceContactFromCandidates(values: {
   };
 }
 
-export async function listKelasOtomatis(): Promise<KelasOtomatisRow[]> {
-  await requirePermission("jadwalUjian", "view");
+export async function listKelasOtomatis(
+  filter?: { excludeCancelled?: boolean },
+): Promise<KelasOtomatisRow[]> {
+  await requirePermission("jadwalPelatihan", "view");
+
+  const conditions = [];
+  if (filter?.excludeCancelled) {
+    conditions.push(sql`${kelasPelatihan.status} != 'cancelled'`);
+  }
 
   const rows = await db
     .select({
@@ -161,6 +179,7 @@ export async function listKelasOtomatis(): Promise<KelasOtomatisRow[]> {
     .from(kelasPelatihan)
     .leftJoin(programs, eq(kelasPelatihan.programId, programs.id))
     .leftJoin(classTypes, eq(kelasPelatihan.classTypeId, classTypes.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(asc(kelasPelatihan.createdAt));
 
   return rows as KelasOtomatisRow[];
@@ -168,7 +187,7 @@ export async function listKelasOtomatis(): Promise<KelasOtomatisRow[]> {
 
 export async function createKelasOtomatis(data: KelasOtomatisCreateInput) {
   const parsed = kelasOtomatisCreateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
 
   const id = nanoid();
 
@@ -235,12 +254,20 @@ export async function createKelasOtomatis(data: KelasOtomatisCreateInput) {
       .where(eq(kelasPelatihan.id, id));
   }
 
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "CREATE_KELAS_PELATIHAN",
+    entitasType: "kelas_pelatihan",
+    entitasId: id,
+    detail: { namaKelas: parsed.namaKelas, programId: parsed.programId, classTypeId: parsed.classTypeId, startDate: parsed.startDate },
+  });
+
   revalidatePath("/jadwal-otomatis");
   return { ok: true as const, data: row };
 }
 
 export async function getKelasOtomatisDetail(id: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const row = await db
     .select({
@@ -298,7 +325,7 @@ export async function getKelasOtomatisDetail(id: string) {
 export async function resolveFinanceWhatsappContactForKelas(
   kelasId: string,
 ): Promise<ResolvedFinanceWhatsappContact | null> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const kelas = await db
     .select({
@@ -331,7 +358,7 @@ export async function resolveFinanceWhatsappContactForKelas(
 export async function getLatestHonorariumWhatsappSnapshotByKelas(
   kelasId: string,
 ): Promise<KelasHonorariumWhatsappSnapshot | null> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const latestBatch = await db
     .select({
@@ -387,7 +414,7 @@ export async function getLatestHonorariumWhatsappSnapshotByKelas(
 }
 
 export async function getSessionsByKelas(kelasId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db
     .select()
@@ -408,7 +435,7 @@ const kelasFinanceOverrideSchema = z.object({
 });
 
 export async function updateKelasFinanceContactOverride(input: unknown) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
   const parsed = kelasFinanceOverrideSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -437,16 +464,174 @@ export async function updateKelasFinanceContactOverride(input: unknown) {
 }
 
 export async function deleteKelasOtomatis(id: string) {
-  await requirePermission("jadwalUjian", "configure");
+  const session = await requirePermission("jadwalPelatihan", "configure");
+
+  const pesertaCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(pesertaKelas)
+    .where(eq(pesertaKelas.kelasId, id))
+    .then((r) => r[0]?.count ?? 0);
+
+  const honorariumCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(honorariumItems)
+    .where(eq(honorariumItems.kelasId, id))
+    .then((r) => r[0]?.count ?? 0);
+
+  const kelasUjianCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(kelasUjian)
+    .where(eq(kelasUjian.kelasPelatihanId, id))
+    .then((r) => r[0]?.count ?? 0);
+
+  if (honorariumCount > 0) {
+    return {
+      ok: false as const,
+      error: "Kelas sudah masuk perhitungan honorarium. Hapus permanen diblokir. Gunakan Batalkan Kelas.",
+    };
+  }
+
+  if (pesertaCount > 0 || kelasUjianCount > 0) {
+    return {
+      ok: false as const,
+      error: `Kelas memiliki ${pesertaCount} peserta dan ${kelasUjianCount} kelas ujian terkait. Hapus permanen diblokir.`,
+      blockers: { pesertaCount, kelasUjianCount },
+    };
+  }
 
   await db.delete(kelasPelatihan).where(eq(kelasPelatihan.id, id));
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "DELETE_KELAS_PELATIHAN",
+    entitasType: "kelas_pelatihan",
+    entitasId: id,
+  });
 
   revalidatePath("/jadwal-otomatis");
   return { ok: true as const };
 }
 
+export async function updateKelasOtomatisStatus(data: KelasOtomatisUpdateStatusInput) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = kelasOtomatisUpdateStatusSchema.parse(data);
+
+  const kelas = await db
+    .select({
+      id: kelasPelatihan.id,
+      status: kelasPelatihan.status,
+    })
+    .from(kelasPelatihan)
+    .where(eq(kelasPelatihan.id, parsed.id))
+    .then((rows) => rows[0] ?? null);
+
+  if (!kelas) {
+    return { ok: false as const, error: "Kelas tidak ditemukan." };
+  }
+
+  if (kelas.status === parsed.status) {
+    return { ok: true as const, unchanged: true as const };
+  }
+
+  const allowedTransitions: Record<string, string[]> = {
+    active: ["completed", "cancelled"],
+    cancelled: ["active"],
+    completed: ["active"],
+  };
+
+  if (!allowedTransitions[kelas.status]?.includes(parsed.status)) {
+    return {
+      ok: false as const,
+      error: `Transisi status dari "${kelas.status}" ke "${parsed.status}" tidak diizinkan.`,
+    };
+  }
+
+  if (parsed.status === "cancelled") {
+    const honorariumCount = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(honorariumItems)
+      .where(eq(honorariumItems.kelasId, parsed.id))
+      .then((r) => r[0]?.count ?? 0);
+
+    if (honorariumCount > 0) {
+      return {
+        ok: false as const,
+        error: "Kelas sudah masuk perhitungan honorarium. Pembatalan diblokir.",
+      };
+    }
+  }
+
+  if ((parsed.status === "cancelled" || kelas.status === "completed") && !parsed.reason) {
+    return {
+      ok: false as const,
+      error: "Alasan wajib diisi untuk transisi status ini.",
+    };
+  }
+
+  await db
+    .update(kelasPelatihan)
+    .set({ status: parsed.status, updatedAt: new Date() })
+    .where(eq(kelasPelatihan.id, parsed.id));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "UPDATE_STATUS_KELAS_PELATIHAN",
+    entitasType: "kelas_pelatihan",
+    entitasId: parsed.id,
+    detail: { from: kelas.status, to: parsed.status, reason: parsed.reason ?? null },
+  });
+
+  revalidatePath("/jadwal-otomatis");
+  revalidatePath(`/jadwal-otomatis/${parsed.id}`);
+  return { ok: true as const };
+}
+
+export async function updateKelasOtomatisMetadata(data: KelasOtomatisUpdateMetadataInput) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = kelasOtomatisUpdateMetadataSchema.parse(data);
+
+  const existing = await db
+    .select({ id: kelasPelatihan.id })
+    .from(kelasPelatihan)
+    .where(eq(kelasPelatihan.id, parsed.id))
+    .then((rows) => rows[0] ?? null);
+
+  if (!existing) {
+    return { ok: false as const, error: "Kelas tidak ditemukan." };
+  }
+
+  await db
+    .update(kelasPelatihan)
+    .set({
+      namaKelas: parsed.namaKelas,
+      mode: parsed.mode,
+      angkatan: parsed.angkatan ?? null,
+      certificateClassCode: parsed.certificateClassCode || null,
+      lokasi: parsed.lokasi || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(kelasPelatihan.id, parsed.id));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "UPDATE_METADATA_KELAS_PELATIHAN",
+    entitasType: "kelas_pelatihan",
+    entitasId: parsed.id,
+    detail: {
+      namaKelas: parsed.namaKelas,
+      mode: parsed.mode,
+      angkatan: parsed.angkatan ?? null,
+      certificateClassCode: parsed.certificateClassCode ?? null,
+      lokasi: parsed.lokasi ?? null,
+    },
+  });
+
+  revalidatePath("/jadwal-otomatis");
+  revalidatePath(`/jadwal-otomatis/${parsed.id}`);
+  return { ok: true as const };
+}
+
 export async function updateKelasOtomatisStartDate(data: KelasOtomatisUpdateStartDateInput) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
   const parsed = kelasOtomatisUpdateStartDateSchema.parse(data);
 
   const kelas = await db
@@ -576,4 +761,203 @@ export async function updateKelasOtomatisStartDate(data: KelasOtomatisUpdateStar
     exclusionStrategy: parsed.exclusionStrategy,
     startDateOffsetDays,
   };
+}
+
+export async function listExcludedDatesByKelas(kelasId: string) {
+  await requirePermission("jadwalPelatihan", "view");
+
+  return db
+    .select({
+      id: classExcludedDates.id,
+      date: classExcludedDates.date,
+      reason: classExcludedDates.reason,
+    })
+    .from(classExcludedDates)
+    .where(eq(classExcludedDates.kelasId, kelasId))
+    .orderBy(asc(classExcludedDates.date));
+}
+
+export async function addExcludedDateToKelas(input: KelasOtomatisExcludedDateInput) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = kelasOtomatisExcludedDateSchema.parse(input);
+
+  const kelas = await db
+    .select({
+      id: kelasPelatihan.id,
+      programId: kelasPelatihan.programId,
+      classTypeId: kelasPelatihan.classTypeId,
+      startDate: kelasPelatihan.startDate,
+      status: kelasPelatihan.status,
+    })
+    .from(kelasPelatihan)
+    .where(eq(kelasPelatihan.id, parsed.kelasId))
+    .then((rows) => rows[0] ?? null);
+
+  if (!kelas) {
+    return { ok: false as const, error: "Kelas tidak ditemukan." };
+  }
+
+  if (kelas.status !== "active") {
+    return { ok: false as const, error: "Hanya kelas aktif yang dapat diubah eksklusinya." };
+  }
+
+  const linkedHonorarium = await db
+    .select({ id: honorariumItems.id })
+    .from(honorariumItems)
+    .where(eq(honorariumItems.kelasId, parsed.kelasId))
+    .limit(1);
+
+  if (linkedHonorarium.length > 0) {
+    return {
+      ok: false as const,
+      error: "Kelas sudah masuk perhitungan honorarium. Ubah eksklusi diblokir untuk menjaga konsistensi data keuangan.",
+    };
+  }
+
+  try {
+    await db
+      .insert(classExcludedDates)
+      .values({ id: nanoid(), kelasId: parsed.kelasId, date: parsed.date, reason: parsed.reason ?? "Manual" })
+      .onConflictDoNothing();
+  } catch {
+    return { ok: false as const, error: "Tanggal eksklusi sudah ada atau gagal ditambahkan." };
+  }
+
+  const sessionRows = await db
+    .select({ id: classSessions.id })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, parsed.kelasId));
+
+  if (sessionRows.length > 0) {
+    const sessionIds = sessionRows.map((row) => row.id);
+    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
+  }
+
+  await db.delete(classSessions).where(eq(classSessions.kelasId, parsed.kelasId));
+
+  await generateSchedule({
+    kelasId: kelas.id,
+    programId: kelas.programId,
+    classTypeId: kelas.classTypeId,
+    startDate: kelas.startDate,
+  });
+
+  const lastSessions = await db
+    .select({ scheduledDate: classSessions.scheduledDate })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, parsed.kelasId))
+    .orderBy(asc(classSessions.scheduledDate));
+
+  const lastSession = lastSessions[lastSessions.length - 1];
+  await db
+    .update(kelasPelatihan)
+    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
+    .where(eq(kelasPelatihan.id, parsed.kelasId));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "ADD_EXCLUDED_DATE_KELAS",
+    entitasType: "kelas_pelatihan",
+    entitasId: parsed.kelasId,
+    detail: { date: parsed.date, reason: parsed.reason ?? "Manual" },
+  });
+
+  revalidatePath("/jadwal-otomatis");
+  revalidatePath(`/jadwal-otomatis/${parsed.kelasId}`);
+  return { ok: true as const };
+}
+
+export async function removeExcludedDateFromKelas(input: KelasOtomatisRemoveExcludedDateInput) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = kelasOtomatisRemoveExcludedDateSchema.parse(input);
+
+  const kelas = await db
+    .select({
+      id: kelasPelatihan.id,
+      programId: kelasPelatihan.programId,
+      classTypeId: kelasPelatihan.classTypeId,
+      startDate: kelasPelatihan.startDate,
+      status: kelasPelatihan.status,
+    })
+    .from(kelasPelatihan)
+    .where(eq(kelasPelatihan.id, parsed.kelasId))
+    .then((rows) => rows[0] ?? null);
+
+  if (!kelas) {
+    return { ok: false as const, error: "Kelas tidak ditemukan." };
+  }
+
+  if (kelas.status !== "active") {
+    return { ok: false as const, error: "Hanya kelas aktif yang dapat diubah eksklusinya." };
+  }
+
+  const linkedHonorarium = await db
+    .select({ id: honorariumItems.id })
+    .from(honorariumItems)
+    .where(eq(honorariumItems.kelasId, parsed.kelasId))
+    .limit(1);
+
+  if (linkedHonorarium.length > 0) {
+    return {
+      ok: false as const,
+      error: "Kelas sudah masuk perhitungan honorarium. Ubah eksklusi diblokir untuk menjaga konsistensi data keuangan.",
+    };
+  }
+
+  const deleted = await db
+    .delete(classExcludedDates)
+    .where(
+      and(
+        eq(classExcludedDates.kelasId, parsed.kelasId),
+        eq(classExcludedDates.date, parsed.date),
+      ),
+    )
+    .returning({ id: classExcludedDates.id });
+
+  if (deleted.length === 0) {
+    return { ok: false as const, error: "Tanggal eksklusi tidak ditemukan." };
+  }
+
+  const sessionRows = await db
+    .select({ id: classSessions.id })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, parsed.kelasId));
+
+  if (sessionRows.length > 0) {
+    const sessionIds = sessionRows.map((row) => row.id);
+    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
+  }
+
+  await db.delete(classSessions).where(eq(classSessions.kelasId, parsed.kelasId));
+
+  await generateSchedule({
+    kelasId: kelas.id,
+    programId: kelas.programId,
+    classTypeId: kelas.classTypeId,
+    startDate: kelas.startDate,
+  });
+
+  const lastSessions = await db
+    .select({ scheduledDate: classSessions.scheduledDate })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, parsed.kelasId))
+    .orderBy(asc(classSessions.scheduledDate));
+
+  const lastSession = lastSessions[lastSessions.length - 1];
+  await db
+    .update(kelasPelatihan)
+    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
+    .where(eq(kelasPelatihan.id, parsed.kelasId));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "REMOVE_EXCLUDED_DATE_KELAS",
+    entitasType: "kelas_pelatihan",
+    entitasId: parsed.kelasId,
+    detail: { date: parsed.date },
+  });
+
+  revalidatePath("/jadwal-otomatis");
+  revalidatePath(`/jadwal-otomatis/${parsed.kelasId}`);
+  return { ok: true as const };
 }

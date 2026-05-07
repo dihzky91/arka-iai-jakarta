@@ -65,7 +65,7 @@ export type InstructorRow = {
 };
 
 export async function listInstructors() {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const rows = await db
     .select()
@@ -145,7 +145,7 @@ export async function listInstructors() {
 
 export async function createInstructor(data: z.infer<typeof instructorCreateSchema>) {
   const parsed = instructorCreateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const id = nanoid();
   const uniqueExpertise = new Map<string, z.infer<typeof instructorExpertiseInputSchema>>();
@@ -192,7 +192,7 @@ export async function createInstructor(data: z.infer<typeof instructorCreateSche
 
 export async function updateInstructor(data: z.infer<typeof instructorUpdateSchema>) {
   const parsed = instructorUpdateSchema.parse(data);
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const updatePayload: {
     name?: string;
@@ -219,7 +219,7 @@ export async function updateInstructor(data: z.infer<typeof instructorUpdateSche
 }
 
 export async function deleteInstructor(id: string) {
-  await requirePermission("jadwalUjian", "configure");
+  await requirePermission("jadwalPelatihan", "configure");
 
   const existing = await db
     .select({

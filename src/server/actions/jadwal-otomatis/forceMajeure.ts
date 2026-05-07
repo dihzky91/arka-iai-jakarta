@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { requirePermission } from "@/server/actions/auth";
 import { parseIsoDateInJakarta } from "@/lib/utils";
+import { recomputeStatusPesertaByKelas } from "./peserta/recompute-status";
 
 export interface CancelSessionInput {
   sessionId: string;
@@ -36,7 +37,7 @@ export async function cancelSession(
   input: CancelSessionInput
 ): Promise<CancelSessionResult> {
   try {
-    await requirePermission("jadwalUjian", "manage");
+    await requirePermission("jadwalPelatihan", "manage");
     const { sessionId, reason, cancelledBy } = input;
 
     // Validasi input
@@ -86,7 +87,10 @@ export async function cancelSession(
       .where(eq(classSessions.id, sessionId))
       .returning();
 
+    await recomputeStatusPesertaByKelas(existingSession.kelasId);
+
     revalidatePath("/kelas-jadwal");
+    revalidatePath(`/jadwal-otomatis/${existingSession.kelasId}`);
 
     return {
       success: true,
@@ -220,7 +224,7 @@ export async function scheduleMakeup(
   input: ScheduleMakeupInput
 ): Promise<ScheduleMakeupResult> {
   try {
-    await requirePermission("jadwalUjian", "manage");
+    await requirePermission("jadwalPelatihan", "manage");
     const {
       originalSessionId,
       kelasId,
@@ -313,8 +317,10 @@ export async function scheduleMakeup(
 
     // Update end_date kelas jika makeup di luar tanggal terakhir
     await recalculateEndDate(kelasId);
+    await recomputeStatusPesertaByKelas(kelasId);
 
     revalidatePath("/kelas-jadwal");
+    revalidatePath(`/jadwal-otomatis/${kelasId}`);
 
     return {
       success: true,
@@ -400,7 +406,7 @@ export async function deleteMakeup(
   input: DeleteMakeupInput
 ): Promise<DeleteMakeupResult> {
   try {
-    await requirePermission("jadwalUjian", "manage");
+    await requirePermission("jadwalPelatihan", "manage");
     const { makeupSessionId } = input;
 
     const makeupSession = await db.query.makeupSessions.findFirst({
@@ -425,8 +431,10 @@ export async function deleteMakeup(
 
     // Recalculate end_date
     await recalculateEndDate(makeupSession.kelasId);
+    await recomputeStatusPesertaByKelas(makeupSession.kelasId);
 
     revalidatePath("/kelas-jadwal");
+    revalidatePath(`/jadwal-otomatis/${makeupSession.kelasId}`);
 
     return {
       success: true,
@@ -453,7 +461,7 @@ export async function getMakeupSessions(
   input: GetMakeupSessionsInput = {}
 ): Promise<MakeupSession[]> {
   try {
-    await requirePermission("jadwalUjian", "view");
+    await requirePermission("jadwalPelatihan", "view");
     const { kelasId, originalSessionId } = input;
 
     let query = db.query.makeupSessions.findMany({

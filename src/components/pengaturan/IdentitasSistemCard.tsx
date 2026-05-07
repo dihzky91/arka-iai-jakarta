@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { Building2, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,10 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
   const [faviconPreview, setFaviconPreview] = useState<string | null>(
     initial.faviconUrl,
   );
+  const [isDirty, setIsDirty] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const markDirty = useCallback(() => setIsDirty(true), []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,6 +43,7 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
       const result = await updateSystemSettings(formData);
       if (result.ok) {
         toast.success("Identitas sistem berhasil disimpan.");
+        setIsDirty(false);
       } else {
         toast.error(result.error);
       }
@@ -53,8 +57,15 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Building2 className="h-5 w-5" />
           </div>
-          <div>
-            <CardTitle>Identitas Sistem</CardTitle>
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2">
+              Identitas Sistem
+              {isDirty && (
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                  Belum disimpan
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
               Nama, singkatan, logo, dan favicon yang tampil di seluruh
               aplikasi.
@@ -79,6 +90,7 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
                   placeholder="contoh: ARKA"
                   maxLength={200}
                   required
+                  onChange={markDirty}
                 />
               </div>
               <div className="space-y-2">
@@ -94,6 +106,7 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
                   defaultValue={initial.singkatan ?? ""}
                   placeholder="contoh: ARKA"
                   maxLength={20}
+                  onChange={markDirty}
                 />
               </div>
             </div>
@@ -105,7 +118,10 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
                 accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 hint="PNG, JPG, WebP, atau SVG"
                 preview={logoPreview}
-                onPreviewChange={setLogoPreview}
+                onPreviewChange={(url) => {
+                  setLogoPreview(url);
+                  markDirty();
+                }}
               />
               <FileUploadField
                 label="Favicon"
@@ -113,14 +129,17 @@ export function IdentitasSistemCard({ initial, isAdmin }: Props) {
                 accept="image/x-icon,image/png,image/svg+xml"
                 hint="ICO, PNG, atau SVG"
                 preview={faviconPreview}
-                onPreviewChange={setFaviconPreview}
+                onPreviewChange={(url) => {
+                  setFaviconPreview(url);
+                  markDirty();
+                }}
               />
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending} variant={isDirty ? "default" : "outline"}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Simpan
+                {isDirty ? "Simpan Perubahan" : "Simpan"}
               </Button>
             </div>
           </form>

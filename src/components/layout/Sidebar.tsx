@@ -79,7 +79,10 @@ export function Sidebar({
             (item) =>
               isSuperAdmin ||
               (item.requiredCapability
-                ? capabilitySet.has(item.requiredCapability)
+                ? capabilitySet.has(item.requiredCapability) ||
+                  item.fallbackCapabilities?.some((capability) =>
+                    capabilitySet.has(capability),
+                  ) === true
                 : !item.allowedRoles ||
                   (userRole && item.allowedRoles.includes(userRole))),
           ),

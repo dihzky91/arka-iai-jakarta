@@ -1,6 +1,6 @@
 ﻿"use server";
 
-import { and, count, desc, eq, ne } from "drizzle-orm";
+import { and, count, desc, eq, lt, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -107,10 +107,21 @@ export async function listInvitations(): Promise<InvitationRow[]> {
   }));
 }
 
-export async function listUsersForManagement(): Promise<UserRow[]> {
+export async function listUsersForManagement(options?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<{ rows: UserRow[]; nextCursor: string | null; total: number }> {
   await requirePermission("manajemenUser", "view");
 
-  return db
+  const limit = options?.limit ?? 200;
+  const cursorDate = options?.cursor ? new Date(options.cursor) : undefined;
+
+  const totalRows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(users);
+  const total = Number(totalRows[0]?.count ?? 0);
+
+  const rows = await db
     .select({
       id: users.id,
       namaLengkap: users.namaLengkap,
@@ -128,8 +139,17 @@ export async function listUsersForManagement(): Promise<UserRow[]> {
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
     .leftJoin(divisi, eq(users.divisiId, divisi.id))
+    .where(cursorDate ? lt(users.createdAt, cursorDate) : undefined)
     .orderBy(desc(users.createdAt))
-    .limit(200);
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const data = hasMore ? rows.slice(0, -1) : rows;
+  const nextCursor = hasMore
+    ? (data[data.length - 1]!.createdAt?.toISOString() ?? null)
+    : null;
+
+  return { rows: data, nextCursor, total };
 }
 
 // â”€â”€â”€ Invite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

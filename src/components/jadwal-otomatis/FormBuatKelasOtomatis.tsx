@@ -50,9 +50,17 @@ const defaultValues: KelasOtomatisCreateInput = {
 interface FormBuatKelasOtomatisProps {
   programs: Program[];
   classTypes: ClassType[];
+  defaultFinanceContact?: {
+    name: string | null;
+    whatsappNumber: string | null;
+  };
 }
 
-export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOtomatisProps) {
+export function FormBuatKelasOtomatis({
+  programs,
+  classTypes,
+  defaultFinanceContact,
+}: FormBuatKelasOtomatisProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [excludedDates, setExcludedDates] = useState<{ date: string; reason: string }[]>([]);
@@ -66,6 +74,11 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
 
   const selectedProgramId = form.watch("programId");
   const selectedProgram = programs.find((p) => p.id === selectedProgramId);
+  const financeContactName = defaultFinanceContact?.name?.trim() || "Tim Keuangan";
+  const financeWhatsappNumber = defaultFinanceContact?.whatsappNumber?.trim();
+  const financeDefaultText = financeWhatsappNumber
+    ? `${financeWhatsappNumber} (${financeContactName})`
+    : `${financeContactName} - nomor belum diatur`;
 
   function addExcludedDate() {
     if (!excludeInput) return;
@@ -314,7 +327,7 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
                       />
                     </FormControl>
                     <FormDescription>
-                      Kosongkan untuk pakai default global.
+                      Default global: {financeContactName}.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -338,7 +351,7 @@ export function FormBuatKelasOtomatis({ programs, classTypes }: FormBuatKelasOto
                       />
                     </FormControl>
                     <FormDescription>
-                      Diisi hanya jika kelas ini punya kontak keuangan khusus.
+                      Default global: {financeDefaultText}.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

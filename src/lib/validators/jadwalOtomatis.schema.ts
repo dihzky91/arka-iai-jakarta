@@ -54,3 +54,33 @@ export const kelasOtomatisUpdateStartDateSchema = z.object({
 export type KelasOtomatisUpdateStartDateInput = z.infer<
   typeof kelasOtomatisUpdateStartDateSchema
 >;
+
+export const kelasOtomatisUpdateStatusSchema = z.object({
+  id: z.string().min(1, "ID kelas wajib diisi"),
+  status: z.enum(["active", "completed", "cancelled"]),
+  reason: z.string().trim().max(500).optional(),
+});
+export type KelasOtomatisUpdateStatusInput = z.infer<typeof kelasOtomatisUpdateStatusSchema>;
+
+export const kelasOtomatisUpdateMetadataSchema = z.object({
+  id: z.string().min(1, "ID kelas wajib diisi"),
+  namaKelas: z.string().min(1, "Nama kelas wajib diisi").max(200),
+  mode: z.enum(["offline", "online"]),
+  angkatan: z.number().int().positive().nullable().optional(),
+  certificateClassCode: z.string().max(2).nullable().optional(),
+  lokasi: z.string().max(300).nullable().optional(),
+});
+export type KelasOtomatisUpdateMetadataInput = z.infer<typeof kelasOtomatisUpdateMetadataSchema>;
+
+export const kelasOtomatisExcludedDateSchema = z.object({
+  kelasId: z.string().min(1, "ID kelas wajib diisi"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
+  reason: z.string().trim().max(200).optional(),
+});
+export type KelasOtomatisExcludedDateInput = z.infer<typeof kelasOtomatisExcludedDateSchema>;
+
+export const kelasOtomatisRemoveExcludedDateSchema = z.object({
+  kelasId: z.string().min(1, "ID kelas wajib diisi"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
+});
+export type KelasOtomatisRemoveExcludedDateInput = z.infer<typeof kelasOtomatisRemoveExcludedDateSchema>;

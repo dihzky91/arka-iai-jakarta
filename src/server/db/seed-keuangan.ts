@@ -8,6 +8,7 @@ const KEUANGAN_CAPABILITIES = [
   "keuangan:process",
   "keuangan:pay",
   "keuangan:export",
+  "jadwal_pelatihan:view",
   "jadwal_ujian:view",
   "notification:view",
   "notification:manage",

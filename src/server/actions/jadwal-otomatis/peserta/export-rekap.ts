@@ -25,7 +25,7 @@ export interface RekapRow {
 }
 
 export async function exportRekapKelas(kelasId: string): Promise<{ ok: false; error: string } | { ok: true; data: RekapRow[] }> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const kelas = await db.query.kelasPelatihan.findFirst({
     where: eq(kelasPelatihan.id, kelasId),

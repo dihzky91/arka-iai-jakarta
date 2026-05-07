@@ -43,7 +43,7 @@ export async function enrollPeserta(
   kelasId: string,
   data: EnrollPesertaData[]
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const kelas = await db.query.kelasPelatihan.findFirst({
     where: eq(kelasPelatihan.id, kelasId),
@@ -75,7 +75,7 @@ export async function bulkImportPeserta(
   data: EnrollPesertaData[],
   duplicateStrategy: DuplicateStrategy = "skip",
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const kelas = await db.query.kelasPelatihan.findFirst({
     where: eq(kelasPelatihan.id, kelasId),
@@ -176,7 +176,7 @@ export async function bulkImportPeserta(
 }
 
 export async function getPesertaByKelas(kelasId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db.query.pesertaKelas.findMany({
     where: and(
@@ -191,7 +191,7 @@ export async function updateStatusEnrollment(
   pesertaId: string,
   status: "aktif" | "mengundurkan_diri"
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const updated = await db
     .update(pesertaKelas)
@@ -211,7 +211,7 @@ export async function bulkUpdateStatusEnrollment(
   pesertaIds: string[],
   status: "aktif" | "mengundurkan_diri",
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const uniqueIds = [...new Set(pesertaIds)].filter(Boolean);
   if (uniqueIds.length === 0) {
@@ -247,7 +247,7 @@ export async function bulkMovePesertaToKelas(
   pesertaIds: string[],
   targetKelasId: string,
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const uniqueIds = [...new Set(pesertaIds)].filter(Boolean);
   if (uniqueIds.length === 0) {
@@ -287,7 +287,7 @@ export async function bulkMovePesertaToKelas(
 }
 
 export async function bulkDeletePesertaIfClean(pesertaIds: string[]) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const uniqueIds = [...new Set(pesertaIds)].filter(Boolean);
   if (uniqueIds.length === 0) {

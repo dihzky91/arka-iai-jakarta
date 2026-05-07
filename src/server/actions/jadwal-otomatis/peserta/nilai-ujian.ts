@@ -33,7 +33,7 @@ export async function inputNilaiUjian(
   jadwalUjianId: string,
   nilaiList: NilaiInput[],
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const userId = session.user.id;
 
   await db.transaction(async (tx) => {
@@ -88,7 +88,7 @@ export async function inputNilaiPerbaikan(
   nilaiBaru: "A" | "B" | "C",
   perbaikanDariId: string,
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const userId = session.user.id;
 
   const inserted = await db
@@ -133,7 +133,7 @@ export async function inputNilaiPerbaikan(
 }
 
 export async function getNilaiByKelas(kelasId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const pesertaList = await db.query.pesertaKelas.findMany({
     where: and(

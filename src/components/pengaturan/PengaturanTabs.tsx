@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Bell, MessageCircle, ServerCog, ShieldCheck, UserCircle2, UsersRound } from "lucide-react";
+import { Building2, Bell, BriefcaseBusiness, MessageCircle, Network, ServerCog, ShieldCheck, UserCircle2, UsersRound } from "lucide-react";
 import {
   Tabs,
   TabsContent,
@@ -16,6 +16,8 @@ interface PengaturanTabsProps {
   manajemenUser?: React.ReactNode;
   roleManagement?: React.ReactNode;
   dingtalk?: React.ReactNode;
+  divisi?: React.ReactNode;
+  pejabat?: React.ReactNode;
 }
 
 export function PengaturanTabs({
@@ -26,6 +28,8 @@ export function PengaturanTabs({
   manajemenUser,
   roleManagement,
   dingtalk,
+  divisi,
+  pejabat,
 }: PengaturanTabsProps) {
   return (
     <Tabs defaultValue="profil" className="w-full">
@@ -58,6 +62,18 @@ export function PengaturanTabs({
             <span>DingTalk</span>
           </TabsTrigger>
         ) : null}
+        {divisi ? (
+          <TabsTrigger value="divisi" className="justify-start gap-2 sm:justify-center">
+            <Network className="h-4 w-4" />
+            <span>Divisi</span>
+          </TabsTrigger>
+        ) : null}
+        {pejabat ? (
+          <TabsTrigger value="pejabat" className="justify-start gap-2 sm:justify-center">
+            <BriefcaseBusiness className="h-4 w-4" />
+            <span>Pejabat</span>
+          </TabsTrigger>
+        ) : null}
         {roleManagement ? (
           <TabsTrigger value="roleManagement" className="justify-start gap-2 sm:justify-center">
             <ShieldCheck className="h-4 w-4" />
@@ -86,6 +102,16 @@ export function PengaturanTabs({
       {dingtalk ? (
         <TabsContent value="dingtalk" className="mt-6">
           {dingtalk}
+        </TabsContent>
+      ) : null}
+      {divisi ? (
+        <TabsContent value="divisi" className="mt-6">
+          {divisi}
+        </TabsContent>
+      ) : null}
+      {pejabat ? (
+        <TabsContent value="pejabat" className="mt-6">
+          {pejabat}
         </TabsContent>
       ) : null}
       {roleManagement ? (

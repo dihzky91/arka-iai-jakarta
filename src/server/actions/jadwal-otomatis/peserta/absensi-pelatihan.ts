@@ -21,7 +21,7 @@ export async function inputAbsensiPelatihan(
   sessionId: string,
   absensiList: AbsensiInput[],
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const userId = session.user.id;
 
   const sesi = await db.query.classSessions.findFirst({
@@ -63,7 +63,7 @@ export async function inputAbsensiPelatihan(
 }
 
 export async function getAbsensiByKelas(kelasId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const pesertaList = await db.query.pesertaKelas.findMany({
     where: and(
@@ -96,7 +96,7 @@ export async function getAbsensiByKelas(kelasId: string) {
 }
 
 export async function getAbsensiBySession(sessionId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const sesi = await db.query.classSessions.findFirst({
     where: eq(classSessions.id, sessionId),

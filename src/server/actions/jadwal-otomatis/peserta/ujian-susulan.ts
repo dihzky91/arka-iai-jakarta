@@ -25,7 +25,7 @@ async function getKelasIdFromPeserta(pesertaId: string) {
 }
 
 export async function ajukanUjianSusulan(data: AjukanSusulanData) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   if (data.tanggalUsulan && !/^\d{4}-\d{2}-\d{2}$/.test(data.tanggalUsulan)) {
     return { ok: false as const, error: "Format tanggal tidak valid. Gunakan YYYY-MM-DD." };
@@ -64,7 +64,7 @@ export async function approveUjianSusulan(
   jamMulai?: string,
   jamSelesai?: string,
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
 
   const updated = await db
     .update(ujianSusulanPeserta)
@@ -95,7 +95,7 @@ export async function approveUjianSusulan(
 }
 
 export async function selesaikanUjianSusulan(susulanId: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const updated = await db
     .update(ujianSusulanPeserta)
@@ -119,7 +119,7 @@ export async function selesaikanUjianSusulan(susulanId: string) {
 }
 
 export async function batalkanUjianSusulan(susulanId: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   const updated = await db
     .update(ujianSusulanPeserta)
@@ -143,7 +143,7 @@ export async function batalkanUjianSusulan(susulanId: string) {
 }
 
 export async function getUjianSusulanByPeserta(pesertaId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   return db.query.ujianSusulanPeserta.findMany({
     where: eq(ujianSusulanPeserta.pesertaId, pesertaId),
@@ -152,7 +152,7 @@ export async function getUjianSusulanByPeserta(pesertaId: string) {
 }
 
 export async function listUjianSusulanPending() {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   return db.query.ujianSusulanPeserta.findMany({
     where: eq(ujianSusulanPeserta.status, "pending"),

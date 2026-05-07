@@ -311,7 +311,7 @@ function pickRateRule(
 }
 
 export async function listInstructorRates(instructorId: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   if (!instructorId) return [];
 
@@ -339,7 +339,7 @@ export async function listInstructorRates(instructorId: string) {
 export async function upsertInstructorRate(
   data: z.infer<typeof upsertRateSchema>,
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
   const parsed = upsertRateSchema.parse(data);
 
   const existing = await db
@@ -379,7 +379,7 @@ export async function upsertInstructorRate(
 }
 
 export async function removeInstructorRate(id: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   await db.delete(instructorRates).where(eq(instructorRates.id, id));
 
@@ -388,7 +388,7 @@ export async function removeInstructorRate(id: string) {
 }
 
 export async function listHonorariumRateRules(programId?: string) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const rows = await db
     .select({
@@ -433,7 +433,7 @@ export async function listHonorariumRateRules(programId?: string) {
 export async function upsertHonorariumRateRule(
   data: z.infer<typeof upsertRateRuleSchema>,
 ) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
   const parsed = upsertRateRuleSchema.parse(data);
 
   if (parsed.effectiveTo && parsed.effectiveTo < parsed.effectiveFrom) {
@@ -478,7 +478,7 @@ export async function upsertHonorariumRateRule(
 }
 
 export async function removeHonorariumRateRule(id: string) {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
 
   await db
     .update(honorariumRateRules)
@@ -529,7 +529,7 @@ export type HonorariumSummaryRow = {
 export async function getHonorariumReport(
   filters?: z.infer<typeof reportFilterSchema>,
 ) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const parsed = reportFilterSchema.parse(filters ?? {});
   const defaults = defaultDateRange();
@@ -1577,7 +1577,7 @@ export type FinanceHonorariumRecap = {
 export async function getFinanceHonorariumRecap(
   filters?: z.infer<typeof financeRecapFilterSchema>,
 ): Promise<FinanceHonorariumRecap> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
   const parsed = financeRecapFilterSchema.parse(filters ?? {});
   const defaults = defaultDateRange();
 
@@ -1827,7 +1827,7 @@ type FinanceExportExcelResult =
 export async function exportFinanceHonorariumRecapExcel(
   filters?: z.infer<typeof financeRecapFilterSchema>,
 ): Promise<FinanceExportExcelResult> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
   const recap = await getFinanceHonorariumRecap(filters);
 
   try {
@@ -1958,7 +1958,7 @@ export type HonorariumBatchPeriodSuggestion = {
 };
 
 export async function getSuggestedHonorariumBatchPeriod(): Promise<HonorariumBatchPeriodSuggestion> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const defaults = defaultDateRange();
   const today = getTodayIsoInJakarta();
@@ -2016,7 +2016,7 @@ export type HonorariumGeneratePreview = {
 export async function previewHonorariumBatchGeneration(
   data: z.infer<typeof generateBatchSchema>,
 ): Promise<HonorariumGeneratePreview> {
-  await requirePermission("jadwalUjian", "manage");
+  await requirePermission("jadwalPelatihan", "manage");
   const parsed = generateBatchSchema.parse(data);
 
   if (parsed.startDate > parsed.endDate) {
@@ -2107,7 +2107,7 @@ export type HonorariumBatchDetail = {
 export async function getHonorariumBatchDetail(
   batchId: string,
 ): Promise<HonorariumBatchDetail | null> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
   const parsed = batchIdSchema.parse({ batchId });
 
   const [batchRow] = await db
@@ -2295,7 +2295,7 @@ function addDaysToIsoDate(isoDate: string, days: number) {
 }
 
 export async function deleteHonorariumBatch(batchId: string) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const parsed = batchIdSchema.parse({ batchId });
 
   const [existing] = await db
@@ -2334,7 +2334,7 @@ export async function deleteHonorariumBatch(batchId: string) {
 export async function generateHonorariumBatch(
   data: z.infer<typeof generateBatchSchema>,
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const parsed = generateBatchSchema.parse(data);
 
   if (parsed.startDate > parsed.endDate) {
@@ -2461,7 +2461,7 @@ export async function generateHonorariumBatch(
 }
 
 export async function submitHonorariumBatchToFinance(batchId: string) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const parsed = batchIdSchema.parse({ batchId });
 
   await transitionBatchStatus({
@@ -2667,7 +2667,7 @@ export async function lockHonorariumBatch(batchId: string) {
 export async function addHonorariumDeduction(
   data: z.infer<typeof addDeductionSchema>,
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const parsed = addDeductionSchema.parse(data);
 
   const [batch] = await db
@@ -2710,7 +2710,7 @@ export async function addHonorariumDeduction(
 export async function removeHonorariumDeduction(
   data: z.infer<typeof removeDeductionSchema>,
 ) {
-  const session = await requirePermission("jadwalUjian", "manage");
+  const session = await requirePermission("jadwalPelatihan", "manage");
   const parsed = removeDeductionSchema.parse(data);
 
   const [deduction] = await db
@@ -2762,7 +2762,7 @@ export type DeductionRow = {
 export async function listHonorariumDeductions(
   batchId: string,
 ): Promise<DeductionRow[]> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const rows = await db
     .select({
@@ -2804,7 +2804,7 @@ export type HonorariumPaymentProofRow = {
 export async function listHonorariumPaymentProofs(
   batchId: string,
 ): Promise<HonorariumPaymentProofRow[]> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const rows = await db
     .select({
@@ -2993,7 +2993,7 @@ type ExportExcelResult =
 export async function exportHonorariumBatchExcel(
   batchId: string,
 ): Promise<ExportExcelResult> {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
 
   const detail = await getHonorariumBatchDetail(batchId);
   if (!detail) return { ok: false, error: "Batch tidak ditemukan." };
@@ -3140,7 +3140,7 @@ export async function exportHonorariumBatchExcel(
 export async function logHonorariumBatchPdfExport(
   data: z.infer<typeof exportPdfAuditSchema>,
 ) {
-  await requirePermission("jadwalUjian", "view");
+  await requirePermission("jadwalPelatihan", "view");
   const session = await requireSession();
   const parsed = exportPdfAuditSchema.parse(data);
 

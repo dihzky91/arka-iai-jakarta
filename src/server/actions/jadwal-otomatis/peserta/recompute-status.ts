@@ -161,3 +161,21 @@ export async function recomputeStatusPeserta(pesertaId: string) {
     })
     .where(eq(pesertaKelas.id, pesertaId));
 }
+
+export async function recomputeStatusPesertaByKelas(kelasId: string) {
+  const pesertaList = await db.query.pesertaKelas.findMany({
+    where: and(
+      eq(pesertaKelas.kelasId, kelasId),
+      eq(pesertaKelas.statusEnrollment, "aktif")
+    ),
+    columns: { id: true },
+  });
+
+  for (const peserta of pesertaList) {
+    try {
+      await recomputeStatusPeserta(peserta.id);
+    } catch (e) {
+      console.error("recomputeStatusPeserta failed for", peserta.id, e);
+    }
+  }
+}

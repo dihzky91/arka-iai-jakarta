@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Check, ClipboardPaste, Download, FileDown, Loader2, Plus, Search, Trash2, Upload, UserRoundX, X } from "lucide-react";
+import { ClipboardPaste, Download, FileDown, Loader2, Plus, Search, Trash2, Upload, UserRoundX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,220 +36,22 @@ import { getAbsensiUjianByKelas } from "@/server/actions/jadwal-otomatis/peserta
 import { inputNilaiUjian, inputNilaiPerbaikan, getNilaiByKelas } from "@/server/actions/jadwal-otomatis/peserta/nilai-ujian";
 import { ajukanUjianSusulan } from "@/server/actions/jadwal-otomatis/peserta/ujian-susulan";
 import { exportRekapKelas } from "@/server/actions/jadwal-otomatis/peserta/export-rekap";
+import type { Peserta, SesiPelatihan, SesiUjian, AbsensiRow, AbsensiUjianRow, NilaiRow, DuplicateStrategy, ImportPesertaRow, KelasOption, DeactivateDialogState } from "./peserta-tab/types";
+import { PESERTA_PAGE_SIZE_OPTIONS, mapImportRecord, parsePastedRows, buildImportPreview } from "./peserta-tab/utils";
+import { StatusBadge } from "./peserta-tab/StatusBadge";
+import { PesertaImportDialog } from "./peserta-tab/PesertaImportDialog";
+import { AbsensiPelatihanSection } from "./peserta-tab/AbsensiPelatihanSection";
+import { NilaiUjianSection } from "./peserta-tab/NilaiUjianSection";
+import { RekapSection } from "./peserta-tab/RekapSection";
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-interface Peserta {
-  id: string; nama: string; nomorPeserta: string | null;
-  email: string | null; telepon: string | null; catatan: string | null;
-  statusEnrollment: string; statusAkhir: string | null;
-  alasanStatus: string | null;
-}
-
-interface SesiPelatihan {
-  id: string; sessionNumber: number | null; scheduledDate: string;
-  materiName: string | null; status: string;
-}
-
-interface SesiUjian {
-  id: string; mataPelajaran: string[] | null; tanggalUjian: string;
-  jamMulai: string; jamSelesai: string;
-}
-
-interface AbsensiRow {
-  pesertaId: string; sessionId: string; hadir: boolean;
-}
-
-interface AbsensiUjianRow {
-  pesertaId: string; jadwalUjianId: string; status: string;
-}
-
-interface NilaiRow {
-  id: string; pesertaId: string; jadwalUjianId: string;
-  mataPelajaran: string; nilai: string; isPerbaikan: boolean;
-  perbaikanDariId: string | null;
-}
-
-// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Props ────────────────────────────────────────────────
 
 interface PesertaDanNilaiTabProps {
   kelasId: string;
   canManage: boolean;
 }
 
-type DuplicateStrategy = "skip" | "update" | "allow";
-
-interface ImportPesertaRow {
-  nama: string;
-  nomorPeserta?: string;
-  email?: string;
-  telepon?: string;
-  catatan?: string;
-}
-
-interface ImportPreviewRow extends ImportPesertaRow {
-  rowNumber: number;
-  status: "valid" | "update" | "duplicate" | "error";
-  issues: string[];
-}
-
-interface KelasOption {
-  id: string;
-  namaKelas: string;
-  programName: string;
-  status: string;
-}
-
-interface DeactivateDialogState {
-  pesertaIds: string[];
-  title: string;
-  description: string;
-}
-
-const MONTH_LABELS_ID = [
-  "JANUARI",
-  "FEBRUARI",
-  "MARET",
-  "APRIL",
-  "MEI",
-  "JUNI",
-  "JULI",
-  "AGUSTUS",
-  "SEPTEMBER",
-  "OKTOBER",
-  "NOVEMBER",
-  "DESEMBER",
-];
-
-const PESERTA_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-function normalizeImportKey(value: string | null | undefined) {
-  return value?.trim().toLowerCase() ?? "";
-}
-
-function cleanImportCell(value: unknown) {
-  return String(value ?? "").trim();
-}
-
-function mapImportRecord(record: Record<string, unknown>): ImportPesertaRow {
-  const normalizedEntries = Object.entries(record).map(([key, value]) => [
-    key.trim().toLowerCase().replace(/\s+/g, "_"),
-    value,
-  ]);
-  const normalized = Object.fromEntries(normalizedEntries);
-
-  return {
-    nama: cleanImportCell(normalized.nama ?? normalized.nama_peserta ?? normalized.name),
-    nomorPeserta: cleanImportCell(
-      normalized.nomor_peserta ?? normalized.no_peserta ?? normalized.nomor ?? normalized.no,
-    ),
-    email: cleanImportCell(normalized.email),
-    telepon: cleanImportCell(normalized.telepon ?? normalized.phone ?? normalized.hp),
-    catatan: cleanImportCell(normalized.catatan ?? normalized.keterangan),
-  };
-}
-
-function parsePastedRows(text: string): ImportPesertaRow[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const separator = line.includes("\t") ? "\t" : ",";
-      const [nama, nomorPeserta, email, telepon, catatan] = line.split(separator).map((cell) => cell.trim());
-      return { nama: nama ?? "", nomorPeserta, email, telepon, catatan };
-    });
-}
-
-function buildImportPreview(
-  rows: ImportPesertaRow[],
-  existingPeserta: Peserta[],
-  duplicateStrategy: DuplicateStrategy,
-): ImportPreviewRow[] {
-  const existingByNomor = new Set(
-    existingPeserta.map((p) => normalizeImportKey(p.nomorPeserta)).filter(Boolean),
-  );
-  const existingByNama = new Set(existingPeserta.map((p) => normalizeImportKey(p.nama)).filter(Boolean));
-  const seen = new Set<string>();
-
-  return rows.map((row, index) => {
-    const nama = row.nama.trim();
-    const nomorPeserta = row.nomorPeserta?.trim() || undefined;
-    const email = row.email?.trim() || undefined;
-    const telepon = row.telepon?.trim() || undefined;
-    const catatan = row.catatan?.trim() || undefined;
-    const issues: string[] = [];
-    const nomorKey = normalizeImportKey(nomorPeserta);
-    const namaKey = normalizeImportKey(nama);
-    const duplicateKey = nomorKey ? `nomor:${nomorKey}` : `nama:${namaKey}`;
-
-    if (!nama) issues.push("Nama wajib diisi.");
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) issues.push("Format email tidak valid.");
-
-    const duplicateInFile = duplicateKey !== "nama:" && seen.has(duplicateKey);
-    if (duplicateKey !== "nama:") seen.add(duplicateKey);
-
-    const duplicateInClass = (nomorKey && existingByNomor.has(nomorKey)) || existingByNama.has(namaKey);
-
-    let status: ImportPreviewRow["status"] = "valid";
-    if (issues.length > 0) {
-      status = "error";
-    } else if (duplicateInFile || duplicateInClass) {
-      if (duplicateStrategy === "update" && duplicateInClass && !duplicateInFile) {
-        status = "update";
-      } else if (duplicateStrategy === "allow") {
-        status = "valid";
-      } else {
-        status = "duplicate";
-        if (duplicateInFile) issues.push("Duplikat di file/paste.");
-        if (duplicateInClass) issues.push("Sudah ada di kelas.");
-      }
-    }
-
-    return { rowNumber: index + 1, nama, nomorPeserta, email, telepon, catatan, status, issues };
-  });
-}
-
-function getIsoDateParts(date: string) {
-  const [yearText, monthText, dayText] = date.split("-");
-  const year = Number.parseInt(yearText ?? "", 10);
-  const month = Number.parseInt(monthText ?? "", 10);
-  const day = Number.parseInt(dayText ?? "", 10);
-
-  return {
-    year,
-    month,
-    day,
-    isValid: Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day),
-  };
-}
-
-function formatSessionDate(date: string) {
-  const { year, month, day, isValid } = getIsoDateParts(date);
-  if (!isValid) return date;
-  return `${day} ${MONTH_LABELS_ID[month - 1] ?? ""} ${year}`;
-}
-
-function buildSessionMonthGroups(sesiList: SesiPelatihan[]) {
-  const groups: { key: string; label: string; sessions: SesiPelatihan[] }[] = [];
-
-  for (const sesi of sesiList) {
-    const { year, month, isValid } = getIsoDateParts(sesi.scheduledDate);
-    const key = isValid ? `${year}-${String(month).padStart(2, "0")}` : sesi.scheduledDate;
-    const label = isValid ? `${MONTH_LABELS_ID[month - 1] ?? "BULAN"} ${year}` : sesi.scheduledDate;
-    const existing = groups.find((group) => group.key === key);
-
-    if (existing) {
-      existing.sessions.push(sesi);
-    } else {
-      groups.push({ key, label, sessions: [sesi] });
-    }
-  }
-
-  return groups;
-}
-
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Component ────────────────────────────────────────────
 
 export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabProps) {
   const [isPending, start] = useTransition();
@@ -298,7 +100,7 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
     pesertaId: string; jadwalUjianId: string; tanggal: string;
   } | null>(null);
 
-  // â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handlers ───────────────────────────────────────────
 
   const loadPeserta = useCallback(() => {
     start(async () => {
@@ -800,7 +602,8 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
     });
   }, [kelasId]);
 
-  // Rekap summary
+  // ─── Computed ───────────────────────────────────────────
+
   const rekapSummary = useMemo(() => {
     const total = pesertaList.length;
     const lulus = pesertaList.filter((p) => p.statusAkhir === "lulus").length;
@@ -808,22 +611,10 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
     return { total, lulus, telahMengikuti: tm.length, belumFinal: total - lulus - tm.length, tm };
   }, [pesertaList]);
 
-  const absensiMonthGroups = useMemo(
-    () => buildSessionMonthGroups(absensiData?.sesiList ?? []),
-    [absensiData?.sesiList],
-  );
-
   const importPreview = useMemo(
     () => buildImportPreview(importRows, pesertaList, duplicateStrategy),
     [duplicateStrategy, importRows, pesertaList],
   );
-  const importSummary = useMemo(() => ({
-    total: importPreview.length,
-    valid: importPreview.filter((row) => row.status === "valid").length,
-    update: importPreview.filter((row) => row.status === "update").length,
-    duplicate: importPreview.filter((row) => row.status === "duplicate").length,
-    error: importPreview.filter((row) => row.status === "error").length,
-  }), [importPreview]);
   const importableRows = useMemo(
     () => importPreview
       .filter((row) => row.status === "valid" || row.status === "update")
@@ -858,6 +649,8 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
     }
   }, [pesertaPage, pesertaTotalPages]);
 
+  // ─── Render ─────────────────────────────────────────────
+
   return (
     <>
     <Tabs defaultValue="daftar-peserta" className="w-full">
@@ -868,7 +661,7 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
         <TabsTrigger value="rekap" onClick={loadPeserta}>Status &amp; Rekap</TabsTrigger>
       </TabsList>
 
-      {/* â”€â”€ Sub-tab: Daftar Peserta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sub-tab: Daftar Peserta ──────────────── */}
       <TabsContent value="daftar-peserta">
         <Card>
           <CardHeader className="border-b flex-row flex-wrap items-center justify-between gap-2">
@@ -953,82 +746,18 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
               </div>
             )}
             {showImport && canManage && (
-              <div className="space-y-4 border-b p-4">
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-                  <textarea
-                    className="min-h-28 rounded-md border bg-background px-3 py-2 text-sm"
-                    placeholder="Paste dari Excel: nama, nomor peserta, email, telepon, catatan"
-                    value={pasteText}
-                    onChange={(event) => setPasteText(event.target.value)}
-                  />
-                  <div className="space-y-2">
-                    <Select value={duplicateStrategy} onValueChange={(value) => setDuplicateStrategy(value as DuplicateStrategy)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="skip">Skip duplikat</SelectItem>
-                        <SelectItem value="update">Update data lama</SelectItem>
-                        <SelectItem value="allow">Tetap import</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="sm" className="w-full" onClick={handlePastePreview}>
-                      <ClipboardPaste className="h-4 w-4" /> Preview Paste
-                    </Button>
-                    <Button size="sm" className="w-full" onClick={handleBulkImportPeserta} disabled={isPending || importableRows.length === 0}>
-                      {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      Import Valid
-                    </Button>
-                  </div>
-                </div>
-                {importPreview.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Badge variant="secondary">Total {importSummary.total}</Badge>
-                      <Badge variant="default" className="bg-green-600">Valid {importSummary.valid}</Badge>
-                      <Badge variant="secondary">Update {importSummary.update}</Badge>
-                      <Badge variant="outline">Duplikat {importSummary.duplicate}</Badge>
-                      <Badge variant="destructive">Error {importSummary.error}</Badge>
-                    </div>
-                    <div className="max-h-72 overflow-auto rounded-md border">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/40">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Baris</th>
-                            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Nama</th>
-                            <th className="px-3 py-2 text-left font-medium text-muted-foreground">No Peserta</th>
-                            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Kontak</th>
-                            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {importPreview.slice(0, 100).map((row) => (
-                            <tr key={`${row.rowNumber}-${row.nama}`} className="border-t">
-                              <td className="px-3 py-2 text-muted-foreground tabular-nums">{row.rowNumber}</td>
-                              <td className="px-3 py-2 font-medium">{row.nama || "-"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{row.nomorPeserta || "-"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">
-                                {[row.email, row.telepon].filter(Boolean).join(" / ") || "-"}
-                              </td>
-                              <td className="px-3 py-2">
-                                <Badge
-                                  variant={row.status === "error" ? "destructive" : row.status === "duplicate" ? "outline" : "secondary"}
-                                  className={row.status === "valid" ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
-                                >
-                                  {row.status === "valid" ? "Valid" : row.status === "update" ? "Update" : row.status === "duplicate" ? "Skip" : "Error"}
-                                </Badge>
-                                {row.issues.length > 0 && (
-                                  <span className="ml-2 text-xs text-muted-foreground">{row.issues.join(" ")}</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <PesertaImportDialog
+                importRows={importRows}
+                pesertaList={pesertaList}
+                duplicateStrategy={duplicateStrategy}
+                isPending={isPending}
+                importableRows={importableRows}
+                pasteText={pasteText}
+                onDuplicateStrategyChange={setDuplicateStrategy}
+                onPasteTextChange={setPasteText}
+                onPastePreview={handlePastePreview}
+                onBulkImport={handleBulkImportPeserta}
+              />
             )}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
               <div className="relative min-w-64 flex-1">
@@ -1174,465 +903,51 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
         </Card>
       </TabsContent>
 
-      {/* â”€â”€ Sub-tab: Absensi Pelatihan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sub-tab: Absensi Pelatihan ───────────── */}
       <TabsContent value="absensi-pelatihan">
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle>Absensi Pelatihan</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {!absensiData ? (
-              <div className="p-4 text-center text-muted-foreground">
-                {isPending ? "Memuat..." : "Klik tab untuk memuat data."}
-              </div>
-            ) : absensiData.sesiList.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                Belum ada jadwal sesi pelatihan.
-              </div>
-            ) : (
-              <>
-              {canManage && absensiData.pesertaList.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 border-b bg-muted/20 p-3">
-                  <span className="text-sm font-medium">Isi Cepat</span>
-                  <Select value={quickAbsensiScope} onValueChange={(value) => setQuickAbsensiScope(value as typeof quickAbsensiScope)}>
-                    <SelectTrigger className="h-8 w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="session">Per sesi</SelectItem>
-                      <SelectItem value="peserta">Per peserta</SelectItem>
-                      <SelectItem value="all">Semua data</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {quickAbsensiScope === "session" && (
-                    <Select
-                      value={quickAbsensiSessionId || absensiData.sesiList[0]?.id}
-                      onValueChange={setQuickAbsensiSessionId}
-                    >
-                      <SelectTrigger className="h-8 w-56">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {absensiData.sesiList.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {formatSessionDate(s.scheduledDate)}{s.sessionNumber ? ` - Sesi ${s.sessionNumber}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {quickAbsensiScope === "peserta" && (
-                    <Select
-                      value={quickAbsensiPesertaId || absensiData.pesertaList[0]?.id}
-                      onValueChange={setQuickAbsensiPesertaId}
-                    >
-                      <SelectTrigger className="h-8 w-56">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {absensiData.pesertaList.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Select value={quickAbsensiStatus} onValueChange={(value) => setQuickAbsensiStatus(value as typeof quickAbsensiStatus)}>
-                    <SelectTrigger className="h-8 w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hadir">Hadir</SelectItem>
-                      <SelectItem value="tidak_hadir">Tidak hadir</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" onClick={handleApplyQuickAbsensi} disabled={isPending}>
-                    {quickAbsensiStatus === "hadir" ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                    Terapkan
-                  </Button>
-                </div>
-              )}
-              <div className="overflow-x-auto">
-              <table className="w-max min-w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th
-                      rowSpan={2}
-                      className="sticky left-0 z-20 min-w-48 bg-background px-3 py-2 text-left align-middle font-medium text-muted-foreground"
-                    >
-                      Nama Peserta
-                    </th>
-                    {absensiMonthGroups.map((group) => (
-                      <th
-                        key={group.key}
-                        colSpan={group.sessions.length}
-                        className="border-l bg-muted/30 px-2 py-2 text-center text-xs font-semibold text-foreground"
-                      >
-                        {group.label}
-                      </th>
-                    ))}
-                    <th
-                      rowSpan={2}
-                      className="sticky right-0 z-20 min-w-24 bg-background px-3 py-2 text-center align-middle font-medium text-muted-foreground"
-                    >
-                      Kehadiran
-                    </th>
-                  </tr>
-                  <tr className="border-b bg-muted/20">
-                    {absensiMonthGroups.flatMap((group) =>
-                      group.sessions.map((s) => {
-                        const { day, isValid } = getIsoDateParts(s.scheduledDate);
-                        const title = [
-                          s.sessionNumber ? `Sesi ${s.sessionNumber}` : "Sesi",
-                          formatSessionDate(s.scheduledDate),
-                          s.materiName,
-                        ].filter(Boolean).join(" - ");
-
-                        return (
-                          <th
-                            key={s.id}
-                            title={title}
-                            className="min-w-10 border-l px-2 py-2 text-center text-xs font-semibold text-foreground"
-                          >
-                            {isValid ? day : s.scheduledDate}
-                          </th>
-                        );
-                      })
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {absensiData.pesertaList.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={absensiData.sesiList.length + 2}
-                        className="px-4 py-8 text-center text-muted-foreground"
-                      >
-                        Belum ada peserta aktif.
-                      </td>
-                    </tr>
-                  ) : (
-                    absensiData.pesertaList.map((p) => {
-                      const hadirCount = absensiData.sesiList.filter((s) => {
-                        const a = absensiData.absensiList.find(
-                          (a) => a.pesertaId === p.id && a.sessionId === s.id
-                        );
-                        return a?.hadir;
-                      }).length;
-                      const pct = absensiData.sesiList.length > 0
-                        ? Math.round((hadirCount / absensiData.sesiList.length) * 100)
-                        : 0;
-                      return (
-                        <tr key={p.id} className="border-b hover:bg-muted/50">
-                          <td className="sticky left-0 z-10 min-w-48 bg-background px-3 py-1.5 font-medium">{p.nama}</td>
-                          {absensiData.sesiList.map((s) => {
-                            const a = absensiData.absensiList.find(
-                              (a) => a.pesertaId === p.id && a.sessionId === s.id
-                            );
-                            const present = a?.hadir === true;
-                            return (
-                              <td key={s.id} className="border-l px-2 py-1.5 text-center">
-                                <button
-                                  className={`inline-flex h-6 w-6 items-center justify-center rounded text-xs font-bold tabular-nums
-                                    ${present ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}
-                                    ${canManage ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
-                                  disabled={!canManage}
-                                  onClick={() => handleAbsensiToggle(p.id, s.id, a?.hadir)}
-                                  aria-label={`${present ? "Hadir" : "Tidak hadir"} ${p.nama} pada ${formatSessionDate(s.scheduledDate)}`}
-                                  title={`${present ? "Hadir" : "Tidak hadir"} - ${formatSessionDate(s.scheduledDate)}${s.sessionNumber ? ` - Sesi ${s.sessionNumber}` : ""}`}
-                                >
-                                  {present ? "1" : "0"}
-                                </button>
-                              </td>
-                            );
-                          })}
-                          <td className={`sticky right-0 z-10 bg-background px-3 py-1.5 text-center font-medium tabular-nums ${pct < 60 ? "text-destructive" : ""}`}>
-                            {pct}%
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-              </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <AbsensiPelatihanSection
+          absensiData={absensiData}
+          canManage={canManage}
+          isPending={isPending}
+          quickAbsensiScope={quickAbsensiScope}
+          quickAbsensiSessionId={quickAbsensiSessionId}
+          quickAbsensiPesertaId={quickAbsensiPesertaId}
+          quickAbsensiStatus={quickAbsensiStatus}
+          onQuickScopeChange={setQuickAbsensiScope}
+          onQuickSessionChange={setQuickAbsensiSessionId}
+          onQuickPesertaChange={setQuickAbsensiPesertaId}
+          onQuickStatusChange={setQuickAbsensiStatus}
+          onApplyQuick={handleApplyQuickAbsensi}
+          onAbsensiToggle={handleAbsensiToggle}
+        />
       </TabsContent>
 
 
-      {/* â”€â”€ Sub-tab: Absensi & Nilai Ujian â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sub-tab: Absensi & Nilai Ujian ───────── */}
       <TabsContent value="nilai-ujian">
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle>Absensi &amp; Nilai Ujian</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {!nilaiData || !absensiUjianData ? (
-              <div className="p-4 text-center text-muted-foreground">
-                {isPending ? "Memuat..." : "Klik tab untuk memuat data."}
-              </div>
-            ) : (
-              absensiUjianData.ujianList.map((ujian) => {
-                const mapel = ujian.mataPelajaran ?? [];
-                return (
-                  <div key={ujian.id} className="border-b last:border-b-0">
-                    <div className="px-4 py-2 bg-muted/20 font-medium text-sm">
-                      Ujian â€” {ujian.tanggalUjian} ({mapel.join(", ")})
-                    </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Peserta</th>
-                          <th className="text-center px-3 py-2 font-medium text-muted-foreground">Hadir</th>
-                          {mapel.map((m) => (
-                            <th key={m} className="text-center px-3 py-2 font-medium text-muted-foreground">{m}</th>
-                          ))}
-                          <th className="text-center px-3 py-2 font-medium text-muted-foreground">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {absensiUjianData.pesertaList.map((p) => {
-                          const absen = absensiUjianData.absensiList.find(
-                            (a) => a.pesertaId === p.id && a.jadwalUjianId === ujian.id
-                          );
-                          return (
-                            <tr key={p.id} className="border-b hover:bg-muted/50">
-                              <td className="px-3 py-1.5 font-medium">{p.nama}</td>
-                              <td className="text-center px-3 py-1.5">
-                                <Badge variant={absen?.status === "hadir" ? "default" : "secondary"}>
-                                  {absen?.status === "hadir" ? "Hadir" : absen?.status === "susulan" ? "Susulan" : absen?.status === "tidak_hadir" ? "Tidak" : "-"}
-                                </Badge>
-                              </td>
-                              {mapel.map((m) => {
-                                const n = nilaiData.nilaiList.find(
-                                  (nv) =>
-                                    nv.pesertaId === p.id &&
-                                    nv.jadwalUjianId === ujian.id &&
-                                    nv.mataPelajaran === m &&
-                                    !nv.isPerbaikan
-                                );
-                                const perbaikan = nilaiData.nilaiList.find(
-                                  (nv) =>
-                                    nv.pesertaId === p.id &&
-                                    nv.mataPelajaran === m &&
-                                    nv.isPerbaikan &&
-                                    nv.perbaikanDariId === n?.id
-                                );
-                                const displayNilai = perbaikan ? perbaikan.nilai : n?.nilai;
-                                const isEditingPerbaikan =
-                                  perbaikanEdit?.pesertaId === p.id &&
-                                  perbaikanEdit?.mapel === m &&
-                                  perbaikanEdit?.jadwalUjianId === ujian.id;
-                                return (
-                                  <td key={m} className="text-center px-3 py-1.5">
-                                    {canManage && absen?.status === "hadir" ? (
-                                      <Select
-                                        value={displayNilai ?? "-"}
-                                        onValueChange={(v) => handleNilaiChange(p.id, ujian.id, m, v)}
-                                      >
-                                        <SelectTrigger className={`h-7 w-14 text-xs ${displayNilai === "D" ? "border-red-300 text-red-600" : ""}`}>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="-">-</SelectItem>
-                                          <SelectItem value="A">A</SelectItem>
-                                          <SelectItem value="B">B</SelectItem>
-                                          <SelectItem value="C">C</SelectItem>
-                                          <SelectItem value="D">D</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    ) : (
-                                      <span className={`text-sm font-medium ${displayNilai === "D" ? "text-destructive" : displayNilai ? "" : "text-muted-foreground"}`}>
-                                        {displayNilai ?? "-"}
-                                      </span>
-                                    )}
-                                    {n?.nilai === "D" && !perbaikan && canManage && (
-                                      isEditingPerbaikan ? (
-                                        <span className="inline-flex items-center gap-1 ml-1">
-                                          <select
-                                            className="border rounded text-xs px-1 py-0.5"
-                                            value={perbaikanEdit.nilai}
-                                            onChange={(e) =>
-                                              setPerbaikanEdit({ ...perbaikanEdit, nilai: e.target.value as "A" | "B" | "C" })
-                                            }
-                                          >
-                                            <option value="A">A</option>
-                                            <option value="B">B</option>
-                                            <option value="C">C</option>
-                                          </select>
-                                          <button
-                                            className="text-xs text-green-600 hover:underline"
-                                            onClick={handlePerbaikan}
-                                            disabled={isPending}
-                                          >âœ“</button>
-                                          <button
-                                            className="text-xs text-muted-foreground hover:underline"
-                                            onClick={() => setPerbaikanEdit(null)}
-                                          >âœ—</button>
-                                        </span>
-                                      ) : (
-                                        <button
-                                          className="ml-1 text-xs text-blue-600 hover:underline"
-                                          onClick={() =>
-                                            setPerbaikanEdit({
-                                              pesertaId: p.id,
-                                              jadwalUjianId: ujian.id,
-                                              mapel: m,
-                                              perbaikanDariId: n.id,
-                                              nilai: "A",
-                                            })
-                                          }
-                                        >
-                                          [Perbaikan]
-                                        </button>
-                                      )
-                                    )}
-                                  </td>
-                                );
-                              })}
-                              <td className="text-center px-3 py-1.5">
-                                {absen?.status !== "hadir" && canManage && (
-                                  susulanEdit?.pesertaId === p.id && susulanEdit?.jadwalUjianId === ujian.id ? (
-                                    <span className="inline-flex items-center gap-1">
-                                      <input
-                                        type="date"
-                                        className="border rounded text-xs px-1 py-0.5"
-                                        value={susulanEdit.tanggal}
-                                        onChange={(e) =>
-                                          setSusulanEdit({ ...susulanEdit, tanggal: e.target.value })
-                                        }
-                                      />
-                                      <button
-                                        className="text-xs text-green-600 hover:underline"
-                                        onClick={handleSusulan}
-                                        disabled={isPending}
-                                      >âœ“</button>
-                                      <button
-                                        className="text-xs text-muted-foreground hover:underline"
-                                        onClick={() => setSusulanEdit(null)}
-                                      >âœ—</button>
-                                    </span>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-xs"
-                                      onClick={() =>
-                                        setSusulanEdit({ pesertaId: p.id, jadwalUjianId: ujian.id, tanggal: "" })
-                                      }
-                                    >
-                                      Susulan
-                                    </Button>
-                                  )
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+        <NilaiUjianSection
+          nilaiData={nilaiData}
+          absensiUjianData={absensiUjianData}
+          canManage={canManage}
+          isPending={isPending}
+          perbaikanEdit={perbaikanEdit}
+          susulanEdit={susulanEdit}
+          onNilaiChange={handleNilaiChange}
+          onPerbaikanEditChange={setPerbaikanEdit}
+          onPerbaikanSave={handlePerbaikan}
+          onSusulanEditChange={setSusulanEdit}
+          onSusulanSave={handleSusulan}
+        />
       </TabsContent>
 
-      {/* â”€â”€ Sub-tab: Status & Rekap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sub-tab: Status & Rekap ──────────────── */}
       <TabsContent value="rekap">
-        <Card>
-          <CardHeader className="border-b flex-row items-center justify-between">
-            <CardTitle>Status &amp; Rekap Kelas</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleExportRekap} disabled={exportPending}>
-              {exportPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-1" />
-              )}
-              Export Excel
-            </Button>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold">{rekapSummary.total}</p>
-                <p className="text-xs text-muted-foreground">Total Peserta</p>
-              </div>
-              <div className="rounded-xl border p-4 text-center border-green-200 bg-green-50">
-                <p className="text-2xl font-bold text-green-700">{rekapSummary.lulus}</p>
-                <p className="text-xs text-muted-foreground">Lulus</p>
-              </div>
-              <div className="rounded-xl border p-4 text-center border-red-200 bg-red-50">
-                <p className="text-2xl font-bold text-red-600">{rekapSummary.telahMengikuti}</p>
-                <p className="text-xs text-muted-foreground">Telah Mengikuti</p>
-              </div>
-              <div className="rounded-xl border p-4 text-center border-amber-200 bg-amber-50">
-                <p className="text-2xl font-bold text-amber-600">{rekapSummary.belumFinal}</p>
-                <p className="text-xs text-muted-foreground">Dalam Proses</p>
-              </div>
-            </div>
-
-            {rekapSummary.tm.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-medium mb-2">Detail Telah Mengikuti:</p>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Peserta</th>
-                      <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Alasan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rekapSummary.tm.map((p) => (
-                      <tr key={p.id} className="border-b">
-                        <td className="px-3 py-1.5">{p.nama}</td>
-                        <td className="px-3 py-1.5">
-                          {p.alasanStatus === "kehadiran" ? "Kehadiran < 60%" : p.alasanStatus === "nilai" ? "Nilai D" : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">No</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Nama</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">No Peserta</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Keterangan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pesertaList.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">Belum ada peserta.</td>
-                    </tr>
-                  ) : (
-                    pesertaList.map((p, i) => (
-                      <tr key={p.id} className="border-b hover:bg-muted/50">
-                        <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{i + 1}</td>
-                        <td className="px-3 py-1.5 font-medium">{p.nama}</td>
-                        <td className="px-3 py-1.5 text-muted-foreground">{p.nomorPeserta ?? "-"}</td>
-                        <td className="px-3 py-1.5"><StatusBadge status={p.statusAkhir} alasan={p.alasanStatus} /></td>
-                        <td className="px-3 py-1.5 text-sm text-muted-foreground">
-                          {p.alasanStatus === "kehadiran" ? "Kehadiran < 60%" : p.alasanStatus === "nilai" ? "Nilai D" : ""}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <RekapSection
+          pesertaList={pesertaList}
+          rekapSummary={rekapSummary}
+          exportPending={exportPending}
+          onExportRekap={handleExportRekap}
+        />
       </TabsContent>
     </Tabs>
     <Dialog open={deactivateDialog !== null} onOpenChange={(open) => !open && setDeactivateDialog(null)}>
@@ -1656,15 +971,4 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
     </Dialog>
     </>
   );
-}
-
-// â”€â”€â”€ Helper: StatusBadge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function StatusBadge({ status, alasan }: { status: string | null; alasan: string | null }) {
-  if (status === "lulus") return <Badge variant="default" className="bg-green-600">Lulus</Badge>;
-  if (status === "telah_mengikuti") {
-    const label = alasan === "kehadiran" ? "Telah Mengikuti (hadir)" : "Telah Mengikuti (nilai)";
-    return <Badge variant="destructive">{label}</Badge>;
-  }
-  return <Badge variant="secondary">Dalam Proses</Badge>;
 }

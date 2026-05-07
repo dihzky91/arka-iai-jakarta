@@ -26,6 +26,7 @@ export type PermissionModule =
   | "suratMou"
   | "sertifikat"
   | "jadwalUjian"
+  | "jadwalPelatihan"
   | "pengaturan"
   | "auditLog"
   | "notification"
@@ -146,6 +147,15 @@ const PERMISSION_TO_CAPABILITY: Record<
     export: "jadwal_ujian:export",
     manage: "jadwal_ujian:manage",
   },
+  jadwalPelatihan: {
+    view: "jadwal_pelatihan:view",
+    create: "jadwal_pelatihan:manage",
+    update: "jadwal_pelatihan:manage",
+    delete: "jadwal_pelatihan:manage",
+    configure: "jadwal_pelatihan:configure",
+    export: "jadwal_pelatihan:export",
+    manage: "jadwal_pelatihan:manage",
+  },
   pengaturan: {
     view: "pengaturan:view",
     update: "pengaturan:manage",
@@ -206,6 +216,14 @@ function permissionToCapability(
   action: PermissionAction,
 ): Capability | null {
   return PERMISSION_TO_CAPABILITY[module]?.[action] ?? null;
+}
+
+function permissionToLegacyCapability(
+  module: PermissionModule,
+  action: PermissionAction,
+): Capability | null {
+  if (module !== "jadwalPelatihan") return null;
+  return PERMISSION_TO_CAPABILITY.jadwalUjian[action] ?? null;
 }
 
 // Guard helper: pastikan user sudah login.
@@ -308,10 +326,19 @@ export async function requirePermission(
   const session = await requireSession();
   const access = await getUserAccess(session.user.id);
   const capability = permissionToCapability(module, action);
+  const legacyCapability = permissionToLegacyCapability(module, action);
 
   if (access?.isSuperAdmin) return session;
 
   if (access && capability && (await userHasCapability(access, capability))) {
+    return session;
+  }
+
+  if (
+    access &&
+    legacyCapability &&
+    (await userHasCapability(access, legacyCapability))
+  ) {
     return session;
   }
 
