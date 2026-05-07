@@ -2,6 +2,8 @@
 
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -114,6 +116,7 @@ export async function createSuratMasuk(data: unknown) {
   void notifySuratMasukBaru(parsed.perihal, parsed.pengirim, row!.id);
 
   revalidatePath("/surat-masuk");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, data: row! };
 }
 
@@ -165,6 +168,7 @@ export async function updateSuratMasuk(data: unknown) {
   });
 
   revalidatePath("/surat-masuk");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, data: row! };
 }
 
@@ -196,6 +200,7 @@ export async function updateStatusSuratMasuk(data: unknown) {
   });
 
   revalidatePath("/surat-masuk");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   revalidatePath("/disposisi");
   return { ok: true as const, data: row };
 }
@@ -237,6 +242,7 @@ export async function deleteSuratMasuk(data: { id: string }) {
   });
 
   revalidatePath("/surat-masuk");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   revalidatePath("/disposisi");
   return { ok: true as const };
 }

@@ -14,6 +14,8 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -416,6 +418,7 @@ export async function createEvent(data: unknown) {
     });
 
     revalidatePath("/sertifikat/kegiatan");
+    revalidateDashboardTag(DASHBOARD_TAGS.sertifikat);
     return { ok: true as const, data: row };
   } catch (err) {
     if (isUniqueViolation(err)) {
@@ -466,6 +469,7 @@ export async function updateEvent(id: number, data: unknown) {
     });
 
     revalidatePath("/sertifikat/kegiatan");
+    revalidateDashboardTag(DASHBOARD_TAGS.sertifikat);
     revalidatePath(`/sertifikat/kegiatan/${parsedId}`);
     revalidatePath("/verifikasi", "layout");
     return { ok: true as const, data: row };

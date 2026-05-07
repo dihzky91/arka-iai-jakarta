@@ -2,6 +2,8 @@
 
 import { desc, eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { PDFDocument } from "pdf-lib";
 import { z } from "zod";
 import { db } from "@/server/db";
@@ -208,6 +210,7 @@ export async function createSuratKeluar(data: unknown) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, data: row! };
 }
 
@@ -294,6 +297,7 @@ export async function uploadSuratKeluarFinal(data: unknown) {
     .where(eq(suratKeluar.id, parsed.id));
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, data: uploaded };
 }
 
@@ -398,6 +402,7 @@ export async function stampQrToSuratKeluarPdf(data: unknown) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, data: uploaded };
 }
 
@@ -436,6 +441,7 @@ export async function updateSuratKeluar(data: unknown) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, data: row! };
 }
 
@@ -469,6 +475,7 @@ export async function deleteSuratKeluar(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -531,6 +538,7 @@ export async function ajukanPersetujuan(data: { id: string }) {
   }
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -565,6 +573,7 @@ export async function mulaiReviu(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -594,6 +603,7 @@ export async function setujuiSurat(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -647,6 +657,7 @@ export async function tolakSurat(data: { id: string; catatanReviu: string }) {
   }
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -713,6 +724,7 @@ export async function selesaikanSurat(data: { id: string }) {
   }
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -763,6 +775,7 @@ export async function generateQrSuratKeluar(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, qrCodeUrl, verificationUrl };
 }
 
@@ -827,6 +840,7 @@ export async function batalkanSurat(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
 
@@ -895,6 +909,7 @@ export async function assignNomorSuratKeluar(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, nomorSurat };
 }
 
@@ -952,6 +967,7 @@ export async function setManualNomorSuratKeluar(data: unknown) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, nomorSurat };
 }
 
@@ -1098,5 +1114,6 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, assigned };
 }

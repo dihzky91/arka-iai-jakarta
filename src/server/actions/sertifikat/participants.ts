@@ -2,6 +2,8 @@
 
 import { and, asc, count, desc, eq, ilike, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { z } from "zod";
@@ -894,6 +896,7 @@ export async function restoreParticipant(id: number) {
 
   revalidatePath(`/sertifikat/kegiatan/${existing.eventId}`);
   revalidatePath("/sertifikat/sampah");
+  revalidateDashboardTag(DASHBOARD_TAGS.sertifikat);
   return { ok: true as const };
 }
 

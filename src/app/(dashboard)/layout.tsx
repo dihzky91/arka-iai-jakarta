@@ -6,6 +6,7 @@ import { countUnreadDisposisi } from "@/server/actions/disposisi";
 import { getSystemSettings } from "@/server/actions/systemSettings";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { AnnouncementToastNotifier } from "@/components/announcements/AnnouncementToastNotifier";
+import { DashboardProvider } from "@/components/dashboard/DashboardContext";
 
 export default async function DashboardLayout({
   children,
@@ -45,8 +46,14 @@ export default async function DashboardLayout({
       userId={session.user.id}
       pathname={pathname}
     >
-      <AnnouncementToastNotifier unreadCount={unreadAnnouncementCount} />
-      {children}
+      <DashboardProvider
+        capabilities={access?.capabilities ?? []}
+        isSuperAdmin={access?.isSuperAdmin ?? false}
+        userRole={userRole}
+      >
+        <AnnouncementToastNotifier unreadCount={unreadAnnouncementCount} />
+        {children}
+      </DashboardProvider>
     </DashboardShell>
   );
 }

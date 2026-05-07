@@ -2,6 +2,8 @@
 
 import { asc, desc, eq, sql, and, gte, lte, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -376,6 +378,7 @@ export async function createUjian(data: UjianCreateInput & { pengawasIds?: strin
   }
 
   revalidatePath("/jadwal-ujian");
+  revalidateDashboardTag(DASHBOARD_TAGS.ujian);
   revalidatePath("/jadwal-ujian/admin-jaga");
   revalidatePath("/kalender");
   return { ok: true as const, data: row, konflikPengawasIds: konflikIds, konflikAdminJagaIds };
@@ -488,6 +491,7 @@ export async function updateUjian(data: UjianUpdateInput & { pengawasIds?: strin
   }
 
   revalidatePath("/jadwal-ujian");
+  revalidateDashboardTag(DASHBOARD_TAGS.ujian);
   revalidatePath(`/jadwal-ujian/${parsed.id}`);
   revalidatePath("/jadwal-ujian/admin-jaga");
   revalidatePath("/kalender");
@@ -532,6 +536,7 @@ export async function deleteUjian(id: string) {
   });
 
   revalidatePath("/jadwal-ujian");
+  revalidateDashboardTag(DASHBOARD_TAGS.ujian);
   revalidatePath("/kalender");
   return { ok: true as const };
 }

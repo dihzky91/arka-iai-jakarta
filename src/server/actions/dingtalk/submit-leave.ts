@@ -7,6 +7,8 @@ import { requirePermission } from "@/server/actions/auth";
 import { writeAuditLog } from "@/server/lib/audit";
 import { submitLeaveRequest } from "@/lib/dingtalk/leave";
 import { pengajuanCutiCreateSchema, pengajuanCutiUpdateSchema } from "@/lib/validators/dingtalk.schema";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 
 export async function ajukanCuti(
   input: unknown,
@@ -45,6 +47,7 @@ export async function ajukanCuti(
     lampiranUrl: parsed.data.lampiranUrl || null,
   });
 
+  revalidateDashboardTag(DASHBOARD_TAGS.kepegawaian);
   return { ok: true as const, data: { id: cutiId } };
 }
 
@@ -159,5 +162,6 @@ export async function approveCuti(input: unknown) {
     detail: { rejectedReason: parsed.data.rejectedReason },
   });
 
+  revalidateDashboardTag(DASHBOARD_TAGS.kepegawaian);
   return { ok: true as const };
 }

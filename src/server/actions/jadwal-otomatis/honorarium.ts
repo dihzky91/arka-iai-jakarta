@@ -3,6 +3,8 @@
 import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { z } from "zod";
 import { getStorageProvider } from "@/lib/storage";
 import { prepareUploadPayload } from "@/lib/storage/utils";
@@ -2276,6 +2278,7 @@ export async function correctHonorariumBatchPayment(
   revalidatePath("/jadwal-otomatis/honorarium");
   revalidatePath(`/jadwal-otomatis/honorarium/${parsed.batchId}`);
   revalidatePath("/keuangan/honorarium");
+  revalidateDashboardTag(DASHBOARD_TAGS.keuangan);
   revalidatePath(`/keuangan/honorarium/${parsed.batchId}`);
 
   return { ok: true as const };

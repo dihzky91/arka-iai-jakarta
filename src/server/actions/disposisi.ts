@@ -3,6 +3,8 @@
 import { cache } from "react";
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateDashboardTag } from "@/server/actions/statistics";
+import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
 import { disposisi, suratMasuk, users, auditLog } from "@/server/db/schema";
@@ -232,6 +234,7 @@ export async function createDisposisi(data: unknown) {
   }
 
   revalidatePath("/surat-masuk");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   revalidatePath("/disposisi");
   revalidatePath("/kalender");
   return { ok: true as const, data: row! };
@@ -271,6 +274,7 @@ export async function updateStatusDisposisi(data: unknown) {
   });
 
   revalidatePath("/surat-masuk");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   revalidatePath("/disposisi");
   return { ok: true as const, data: row };
 }
