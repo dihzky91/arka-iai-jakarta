@@ -2,8 +2,22 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { toast } from "sonner";
-import { Download, Eye, Filter } from "lucide-react";
+import {
+  ArrowUpDown,
+  Download,
+  Eye,
+  Filter,
+  Kanban,
+  ListChecks,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,13 +35,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  bulkMarkHonorariumBatchesInProcess,
   exportFinanceHonorariumRecapExcel,
   getFinanceHonorariumRecap,
-  listHonorariumBatches,
+  listHonorariumBatchesPage,
 } from "@/server/actions/jadwal-otomatis/honorarium";
-import type { HonorariumBatchRow } from "@/server/actions/jadwal-otomatis/honorarium";
+import type {
+  HonorariumBatchPage,
+  HonorariumBatchRow,
+  HonorariumBatchSortBy,
+  HonorariumBatchSortDir,
+} from "@/server/actions/jadwal-otomatis/honorarium";
 import { APP_TIME_ZONE, formatTanggalPendek } from "@/lib/utils";
 
 type BatchStatusFilter =
@@ -36,9 +65,19 @@ type BatchStatusFilter =
   | "dibayar"
   | "locked";
 
+type ViewMode = "table" | "kanban";
+
 interface FinanceBatchListProps {
-  initialBatches: HonorariumBatchRow[];
+  initialPage: HonorariumBatchPage;
+  initialStatus?: BatchStatusFilter;
 }
+
+const KANBAN_STATUSES = [
+  "dikirim_ke_keuangan",
+  "diproses_keuangan",
+  "dibayar",
+  "locked",
+] as const;
 
 function formatCurrency(value: number) {
   return `Rp ${Math.round(value).toLocaleString("id-ID")}`;
@@ -62,6 +101,14 @@ function statusVariant(
   return "outline";
 }
 
+function slaVariant(
+  waitingDays: number,
+): "default" | "secondary" | "destructive" {
+  if (waitingDays > 7) return "destructive";
+  if (waitingDays >= 5) return "default";
+  return "secondary";
+}
+
 function sanitizeFileName(value: string) {
   return value.replace(/[\\/:*?"<>|]/g, "-");
 }
@@ -71,12 +118,24 @@ function toDateTimeText(value: Date | null) {
   return value.toLocaleString("id-ID", { timeZone: APP_TIME_ZONE });
 }
 
-export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
+function getRowId(batch: HonorariumBatchRow) {
+  return batch.id;
+}
+
+export function FinanceBatchList({
+  initialPage,
+  initialStatus = "all",
+}: FinanceBatchListProps) {
   const [pending, startTransition] = useTransition();
-  const [batches, setBatches] = useState(initialBatches);
+  const [pageData, setPageData] = useState(initialPage);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState<BatchStatusFilter>("all");
+  const [statusFilter, setStatusFilter] =
+    useState<BatchStatusFilter>(initialStatus);
+  const [sortBy, setSortBy] = useState<HonorariumBatchSortBy>("submittedAt");
+  const [sortDir, setSortDir] = useState<HonorariumBatchSortDir>("asc");
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const exportFilters = {
     startDate: startDate || undefined,
@@ -84,23 +143,49 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
     status: statusFilter === "all" ? "all" : statusFilter,
   } as const;
 
-  function handleApplyFilter() {
+  const selectedRows = pageData.rows.filter((row) => rowSelection[row.id]);
+  const eligibleSelectedRows = selectedRows.filter(
+    (row) => row.status === "dikirim_ke_keuangan",
+  );
+  const selectedEligibleIds = eligibleSelectedRows.map((row) => row.id);
+
+  function loadPage(next?: {
+    page?: number;
+    pageSize?: number;
+    sortBy?: HonorariumBatchSortBy;
+    sortDir?: HonorariumBatchSortDir;
+    resetSelection?: boolean;
+  }) {
+    const nextPage = next?.page ?? pageData.page;
+    const nextPageSize = next?.pageSize ?? pageData.pageSize;
+    const nextSortBy = next?.sortBy ?? sortBy;
+    const nextSortDir = next?.sortDir ?? sortDir;
+
     startTransition(async () => {
       try {
-        const result = await listHonorariumBatches({
+        const result = await listHonorariumBatchesPage({
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           status: statusFilter === "all" ? undefined : statusFilter,
           financeOnly: true,
+          page: nextPage,
+          pageSize: nextPageSize,
+          sortBy: nextSortBy,
+          sortDir: nextSortDir,
         });
-        setBatches(result);
-        toast.success("Antrian diperbarui.");
+        setPageData(result);
+        if (next?.resetSelection !== false) setRowSelection({});
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Filter tidak valid.",
+          error instanceof Error ? error.message : "Antrian gagal dimuat.",
         );
       }
     });
+  }
+
+  function handleApplyFilter() {
+    loadPage({ page: 1, resetSelection: true });
+    toast.success("Filter antrian diterapkan.");
   }
 
   function handleSetCurrentMonth() {
@@ -114,7 +199,39 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
     };
     setStartDate(toIso(start));
     setEndDate(toIso(now));
-    toast.success("Filter bulanan (bulan ini) diterapkan.");
+    toast.success("Filter bulanan siap diterapkan.");
+  }
+
+  function handleSort(column: HonorariumBatchSortBy) {
+    const nextDir = sortBy === column && sortDir === "asc" ? "desc" : "asc";
+    setSortBy(column);
+    setSortDir(nextDir);
+    loadPage({
+      page: 1,
+      sortBy: column,
+      sortDir: nextDir,
+      resetSelection: true,
+    });
+  }
+
+  function handleBulkProcess() {
+    if (selectedEligibleIds.length === 0) {
+      toast.info("Pilih batch status Dikirim ke Keuangan terlebih dahulu.");
+      return;
+    }
+
+    startTransition(async () => {
+      const result =
+        await bulkMarkHonorariumBatchesInProcess(selectedEligibleIds);
+      if (result.ok) {
+        toast.success(`${result.processed} batch ditandai diproses.`);
+      } else {
+        toast.warning(
+          `${result.processed} batch berhasil, ${result.failed} gagal diproses.`,
+        );
+      }
+      loadPage({ page: pageData.page, resetSelection: true });
+    });
   }
 
   function handleExportExcel() {
@@ -160,7 +277,11 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
         const { default: jsPDF } = await import("jspdf");
         const { default: autoTable } = await import("jspdf-autotable");
 
-        const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+        const doc = new jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: "a4",
+        });
         doc.setFontSize(14);
         doc.text("REKAP HONORARIUM KEUANGAN", 14, 14);
         doc.setFontSize(9);
@@ -171,7 +292,11 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
         );
         doc.text(`Status: ${recap.filters.status}`, 14, 25);
         doc.text(`Total Batch: ${recap.totals.batchCount}`, 14, 30);
-        doc.text(`Total Net: ${formatCurrency(recap.totals.netAmount)}`, 60, 30);
+        doc.text(
+          `Total Net: ${formatCurrency(recap.totals.netAmount)}`,
+          60,
+          30,
+        );
         doc.text(
           `Total Dibayar: ${formatCurrency(recap.totals.paidAmount)}`,
           120,
@@ -180,17 +305,19 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
 
         autoTable(doc, {
           startY: 35,
-          head: [[
-            "Dokumen",
-            "Periode",
-            "Status",
-            "Sesi",
-            "Net",
-            "Nominal Dibayar",
-            "Selisih",
-            "Referensi Transfer",
-            "Tgl Dibayar",
-          ]],
+          head: [
+            [
+              "Dokumen",
+              "Periode",
+              "Status",
+              "Sesi",
+              "Net",
+              "Nominal Dibayar",
+              "Selisih",
+              "Referensi Transfer",
+              "Tgl Dibayar",
+            ],
+          ],
           body: recap.rows.map((row) => [
             row.documentNumber,
             `${row.periodStart} s.d. ${row.periodEnd}`,
@@ -207,17 +334,6 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
           theme: "grid",
           styles: { fontSize: 7.5, cellPadding: 1.7 },
           headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
-          columnStyles: {
-            0: { cellWidth: 30 },
-            1: { cellWidth: 35 },
-            2: { cellWidth: 24 },
-            3: { cellWidth: 12, halign: "right" },
-            4: { cellWidth: 24, halign: "right" },
-            5: { cellWidth: 30, halign: "right" },
-            6: { cellWidth: 22, halign: "right" },
-            7: { cellWidth: 44 },
-            8: { cellWidth: 28 },
-          },
         });
 
         const fileName = sanitizeFileName(
@@ -226,23 +342,163 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
         doc.save(fileName);
         toast.success("PDF rekap keuangan berhasil diekspor.");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Gagal export PDF rekap.");
+        toast.error(
+          error instanceof Error ? error.message : "Gagal export PDF rekap.",
+        );
       }
     });
   }
 
+  const columns: ColumnDef<HonorariumBatchRow>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Pilih semua batch"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          disabled={row.original.status !== "dikirim_ke_keuangan"}
+          aria-label={`Pilih ${row.original.documentNumber}`}
+        />
+      ),
+      enableSorting: false,
+    },
+    {
+      accessorKey: "documentNumber",
+      header: () => (
+        <SortButton
+          label="No. Dokumen"
+          column="documentNumber"
+          onSort={handleSort}
+        />
+      ),
+      cell: ({ row }) => (
+        <div className="min-w-[12rem]">
+          <p className="font-medium">{row.original.documentNumber}</p>
+          <p className="text-xs text-muted-foreground">
+            {formatTanggalPendek(row.original.periodStart)} s.d.{" "}
+            {formatTanggalPendek(row.original.periodEnd)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "itemCount",
+      header: () => (
+        <SortButton label="Sesi" column="itemCount" onSort={handleSort} />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right tabular-nums">{row.original.itemCount}</div>
+      ),
+    },
+    {
+      accessorKey: "netAmount",
+      header: () => (
+        <SortButton label="Net" column="netAmount" onSort={handleSort} />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-medium tabular-nums">
+          {formatCurrency(row.original.netAmount)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: () => (
+        <SortButton label="Status" column="status" onSort={handleSort} />
+      ),
+      cell: ({ row }) => (
+        <Badge variant={statusVariant(row.original.status)}>
+          {statusLabel(row.original.status)}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "waitingDays",
+      header: () => (
+        <SortButton
+          label="Waktu Menunggu"
+          column="waitingDays"
+          onSort={handleSort}
+        />
+      ),
+      cell: ({ row }) =>
+        row.original.status === "dikirim_ke_keuangan" ? (
+          <Badge variant={slaVariant(row.original.waitingDays)}>
+            {row.original.waitingDays} hari
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      accessorKey: "submittedAt",
+      header: () => (
+        <SortButton
+          label="Tgl Kirim"
+          column="submittedAt"
+          onSort={handleSort}
+        />
+      ),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">
+          {formatTanggalPendek(row.original.submittedAt)}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Aksi",
+      cell: ({ row }) => (
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/keuangan/honorarium/${row.original.id}`}>
+            <Eye className="mr-1 h-4 w-4" />
+            Detail
+          </Link>
+        </Button>
+      ),
+    },
+  ];
+
+  const table = useReactTable({
+    data: pageData.rows,
+    columns,
+    getRowId,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    pageCount: pageData.totalPages,
+    state: {
+      rowSelection,
+      pagination: {
+        pageIndex: Math.max(0, pageData.page - 1),
+        pageSize: pageData.pageSize,
+      },
+    },
+    enableRowSelection: (row) => row.original.status === "dikirim_ke_keuangan",
+    onRowSelectionChange: setRowSelection,
+  });
+
   return (
-    <Card className="rounded-[28px]">
+    <Card>
       <CardHeader className="border-b border-border">
         <CardTitle>Antrian Pembayaran Honorarium</CardTitle>
         <CardDescription>
           Batch yang sudah dikirim ke keuangan oleh admin/staff.
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6 space-y-4">
-        <div className="grid gap-3 md:grid-cols-[160px_160px_200px_auto]">
+      <CardContent className="space-y-5 pt-6">
+        <div className="grid gap-3 md:grid-cols-[160px_160px_200px_1fr]">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Tanggal Mulai</p>
+            <p className="mb-1 text-xs text-muted-foreground">Tanggal Mulai</p>
             <Input
               type="date"
               value={startDate}
@@ -250,7 +506,7 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
             />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Tanggal Akhir</p>
+            <p className="mb-1 text-xs text-muted-foreground">Tanggal Akhir</p>
             <Input
               type="date"
               value={endDate}
@@ -258,7 +514,7 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
             />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Status</p>
+            <p className="mb-1 text-xs text-muted-foreground">Status</p>
             <Select
               value={statusFilter}
               onValueChange={(value) =>
@@ -282,106 +538,262 @@ export function FinanceBatchList({ initialBatches }: FinanceBatchListProps) {
             </Select>
           </div>
           <div className="flex items-end">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleSetCurrentMonth} disabled={pending}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSetCurrentMonth}
+                disabled={pending}
+              >
                 Bulan Ini
               </Button>
               <Button onClick={handleApplyFilter} disabled={pending}>
-                <Filter className="h-4 w-4 mr-1" />
+                <Filter className="mr-1 h-4 w-4" />
                 Terapkan
               </Button>
-              <Button variant="outline" onClick={handleExportPdf} disabled={pending}>
-                <Download className="h-4 w-4 mr-1" />
+              <Button
+                variant="outline"
+                onClick={handleExportPdf}
+                disabled={pending}
+              >
+                <Download className="mr-1 h-4 w-4" />
                 PDF
               </Button>
-              <Button variant="outline" onClick={handleExportExcel} disabled={pending}>
-                <Download className="h-4 w-4 mr-1" />
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                disabled={pending}
+              >
+                <Download className="mr-1 h-4 w-4" />
                 Excel
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                  No. Dokumen
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                  Periode
-                </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                  Sesi
-                </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                  Net
-                </th>
-                <th className="px-4 py-3 text-center font-medium text-muted-foreground">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                  Tgl Kirim
-                </th>
-                <th className="px-4 py-3 text-center font-medium text-muted-foreground">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {batches.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    Belum ada batch masuk ke antrian keuangan.
-                  </td>
-                </tr>
-              ) : (
-                batches.map((batch) => (
-                  <tr
-                    key={batch.id}
-                    className="border-b border-border hover:bg-muted/50"
-                  >
-                    <td className="px-4 py-3 font-medium">
-                      {batch.documentNumber}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {batch.periodStart} s.d. {batch.periodEnd}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {batch.itemCount}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">
-                      {formatCurrency(batch.netAmount)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={statusVariant(batch.status)}>
-                        {statusLabel(batch.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">
-                      {batch.submittedAt
-                        ? formatTanggalPendek(batch.submittedAt)
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/keuangan/honorarium/${batch.id}`}>
-                          <Eye className="h-4 w-4 mr-1" />
-                          Detail
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <section className="grid gap-3 md:grid-cols-3">
+          <SummaryTile
+            label="Batch Filter"
+            value={String(pageData.totals.batchCount)}
+          />
+          <SummaryTile
+            label="Outstanding"
+            value={formatCurrency(pageData.totals.outstandingAmount)}
+          />
+          <SummaryTile
+            label="Total Net"
+            value={formatCurrency(pageData.totals.netAmount)}
+          />
+        </section>
+
+        <Tabs
+          value={viewMode}
+          onValueChange={(value) => setViewMode(value as ViewMode)}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <TabsList>
+              <TabsTrigger value="table">
+                <ListChecks className="h-4 w-4" />
+                Tabel
+              </TabsTrigger>
+              <TabsTrigger value="kanban">
+                <Kanban className="h-4 w-4" />
+                Kanban
+              </TabsTrigger>
+            </TabsList>
+            <Button
+              onClick={handleBulkProcess}
+              disabled={pending || selectedEligibleIds.length === 0}
+            >
+              Tandai Diproses ({selectedEligibleIds.length})
+            </Button>
+          </div>
+
+          <TabsContent value="table" className="mt-4 space-y-3">
+            <div className="overflow-hidden rounded-md border bg-card">
+              <Table className="min-w-[58rem]">
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={
+                          row.getIsSelected() ? "selected" : undefined
+                        }
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center text-sm text-muted-foreground"
+                      >
+                        Belum ada batch masuk ke antrian keuangan.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-muted-foreground">
+                {pageData.totalRows} baris · Halaman {pageData.page} /{" "}
+                {pageData.totalPages || 1}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <Select
+                  value={String(pageData.pageSize)}
+                  onValueChange={(value) =>
+                    loadPage({
+                      page: 1,
+                      pageSize: Number(value),
+                      resetSelection: true,
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 / hlm</SelectItem>
+                    <SelectItem value="20">20 / hlm</SelectItem>
+                    <SelectItem value="50">50 / hlm</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPage({ page: pageData.page - 1 })}
+                  disabled={pending || pageData.page <= 1}
+                >
+                  Sebelumnya
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPage({ page: pageData.page + 1 })}
+                  disabled={pending || pageData.page >= pageData.totalPages}
+                >
+                  Berikutnya
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="kanban" className="mt-4">
+            <FinanceKanban batches={pageData.rows} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
+  );
+}
+
+function SortButton({
+  label,
+  column,
+  onSort,
+}: {
+  label: string;
+  column: HonorariumBatchSortBy;
+  onSort: (column: HonorariumBatchSortBy) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(column)}
+      className="inline-flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground"
+    >
+      {label}
+      <ArrowUpDown className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function FinanceKanban({ batches }: { batches: HonorariumBatchRow[] }) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-4">
+      {KANBAN_STATUSES.map((status) => {
+        const rows = batches.filter((batch) => batch.status === status);
+        return (
+          <section
+            key={status}
+            className="min-h-44 rounded-lg border border-border bg-muted/20 p-3"
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">{statusLabel(status)}</h3>
+              <Badge variant="outline">{rows.length}</Badge>
+            </div>
+            <div className="space-y-2">
+              {rows.length > 0 ? (
+                rows.map((batch) => (
+                  <Link
+                    key={batch.id}
+                    href={`/keuangan/honorarium/${batch.id}`}
+                    className="block rounded-lg border border-border bg-card p-3 text-sm transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-1 font-medium">
+                        {batch.documentNumber}
+                      </p>
+                      {status === "dikirim_ke_keuangan" ? (
+                        <Badge variant={slaVariant(batch.waitingDays)}>
+                          {batch.waitingDays}h
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {formatTanggalPendek(batch.periodStart)} s.d.{" "}
+                      {formatTanggalPendek(batch.periodEnd)}
+                    </p>
+                    <p className="mt-2 font-medium">
+                      {formatCurrency(batch.netAmount)}
+                    </p>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                  Kosong
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
   );
 }

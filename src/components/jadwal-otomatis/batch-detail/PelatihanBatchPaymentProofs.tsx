@@ -15,12 +15,12 @@ import type { HonorariumPaymentProofRow } from "@/server/actions/jadwal-otomatis
 import { formatTanggalWaktuJakarta } from "@/lib/utils";
 
 function formatFileSize(size: number) {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  if (!Number.isFinite(size) || size <= 0) return "-";
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function BatchPaymentProofs({
+export function PelatihanBatchPaymentProofs({
   proofs,
   canUpload,
   isPending,
@@ -43,7 +43,10 @@ export function BatchPaymentProofs({
     <Card>
       <CardHeader>
         <CardTitle>Bukti Pembayaran</CardTitle>
-        <CardDescription>Unggah dan lihat bukti bayar batch.</CardDescription>
+        <CardDescription>
+          Dokumen bukti transfer dari keuangan. Dapat dilihat oleh pengaju dan
+          keuangan.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div

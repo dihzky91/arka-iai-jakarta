@@ -1,6 +1,12 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { formatTanggalPendek } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { formatTanggalPendek, formatTanggalWaktuJakarta } from "@/lib/utils";
 import type { HonorariumBatchDetail } from "@/server/actions/jadwal-otomatis/honorarium";
 
 const statusLabels: Record<string, string> = {
@@ -21,11 +27,13 @@ export function BatchHeader({
   outstandingAmount: number;
 }) {
   return (
-    <Card className="rounded-[28px]">
+    <Card>
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-lg">Batch {batch.documentNumber}</CardTitle>
+            <CardTitle className="text-lg">
+              Batch {batch.documentNumber}
+            </CardTitle>
             <CardDescription>
               Periode {batch.periodStart} - {batch.periodEnd}
             </CardDescription>
@@ -35,26 +43,33 @@ export function BatchHeader({
               {statusLabels[batch.status] ?? batch.status}
             </Badge>
             <p className="text-sm text-muted-foreground">
-              Outstanding: Rp {Math.round(outstandingAmount).toLocaleString("id-ID")}
+              Outstanding: Rp{" "}
+              {Math.round(outstandingAmount).toLocaleString("id-ID")}
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2 rounded-2xl bg-muted/50 p-4">
+        <div className="space-y-2 rounded-lg bg-muted/50 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Dibuat oleh
           </p>
           <p className="text-sm font-medium">{batch.generatedByName || "-"}</p>
-          <p className="text-xs text-muted-foreground">Dibuat: {formatTanggalPendek(batch.createdAt)}</p>
+          <p className="text-xs text-muted-foreground">
+            Dibuat: {formatTanggalWaktuJakarta(batch.createdAt)}
+          </p>
         </div>
-        <div className="space-y-2 rounded-2xl bg-muted/50 p-4">
+        <div className="space-y-2 rounded-lg bg-muted/50 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Terakhir diperbarui
           </p>
-          <p className="text-sm font-medium">{formatTanggalPendek(batch.updatedAt)}</p>
+          <p className="text-sm font-medium">
+            {formatTanggalWaktuJakarta(batch.updatedAt)}
+          </p>
           {systemIdentity ? (
-            <p className="text-xs text-muted-foreground">Sistem: {systemIdentity.namaSistem}</p>
+            <p className="text-xs text-muted-foreground">
+              Sistem: {systemIdentity.namaSistem}
+            </p>
           ) : null}
         </div>
       </CardContent>

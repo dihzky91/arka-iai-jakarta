@@ -4,14 +4,45 @@ import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { FinanceBatchList } from "@/components/keuangan/FinanceBatchList";
-import { listHonorariumBatches } from "@/server/actions/jadwal-otomatis/honorarium";
+import { listHonorariumBatchesPage } from "@/server/actions/jadwal-otomatis/honorarium";
 
 export const metadata: Metadata = {
   title: "Antrian Pembayaran | Keuangan | ARKA",
 };
 
-export default async function Page() {
-  const batches = await listHonorariumBatches({ financeOnly: true });
+const VALID_STATUS_FILTERS = [
+  "dikirim_ke_keuangan",
+  "diproses_keuangan",
+  "dibayar",
+  "locked",
+] as const;
+
+type StatusFilter = (typeof VALID_STATUS_FILTERS)[number];
+
+function parseStatus(
+  value: string | string[] | undefined,
+): StatusFilter | undefined {
+  const status = Array.isArray(value) ? value[0] : value;
+  return VALID_STATUS_FILTERS.includes(status as StatusFilter)
+    ? (status as StatusFilter)
+    : undefined;
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string | string[] }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const status = parseStatus(params.status);
+  const batchPage = await listHonorariumBatchesPage({
+    financeOnly: true,
+    status,
+    page: 1,
+    pageSize: 10,
+    sortBy: "submittedAt",
+    sortDir: "asc",
+  });
 
   return (
     <PageWrapper
@@ -27,7 +58,10 @@ export default async function Page() {
         </Button>
       </div>
 
-      <FinanceBatchList initialBatches={batches} />
+      <FinanceBatchList
+        initialPage={batchPage}
+        initialStatus={status ?? "all"}
+      />
     </PageWrapper>
   );
 }

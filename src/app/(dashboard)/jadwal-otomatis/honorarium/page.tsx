@@ -4,7 +4,7 @@ import { HonorariumReport } from "@/components/jadwal-otomatis/HonorariumReport"
 import {
   getHonorariumReport,
   getSuggestedHonorariumBatchPeriod,
-  listHonorariumBatches,
+  listHonorariumBatchesPage,
 } from "@/server/actions/jadwal-otomatis/honorarium";
 import { listInstructors } from "@/server/actions/jadwal-otomatis/instructors";
 import { listPrograms } from "@/server/actions/jadwal-otomatis/programs";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default async function Page() {
   const [report, batches, instructors, programs, suggestedBatchPeriod] = await Promise.all([
     getHonorariumReport(),
-    listHonorariumBatches(),
+    listHonorariumBatchesPage(),
     listInstructors(),
     listPrograms(),
     getSuggestedHonorariumBatchPeriod(),

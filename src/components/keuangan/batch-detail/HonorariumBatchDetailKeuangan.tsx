@@ -4,7 +4,16 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
-import { type DeductionRow, type HonorariumPaymentProofRow, type HonorariumBatchDetail, markHonorariumBatchInProcess, markHonorariumBatchPaid, type getHonorariumBatchDetail } from "@/server/actions/jadwal-otomatis/honorarium";
+import {
+  type DeductionRow,
+  type HonorariumPaymentProofRow,
+  type HonorariumBatchDetail,
+  lockHonorariumBatch,
+  markHonorariumBatchInProcess,
+  markHonorariumBatchPaid,
+  reopenHonorariumBatch,
+  uploadHonorariumPaymentProof,
+} from "@/server/actions/jadwal-otomatis/honorarium";
 import { BatchHeader } from "./BatchHeader";
 import { BatchStatusStepper } from "./BatchStatusStepper";
 import { BatchReconciliation } from "./BatchReconciliation";
@@ -25,18 +34,6 @@ export type HonorariumBatchDetailKeuanganProps = {
   systemIdentity?: { namaSistem: string; logoUrl: string | null };
 };
 
-function formatCurrency(value: number) {
-  return `Rp ${Math.round(value).toLocaleString("id-ID")}`;
-}
-
-const statusOrder = [
-  "draft",
-  "dikirim_ke_keuangan",
-  "diproses_keuangan",
-  "dibayar",
-  "locked",
-];
-
 export function HonorariumBatchDetailKeuangan({
   initialData,
   initialDeductions,
@@ -50,37 +47,144 @@ export function HonorariumBatchDetailKeuangan({
   const [isPending, startTransition] = useTransition();
   const [deductions] = useState(initialDeductions);
   const [paymentProofs] = useState(initialPaymentProofs);
+  const [paymentReference, setPaymentReference] = useState(
+    initialData.reconciliation.paymentReference ?? "",
+  );
+  const [paymentAmount, setPaymentAmount] = useState(
+    String(
+      initialData.reconciliation.paymentAmount ??
+        initialData.reconciliation.netAmount,
+    ),
+  );
+  const [paidDate, setPaidDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [reopenReason, setReopenReason] = useState("");
 
   const currentStatus = initialData.batch.status;
   const canMarkProcess = canProcess && currentStatus === "dikirim_ke_keuangan";
   const canMarkPaid = canPay && currentStatus === "diproses_keuangan";
+  const canLock = canPay && currentStatus === "dibayar";
+  const canUploadProof =
+    canPay &&
+    ["diproses_keuangan", "dibayar", "locked"].includes(currentStatus);
+  const canReopenBatch =
+    (isAdmin || canPay) &&
+    ["dikirim_ke_keuangan", "diproses_keuangan", "dibayar", "locked"].includes(
+      currentStatus,
+    );
 
   async function handleMarkInProcess() {
     if (!canMarkProcess) return;
     startTransition(async () => {
       try {
         await markHonorariumBatchInProcess(initialData.batch.id);
-        toast.success("Batch berhasil dipindahkan ke status Diproses Keuangan.");
+        toast.success(
+          "Batch berhasil dipindahkan ke status Diproses Keuangan.",
+        );
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Gagal memperbarui status batch.");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Gagal memperbarui status batch.",
+        );
       }
     });
   }
 
   async function handleMarkPaid() {
     if (!canMarkPaid) return;
+    const parsedAmount = Number(paymentAmount);
+    if (!paymentReference.trim()) {
+      toast.error("Referensi transfer wajib diisi.");
+      return;
+    }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Nominal dibayar harus lebih dari 0.");
+      return;
+    }
     startTransition(async () => {
       try {
         await markHonorariumBatchPaid({
           batchId: initialData.batch.id,
-          paymentReference: "TERSEDIA",
-          paymentAmount: initialData.reconciliation.netAmount,
+          paymentReference: paymentReference.trim(),
+          paymentAmount: parsedAmount,
+          paidDate,
         });
         toast.success("Batch berhasil ditandai dibayar.");
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Gagal menandai batch dibayar.");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Gagal menandai batch dibayar.",
+        );
+      }
+    });
+  }
+
+  async function handleLock() {
+    if (!canLock) return;
+    startTransition(async () => {
+      try {
+        await lockHonorariumBatch(initialData.batch.id);
+        toast.success("Batch berhasil di-lock.");
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal lock batch.",
+        );
+      }
+    });
+  }
+
+  async function handleReopen() {
+    if (!canReopenBatch) return;
+    if (!reopenReason.trim()) {
+      toast.error("Alasan reopen wajib diisi.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await reopenHonorariumBatch({
+          batchId: initialData.batch.id,
+          reason: reopenReason.trim(),
+        });
+        toast.success("Batch berhasil direopen.");
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal reopen batch.",
+        );
+      }
+    });
+  }
+
+  async function handleUploadProof(file: File) {
+    if (!canUploadProof) return;
+    startTransition(async () => {
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
+        await uploadHonorariumPaymentProof({
+          batchId: initialData.batch.id,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+          dataUrl,
+        });
+        toast.success("Bukti pembayaran berhasil diunggah.");
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Gagal upload bukti pembayaran.",
+        );
       }
     });
   }
@@ -94,12 +198,17 @@ export function HonorariumBatchDetailKeuangan({
           outstandingAmount={initialData.reconciliation.netAmount}
         />
         <BatchStatusStepper currentStatus={currentStatus} />
-        <Card className="rounded-[28px]">
+        <Card>
           <CardContent>
             <BatchReconciliation reconciliation={initialData.reconciliation} />
           </CardContent>
         </Card>
-        <BatchPaymentProofs proofs={paymentProofs} />
+        <BatchPaymentProofs
+          proofs={paymentProofs}
+          canUpload={canUploadProof}
+          isPending={isPending}
+          onUpload={handleUploadProof}
+        />
         <BatchInstructorRecap recaps={initialData.recaps} />
         <BatchSessionItems items={initialData.items} />
         <BatchDeductions deductions={deductions} />
@@ -111,9 +220,21 @@ export function HonorariumBatchDetailKeuangan({
           currentStatus={currentStatus}
           canProcess={canMarkProcess}
           canPay={canMarkPaid}
-          canReopen={isAdmin || canPay}
+          canReopen={canReopenBatch}
+          canLock={canLock}
+          paymentReference={paymentReference}
+          paymentAmount={paymentAmount}
+          paidDate={paidDate}
+          reopenReason={reopenReason}
+          expectedAmount={initialData.reconciliation.netAmount}
+          onPaymentReferenceChange={setPaymentReference}
+          onPaymentAmountChange={setPaymentAmount}
+          onPaidDateChange={setPaidDate}
+          onReopenReasonChange={setReopenReason}
           onProcess={handleMarkInProcess}
           onPay={handleMarkPaid}
+          onLock={handleLock}
+          onReopen={handleReopen}
         />
       </aside>
     </div>

@@ -13,11 +13,23 @@ import {
   events,
   participants,
   honorariumBatches,
+  honorariumDeductions,
   honorariumItems,
   jadwalUjian,
   pengawas,
 } from "@/server/db/schema";
-import { count, eq, sql, and, gte, lte, ne, desc } from "drizzle-orm";
+import {
+  count,
+  eq,
+  sql,
+  and,
+  gte,
+  lte,
+  ne,
+  desc,
+  inArray,
+  asc,
+} from "drizzle-orm";
 import type { Capability } from "@/lib/rbac/capabilities";
 
 export interface DashboardStats {
@@ -106,8 +118,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .where(
       and(
         gte(suratKeluar.createdAt, startOfYear),
-        lte(suratKeluar.createdAt, endOfYear)
-      )
+        lte(suratKeluar.createdAt, endOfYear),
+      ),
     )
     .groupBy(sql`EXTRACT(MONTH FROM ${suratKeluar.createdAt})`);
 
@@ -120,26 +132,36 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .where(
       and(
         gte(suratMasuk.createdAt, startOfYear),
-        lte(suratMasuk.createdAt, endOfYear)
-      )
+        lte(suratMasuk.createdAt, endOfYear),
+      ),
     )
     .groupBy(sql`EXTRACT(MONTH FROM ${suratMasuk.createdAt})`);
 
   const months = [
-    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-    "Jul", "Ags", "Sep", "Okt", "Nov", "Des",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Ags",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
   ];
 
   const suratKeluarMonthly = months.map((month, index) => {
     const found = suratKeluarMonthlyRaw.find(
-      (r) => parseInt(r.month) === index + 1
+      (r) => parseInt(r.month) === index + 1,
     );
     return { month, count: found?.count || 0 };
   });
 
   const suratMasukMonthly = months.map((month, index) => {
     const found = suratMasukMonthlyRaw.find(
-      (r) => parseInt(r.month) === index + 1
+      (r) => parseInt(r.month) === index + 1,
     );
     return { month, count: found?.count || 0 };
   });
@@ -190,8 +212,8 @@ export async function getSuratKeluarTrend(days: number = 30) {
     .where(
       and(
         gte(suratKeluar.createdAt, startDate),
-        lte(suratKeluar.createdAt, endDate)
-      )
+        lte(suratKeluar.createdAt, endDate),
+      ),
     )
     .groupBy(sql`DATE(${suratKeluar.createdAt})`)
     .orderBy(sql`DATE(${suratKeluar.createdAt})`);
@@ -245,9 +267,7 @@ export async function getPersuratanMetrics(): Promise<PersuratanMetrics> {
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(suratKeluar)
-      .where(
-        sql`${suratKeluar.status} IN ('permohonan_persetujuan', 'reviu')`
-      ),
+      .where(sql`${suratKeluar.status} IN ('permohonan_persetujuan', 'reviu')`),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(suratKeluar)
@@ -304,8 +324,8 @@ export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
         .where(
           and(
             eq(absensiKaryawan.tanggal, todayStr),
-            eq(absensiKaryawan.status, "hadir")
-          )
+            eq(absensiKaryawan.status, "hadir"),
+          ),
         ),
       db
         .select({ count: sql<number>`count(*)::int` })
@@ -313,8 +333,8 @@ export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
         .where(
           and(
             eq(absensiKaryawan.tanggal, todayStr),
-            eq(absensiKaryawan.status, "terlambat")
-          )
+            eq(absensiKaryawan.status, "terlambat"),
+          ),
         ),
       db
         .select({ count: sql<number>`count(*)::int` })
@@ -322,8 +342,8 @@ export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
         .where(
           and(
             eq(absensiKaryawan.tanggal, todayStr),
-            eq(absensiKaryawan.status, "alpha")
-          )
+            eq(absensiKaryawan.status, "alpha"),
+          ),
         ),
       db
         .select({ count: sql<number>`count(*)::int` })
@@ -336,8 +356,8 @@ export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
           and(
             eq(pengajuanCuti.status, "disetujui"),
             gte(pengajuanCuti.tanggalMulai, monthStart),
-            lte(pengajuanCuti.tanggalMulai, monthEnd)
-          )
+            lte(pengajuanCuti.tanggalMulai, monthEnd),
+          ),
         ),
     ]);
 
@@ -411,9 +431,7 @@ export async function getSertifikatMetrics(): Promise<SertifikatMetrics> {
       .where(sql`${participants.eventId} = ANY(${eventIds})`)
       .groupBy(participants.eventId);
 
-    const pesertaMap = new Map(
-      pesertaByEvent.map((r) => [r.eventId, r.count])
-    );
+    const pesertaMap = new Map(pesertaByEvent.map((r) => [r.eventId, r.count]));
     for (const ev of recentEvents) {
       ev.pesertaCount = pesertaMap.get(ev.id) ?? 0;
     }
@@ -457,14 +475,10 @@ export async function getKeuanganMetrics(): Promise<KeuanganMetrics> {
         honorariumBatches,
         eq(honorariumItems.batchId, honorariumBatches.id),
       )
-      .where(
-        sql`${honorariumBatches.status} IN ('dibayar', 'locked')`
-      ),
+      .where(sql`${honorariumBatches.status} IN ('dibayar', 'locked')`),
   ]);
 
-  const statusMap = new Map(
-    byStatus.map((r) => [r.status, r.count])
-  );
+  const statusMap = new Map(byStatus.map((r) => [r.status, r.count]));
 
   return {
     batchDraft: statusMap.get("draft") ?? 0,
@@ -473,6 +487,236 @@ export async function getKeuanganMetrics(): Promise<KeuanganMetrics> {
     batchDibayar: statusMap.get("dibayar") ?? 0,
     batchLocked: statusMap.get("locked") ?? 0,
     totalNominalDibayar: Number(totalDibayar[0]?.total ?? 0),
+  };
+}
+
+export interface KeuanganDashboardMetrics {
+  statusCounts: {
+    draft: number;
+    dikirimKeuangan: number;
+    diprosesKeuangan: number;
+    dibayar: number;
+    locked: number;
+  };
+  totals: {
+    outstanding: number;
+    bulanIni: number;
+    ytd: number;
+    paidAllTime: number;
+  };
+  monthlyTrend: { month: string; amount: number; count: number }[];
+  oldestPending: {
+    id: string;
+    documentNumber: string;
+    submittedAt: string | null;
+    netAmount: number;
+    waitingDays: number;
+  } | null;
+  agingAlerts: {
+    id: string;
+    documentNumber: string;
+    submittedAt: string | null;
+    netAmount: number;
+    waitingDays: number;
+  }[];
+}
+
+const FINANCE_DASHBOARD_STATUSES = [
+  "dikirim_ke_keuangan",
+  "diproses_keuangan",
+  "dibayar",
+  "locked",
+] as const;
+
+const MONTH_LABELS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "Mei",
+  "Jun",
+  "Jul",
+  "Ags",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Des",
+] as const;
+
+function toJakartaDatePartsForMetrics(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return {
+    year: Number(parts.find((p) => p.type === "year")?.value ?? 0),
+    month: Number(parts.find((p) => p.type === "month")?.value ?? 0),
+    day: Number(parts.find((p) => p.type === "day")?.value ?? 0),
+  };
+}
+
+function daysSinceJakarta(date: Date | null, now = new Date()) {
+  if (!date) return 0;
+  const start = toJakartaDatePartsForMetrics(date);
+  const end = toJakartaDatePartsForMetrics(now);
+  const startUtc = Date.UTC(start.year, start.month - 1, start.day);
+  const endUtc = Date.UTC(end.year, end.month - 1, end.day);
+  return Math.max(0, Math.floor((endUtc - startUtc) / 86_400_000));
+}
+
+export async function getKeuanganDashboardMetrics(): Promise<KeuanganDashboardMetrics> {
+  const now = new Date();
+  const current = toJakartaDatePartsForMetrics(now);
+
+  const [byStatus, batchRows] = await Promise.all([
+    db
+      .select({
+        status: honorariumBatches.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(honorariumBatches)
+      .groupBy(honorariumBatches.status),
+    db
+      .select({
+        id: honorariumBatches.id,
+        documentNumber: honorariumBatches.documentNumber,
+        status: honorariumBatches.status,
+        submittedAt: honorariumBatches.submittedAt,
+        paidAt: honorariumBatches.paidAt,
+        createdAt: honorariumBatches.createdAt,
+      })
+      .from(honorariumBatches)
+      .where(inArray(honorariumBatches.status, [...FINANCE_DASHBOARD_STATUSES]))
+      .orderBy(
+        asc(honorariumBatches.submittedAt),
+        asc(honorariumBatches.createdAt),
+      ),
+  ]);
+
+  const statusMap = new Map(byStatus.map((r) => [r.status, r.count]));
+
+  if (batchRows.length === 0) {
+    return {
+      statusCounts: {
+        draft: statusMap.get("draft") ?? 0,
+        dikirimKeuangan: statusMap.get("dikirim_ke_keuangan") ?? 0,
+        diprosesKeuangan: statusMap.get("diproses_keuangan") ?? 0,
+        dibayar: statusMap.get("dibayar") ?? 0,
+        locked: statusMap.get("locked") ?? 0,
+      },
+      totals: { outstanding: 0, bulanIni: 0, ytd: 0, paidAllTime: 0 },
+      monthlyTrend: MONTH_LABELS.map((month) => ({
+        month,
+        amount: 0,
+        count: 0,
+      })),
+      oldestPending: null,
+      agingAlerts: [],
+    };
+  }
+
+  const batchIds = batchRows.map((row) => row.id);
+  const [aggregateRows, deductionRows] = await Promise.all([
+    db
+      .select({
+        batchId: honorariumItems.batchId,
+        totalAmount: sql<string>`COALESCE(SUM(${honorariumItems.amount}), 0)::text`,
+      })
+      .from(honorariumItems)
+      .where(inArray(honorariumItems.batchId, batchIds))
+      .groupBy(honorariumItems.batchId),
+    db
+      .select({
+        batchId: honorariumDeductions.batchId,
+        totalDeduction: sql<string>`COALESCE(SUM(${honorariumDeductions.amount}), 0)::text`,
+      })
+      .from(honorariumDeductions)
+      .where(inArray(honorariumDeductions.batchId, batchIds))
+      .groupBy(honorariumDeductions.batchId),
+  ]);
+
+  const grossByBatch = new Map(
+    aggregateRows.map((row) => [row.batchId, Number(row.totalAmount)]),
+  );
+  const deductionByBatch = new Map(
+    deductionRows.map((row) => [row.batchId, Number(row.totalDeduction)]),
+  );
+
+  const rows = batchRows.map((row) => {
+    const gross = grossByBatch.get(row.id) ?? 0;
+    const deduction = deductionByBatch.get(row.id) ?? 0;
+    return {
+      ...row,
+      netAmount: Math.max(0, gross - deduction),
+      waitingDays: daysSinceJakarta(row.submittedAt, now),
+    };
+  });
+
+  const monthlyTrend = MONTH_LABELS.map((month) => ({
+    month,
+    amount: 0,
+    count: 0,
+  }));
+
+  let outstanding = 0;
+  let bulanIni = 0;
+  let ytd = 0;
+  let paidAllTime = 0;
+
+  for (const row of rows) {
+    if (
+      row.status === "dikirim_ke_keuangan" ||
+      row.status === "diproses_keuangan"
+    ) {
+      outstanding += row.netAmount;
+    }
+
+    if ((row.status === "dibayar" || row.status === "locked") && row.paidAt) {
+      paidAllTime += row.netAmount;
+      const paid = toJakartaDatePartsForMetrics(row.paidAt);
+      if (paid.year === current.year) {
+        ytd += row.netAmount;
+        const trend = monthlyTrend[paid.month - 1];
+        if (trend) {
+          trend.amount += row.netAmount;
+          trend.count += 1;
+        }
+      }
+      if (paid.year === current.year && paid.month === current.month) {
+        bulanIni += row.netAmount;
+      }
+    }
+  }
+
+  const pendingRows = rows.filter(
+    (row) => row.status === "dikirim_ke_keuangan",
+  );
+  const toPendingItem = (row: (typeof pendingRows)[number]) => ({
+    id: row.id,
+    documentNumber: row.documentNumber,
+    submittedAt: row.submittedAt?.toISOString() ?? null,
+    netAmount: row.netAmount,
+    waitingDays: row.waitingDays,
+  });
+
+  return {
+    statusCounts: {
+      draft: statusMap.get("draft") ?? 0,
+      dikirimKeuangan: statusMap.get("dikirim_ke_keuangan") ?? 0,
+      diprosesKeuangan: statusMap.get("diproses_keuangan") ?? 0,
+      dibayar: statusMap.get("dibayar") ?? 0,
+      locked: statusMap.get("locked") ?? 0,
+    },
+    totals: { outstanding, bulanIni, ytd, paidAllTime },
+    monthlyTrend,
+    oldestPending: pendingRows[0] ? toPendingItem(pendingRows[0]) : null,
+    agingAlerts: pendingRows
+      .filter((row) => row.waitingDays > 7)
+      .slice(0, 5)
+      .map(toPendingItem),
   };
 }
 
@@ -535,7 +779,10 @@ export async function getRecentSuratMasuk(
     .orderBy(desc(suratMasuk.createdAt))
     .limit(limit);
 
-  return rows.map((r) => ({ ...r, createdAt: r.createdAt?.toISOString() ?? null }));
+  return rows.map((r) => ({
+    ...r,
+    createdAt: r.createdAt?.toISOString() ?? null,
+  }));
 }
 
 export async function getRecentDisposisiForUser(
@@ -556,10 +803,7 @@ export async function getRecentDisposisiForUser(
     .innerJoin(suratMasuk, eq(disposisi.suratMasukId, suratMasuk.id))
     .leftJoin(users, eq(disposisi.dariUserId, users.id))
     .where(
-      and(
-        eq(disposisi.kepadaUserId, userId),
-        ne(disposisi.status, "selesai"),
-      ),
+      and(eq(disposisi.kepadaUserId, userId), ne(disposisi.status, "selesai")),
     )
     .orderBy(desc(disposisi.tanggalDisposisi))
     .limit(limit);
@@ -615,7 +859,10 @@ export async function getPendingBatchList(
     )
     .limit(limit);
 
-  return rows.map((r) => ({ ...r, submittedAt: r.submittedAt?.toISOString() ?? null }));
+  return rows.map((r) => ({
+    ...r,
+    submittedAt: r.submittedAt?.toISOString() ?? null,
+  }));
 }
 
 // ─── CACHE TAGS ──────────────────────────────────────────────────────────────
@@ -734,14 +981,11 @@ export async function getRoleDashboardData(
 
   const canPersuratan =
     allAccess || hasAnyCapability(capabilities, PERSURATAN_CAPS);
-  const canSuratMasuk =
-    allAccess || capabilities.includes("surat_masuk:view");
-  const canDisposisi =
-    allAccess || capabilities.includes("disposisi:view");
+  const canSuratMasuk = allAccess || capabilities.includes("surat_masuk:view");
+  const canDisposisi = allAccess || capabilities.includes("disposisi:view");
   const canKepegawaian =
     allAccess || hasAnyCapability(capabilities, KEPEGAWAIAN_CAPS);
-  const canApproveCuti =
-    allAccess || capabilities.includes("cuti:approve");
+  const canApproveCuti = allAccess || capabilities.includes("cuti:approve");
   const canSertifikat =
     allAccess || hasAnyCapability(capabilities, SERTIFIKAT_CAPS);
   const canKeuangan =
@@ -797,7 +1041,9 @@ async function getStatistikUjianInternal() {
     day: "2-digit",
   }).format(now);
 
-  const weekday = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })).getDay();
+  const weekday = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
+  ).getDay();
   const weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - weekday);
   const weekStartStr = weekStart.toISOString().slice(0, 10);
@@ -820,8 +1066,8 @@ async function getStatistikUjianInternal() {
       .where(
         and(
           gte(jadwalUjian.tanggalUjian, weekStartStr),
-          lte(jadwalUjian.tanggalUjian, weekEndStr)
-        )
+          lte(jadwalUjian.tanggalUjian, weekEndStr),
+        ),
       ),
     db
       .select({ count: sql<number>`count(*)::int` })
@@ -829,8 +1075,8 @@ async function getStatistikUjianInternal() {
       .where(
         and(
           gte(jadwalUjian.tanggalUjian, monthStartStr),
-          lte(jadwalUjian.tanggalUjian, monthEndStr)
-        )
+          lte(jadwalUjian.tanggalUjian, monthEndStr),
+        ),
       ),
     db.select({ count: sql<number>`count(*)::int` }).from(pengawas),
   ]);

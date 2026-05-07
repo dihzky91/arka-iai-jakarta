@@ -3,12 +3,20 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
+import { FinanceReportView } from "@/components/keuangan/FinanceReportView";
+import { getFinanceHonorariumRecap } from "@/server/actions/jadwal-otomatis/honorarium";
+import { listInstructors } from "@/server/actions/jadwal-otomatis/instructors";
 
 export const metadata: Metadata = {
   title: "Laporan Keuangan | ARKA",
 };
 
-export default function Page() {
+export default async function Page() {
+  const [recap, instructors] = await Promise.all([
+    getFinanceHonorariumRecap(),
+    listInstructors(),
+  ]);
+
   return (
     <PageWrapper
       title="Laporan & Rekap Keuangan"
@@ -23,16 +31,13 @@ export default function Page() {
         </Button>
       </div>
 
-      <div className="space-y-4 rounded-[28px] border border-border bg-card p-6">
-        <h1 className="text-2xl font-semibold">Laporan Keuangan</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Halaman ini akan menampilkan ringkasan laporan bulanan, rekap per instruktur,
-          dan export data periodik untuk tim keuangan.
-        </p>
-        <div className="rounded-2xl border border-dashed border-border bg-background px-6 py-10 text-center text-sm text-muted-foreground">
-          Pekerjaan tahap 1 selesai: route laporan terpasang dan siap dikembangkan lebih lanjut.
-        </div>
-      </div>
+      <FinanceReportView
+        initialRecap={recap}
+        instructors={instructors.map((instructor) => ({
+          id: instructor.id,
+          name: instructor.name,
+        }))}
+      />
     </PageWrapper>
   );
 }

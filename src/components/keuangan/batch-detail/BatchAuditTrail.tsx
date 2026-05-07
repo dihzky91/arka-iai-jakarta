@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { HonorariumBatchDetail } from "@/server/actions/jadwal-otomatis/honorarium";
+import { formatTanggalWaktuJakarta } from "@/lib/utils";
 
 function actionLabel(action: string) {
   const map: Record<string, string> = {
@@ -26,29 +27,38 @@ export function BatchAuditTrail({
   auditLogs: HonorariumBatchDetail["auditLogs"];
 }) {
   return (
-    <Card className="rounded-[28px]">
+    <Card>
       <CardHeader>
         <CardTitle>Audit Trail</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {auditLogs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
             Belum ada log audit untuk batch ini.
           </div>
         ) : (
           <div className="space-y-3">
             {auditLogs.map((log) => (
-              <div key={log.id} className="rounded-2xl border border-border p-4">
+              <div key={log.id} className="rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">{actionLabel(log.action)}</p>
-                    <p className="text-xs text-muted-foreground">{log.actorName}</p>
+                    <p className="text-sm font-semibold">
+                      {actionLabel(log.action)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {log.actorName}
+                    </p>
                   </div>
-                  <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px]">
-                    {new Date(log.createdAt).toLocaleString("id-ID")}
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full px-3 py-1 text-[11px]"
+                  >
+                    {formatTanggalWaktuJakarta(log.createdAt)}
                   </Badge>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">{JSON.stringify(log.payload ?? {}, null, 2)}</p>
+                <pre className="mt-2 overflow-x-auto rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                  {JSON.stringify(log.payload ?? {}, null, 2)}
+                </pre>
               </div>
             ))}
           </div>
