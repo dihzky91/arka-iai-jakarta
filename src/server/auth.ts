@@ -16,7 +16,7 @@ import {
   buildInviteEmail,
   buildResetPasswordEmail,
   sendEmail,
-} from "@/lib/email/mailjet";
+} from "@/lib/email";
 import { env } from "@/lib/env";
 
 export const auth = betterAuth({

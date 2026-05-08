@@ -10,6 +10,8 @@ import {
   whatsappMessageLogs,
   whatsappMessageTemplates,
 } from "@/server/db/schema";
+import { getSystemSettings } from "@/server/actions/systemSettings";
+import { sendWhatsAppMessage } from "@/lib/whatsapp/sender";
 
 const WHATSAPP_TEMPLATE_KEYS = [
   "offer_schedule_instructor",
@@ -260,4 +262,54 @@ export async function listWhatsappMessageLogsByKelas(kelasId: string, limit = 50
     .where(eq(whatsappMessageLogs.kelasId, kelasId))
     .orderBy(desc(whatsappMessageLogs.sentAt))
     .limit(finalLimit);
+}
+
+const sendViaBaileysSchema = z.object({
+  kelasId: z.string().min(1),
+  templateKey: z.enum(WHATSAPP_TEMPLATE_KEYS),
+  recipientRole: z.enum(["instructor", "finance"]),
+  recipientName: z.string().trim().max(200).optional().or(z.literal("")),
+  recipientWhatsappNumber: z.string().trim().max(30).min(1),
+  messageContent: z.string().trim().min(5).max(5000),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export async function sendWhatsappViaBot(input: unknown) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+
+  const settings = await getSystemSettings();
+  if (!settings.whatsappBotEnabled) {
+    return { ok: false as const, error: "WhatsApp Bot dinonaktifkan di pengaturan sistem." };
+  }
+
+  const parsed = sendViaBaileysSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Data tidak valid.",
+    };
+  }
+
+  const sendResult = await sendWhatsAppMessage(
+    parsed.data.recipientWhatsappNumber,
+    parsed.data.messageContent,
+  );
+
+  if (!sendResult.ok) {
+    return { ok: false as const, error: sendResult.error };
+  }
+
+  await db.insert(whatsappMessageLogs).values({
+    kelasId: parsed.data.kelasId,
+    templateKey: parsed.data.templateKey,
+    recipientRole: parsed.data.recipientRole,
+    recipientName: parsed.data.recipientName || null,
+    recipientWhatsappNumber: parsed.data.recipientWhatsappNumber,
+    messageContent: parsed.data.messageContent,
+    metadata: { ...(parsed.data.metadata ?? {}), sentViaBaileys: true, messageId: sendResult.messageId },
+    sentBy: session.user.id,
+  });
+
+  revalidatePath(`/jadwal-otomatis/${parsed.data.kelasId}`);
+  return { ok: true as const };
 }

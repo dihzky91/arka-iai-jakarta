@@ -260,6 +260,13 @@
       "when": 1746362400000,
       "tag": "0042_absensi_dingtalk_unlinked",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1778231639275,
+      "tag": "0043_jittery_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

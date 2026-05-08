@@ -29,6 +29,7 @@ import {
 
 interface Props {
   isAdmin: boolean;
+  emailProvider: "mailjet" | "brevo";
 }
 
 type TestResult =
@@ -36,7 +37,8 @@ type TestResult =
   | { status: "ok"; message: string }
   | { status: "error"; message: string };
 
-export function TestConnectionCard({ isAdmin }: Props) {
+export function TestConnectionCard({ isAdmin, emailProvider }: Props) {
+  const emailLabel = emailProvider === "brevo" ? "Brevo" : "Mailjet";
   return (
     <Card className="rounded-[24px]">
       <CardHeader>
@@ -61,7 +63,7 @@ export function TestConnectionCard({ isAdmin }: Props) {
           <>
             <TestRow
               icon={Mail}
-              label="Email (Mailjet)"
+              label={`Email (${emailLabel})`}
               description="Kirim email test ke alamat email login Anda."
               action={testEmailConnection}
               actionLabel="Kirim Email Test"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, SlidersHorizontal } from "lucide-react";
+import { Loader2, Mail, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import type { SystemSettingsRow } from "@/server/actions/systemSettings";
 import { updateSystemConfig } from "@/server/actions/systemConfig";
+import { env } from "@/lib/env";
 
 interface Props {
   initial: SystemSettingsRow;
@@ -28,9 +29,20 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
     initial.defaultDisposisiDeadlineDays,
   );
   const [emailEnabled, setEmailEnabled] = useState(initial.notificationEmailEnabled);
+  const [whatsappBotEnabled, setWhatsappBotEnabled] = useState(initial.whatsappBotEnabled);
   const [financeContactName, setFinanceContactName] = useState(initial.financeContactName ?? "");
   const [financeWhatsappNumber, setFinanceWhatsappNumber] = useState(
     initial.financeWhatsappNumber ?? "",
+  );
+  const [emailProvider, setEmailProvider] = useState<"mailjet" | "brevo">(
+    initial.emailProvider,
+  );
+
+  const mailjetReady = Boolean(
+    env.MAILJET_API_KEY && env.MAILJET_API_SECRET && env.MAILJET_FROM_EMAIL && env.MAILJET_FROM_NAME,
+  );
+  const brevoReady = Boolean(
+    env.BREVO_API_KEY && env.BREVO_FROM_EMAIL && env.BREVO_FROM_NAME,
   );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -39,6 +51,8 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
       const result = await updateSystemConfig({
         defaultDisposisiDeadlineDays: defaultDeadline,
         notificationEmailEnabled: emailEnabled,
+        whatsappBotEnabled,
+        emailProvider,
         financeContactName: financeContactName.trim() || null,
         financeWhatsappNumber: financeWhatsappNumber.trim() || null,
       });
@@ -113,7 +127,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                     id="financeContactName"
                     value={financeContactName}
                     onChange={(event) => setFinanceContactName(event.target.value)}
-                    placeholder="Mis. Tim Keuangan Pusat"
+                    placeholder="Mis. Divisi Keuangan"
                     maxLength={200}
                   />
                 </div>
@@ -127,6 +141,69 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                     maxLength={30}
                   />
                 </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">
+                  Email Provider
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Pilih layanan pengiriman email. Kredensial masing-masing provider
+                dikonfigurasi melalui environment variable.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailProvider("mailjet")}
+                  className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors ${
+                    emailProvider === "mailjet"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
+                      emailProvider === "mailjet" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    MJ
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Mailjet</p>
+                    <p className={`text-xs ${mailjetReady ? "text-emerald-600" : "text-amber-600"}`}>
+                      {mailjetReady ? "✓ Siap" : "⚠ Belum dikonfigurasi"}
+                    </p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEmailProvider("brevo")}
+                  className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors ${
+                    emailProvider === "brevo"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-background hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
+                      emailProvider === "brevo" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    BV
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Brevo</p>
+                    <p className={`text-xs ${brevoReady ? "text-emerald-600" : "text-amber-600"}`}>
+                      {brevoReady ? "✓ Siap" : "⚠ Belum dikonfigurasi"}
+                    </p>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -154,6 +231,34 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                 <span
                   className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
                     emailEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <Label className="text-sm font-medium">
+                  WhatsApp Bot (Baileys)
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Aktifkan untuk kirim pesan WA langsung dari server (tanpa buka HP).
+                  Membutuhkan koneksi Baileys aktif. Nonaktifkan jika bot sedang
+                  tidak terhubung — tombol kirim otomatis akan disembunyikan.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={whatsappBotEnabled}
+                onClick={() => setWhatsappBotEnabled((v) => !v)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  whatsappBotEnabled ? "bg-primary" : "bg-muted-foreground/25"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    whatsappBotEnabled ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
               </button>

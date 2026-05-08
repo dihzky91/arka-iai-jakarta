@@ -8,7 +8,7 @@ import path from "node:path";
 import QRCode from "qrcode";
 import JSZip from "jszip";
 import { buildCertificatePdf } from "@/lib/pdf/certificate";
-import { sendEmail } from "@/lib/email/mailjet";
+import { sendEmail } from "@/lib/email";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
 import {

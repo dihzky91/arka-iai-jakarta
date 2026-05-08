@@ -21,6 +21,7 @@ import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { KonfigurasiSistemCard } from "./KonfigurasiSistemCard";
 import { TestConnectionCard } from "./TestConnectionCard";
+import { WhatsappBotStatusCard } from "./WhatsappBotStatusCard";
 import type { SystemSettingsRow } from "@/server/actions/systemSettings";
 import { WhatsappTemplateSettingsCard } from "./WhatsappTemplateSettingsCard";
 import type { WhatsappTemplateRow } from "@/server/actions/jadwal-otomatis/whatsapp";
@@ -67,6 +68,13 @@ export function SistemStatusSection({
       env.MAILJET_FROM_EMAIL &&
       env.MAILJET_FROM_NAME,
   );
+  const brevoReady = Boolean(
+    env.BREVO_API_KEY && env.BREVO_FROM_EMAIL && env.BREVO_FROM_NAME,
+  );
+
+  const activeEmailProvider = systemSettings.emailProvider;
+  const activeEmailReady = activeEmailProvider === "brevo" ? brevoReady : mailjetReady;
+  const emailLabel = activeEmailProvider === "brevo" ? "Brevo" : "Mailjet";
 
   const storageItems: StatusItem[] = [
     {
@@ -104,10 +112,26 @@ export function SistemStatusSection({
         "Keputusan penggunaan Cloudinary tidak wajib menjadi blocker selama provider storage lain masih dipakai.",
     },
     {
+      label: `Email ${emailLabel} (aktif)`,
+      value: activeEmailReady ? "Siap" : "Belum lengkap",
+      tone: activeEmailReady ? "ready" : "warning",
+      detail: `Provider email aktif: ${emailLabel}. Dipakai untuk notifikasi disposisi dan komunikasi sistem.`,
+    },
+    {
       label: "Email Mailjet",
-      value: mailjetReady ? "Siap" : "Belum lengkap",
-      tone: mailjetReady ? "ready" : "warning",
-      detail: "Dipakai untuk notifikasi disposisi dan komunikasi sistem.",
+      value: mailjetReady ? "Siap" : "Belum dikonfigurasi",
+      tone: mailjetReady ? "ready" : "neutral",
+      detail: mailjetReady
+        ? "Kredensial Mailjet lengkap."
+        : "Env Mailjet belum lengkap. Tersedia sebagai opsi jika dikonfigurasi.",
+    },
+    {
+      label: "Email Brevo",
+      value: brevoReady ? "Siap" : "Belum dikonfigurasi",
+      tone: brevoReady ? "ready" : "neutral",
+      detail: brevoReady
+        ? "Kredensial Brevo lengkap."
+        : "Env Brevo belum lengkap. Tersedia sebagai opsi jika dikonfigurasi.",
     },
   ];
 
@@ -138,7 +162,14 @@ export function SistemStatusSection({
     <div className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-2">
         <KonfigurasiSistemCard initial={systemSettings} isAdmin={isAdmin} />
-        <TestConnectionCard isAdmin={isAdmin} />
+        <TestConnectionCard isAdmin={isAdmin} emailProvider={systemSettings.emailProvider} />
+      </section>
+
+      <section>
+        <WhatsappBotStatusCard
+          enabled={systemSettings.whatsappBotEnabled}
+          fonnteConfigured={Boolean(env.FONNTE_TOKEN)}
+        />
       </section>
 
       <section>

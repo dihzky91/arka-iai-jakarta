@@ -55,6 +55,7 @@ export function JadwalDetail({
   honorariumSnapshot,
   whatsappTemplates,
   whatsappLogs,
+  whatsappBotEnabled,
   mode = "full",
 }: JadwalDetailProps) {
   const router = useRouter();
@@ -468,6 +469,7 @@ export function JadwalDetail({
             canManage={canManage}
             templates={whatsappTemplates}
             logs={whatsappLogs}
+            whatsappBotEnabled={whatsappBotEnabled}
           />
         </>
       )}

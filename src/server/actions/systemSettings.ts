@@ -24,6 +24,8 @@ export type SystemSettingsRow = {
   financeWhatsappNumber: string | null;
   defaultDisposisiDeadlineDays: number;
   notificationEmailEnabled: boolean;
+  whatsappBotEnabled: boolean;
+  emailProvider: "mailjet" | "brevo";
   updatedAt: Date | null;
 };
 
@@ -37,6 +39,8 @@ const FALLBACK: SystemSettingsRow = {
   financeWhatsappNumber: null,
   defaultDisposisiDeadlineDays: 7,
   notificationEmailEnabled: true,
+  whatsappBotEnabled: false,
+  emailProvider: "mailjet",
   updatedAt: null,
 };
 
@@ -111,6 +115,8 @@ export const getSystemSettings = cache(async (): Promise<SystemSettingsRow> => {
         defaultDisposisiDeadlineDays:
           systemSettings.defaultDisposisiDeadlineDays,
         notificationEmailEnabled: systemSettings.notificationEmailEnabled,
+        whatsappBotEnabled: systemSettings.whatsappBotEnabled,
+        emailProvider: systemSettings.emailProvider,
         updatedAt: systemSettings.updatedAt,
       })
       .from(systemSettings)

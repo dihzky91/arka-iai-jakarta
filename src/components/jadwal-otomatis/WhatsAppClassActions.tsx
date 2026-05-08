@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { APP_TIME_ZONE, parseIsoDateInJakarta } from "@/lib/utils";
 import {
   createWhatsappMessageLog,
+  sendWhatsappViaBot,
   type WhatsappTemplateKey,
 } from "@/server/actions/jadwal-otomatis/whatsapp";
 import {
@@ -95,6 +96,7 @@ interface WhatsAppClassActionsProps {
   }>;
   logs: WhatsappLogRow[];
   canManage: boolean;
+  whatsappBotEnabled: boolean;
 }
 
 const TEMPLATE_FALLBACK: Record<WhatsappTemplateKey, string> = {
@@ -152,12 +154,14 @@ export function WhatsAppClassActions({
   templates,
   logs,
   canManage,
+  whatsappBotEnabled,
 }: WhatsAppClassActionsProps) {
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewPayload | null>(null);
   const [saveFinancePending, startSaveFinance] = useTransition();
   const [sendPending, startSend] = useTransition();
+  const [sendDirectPending, startSendDirect] = useTransition();
   const [financeContactNameDraft, setFinanceContactNameDraft] = useState(
     kelas.financeContactNameOverride ?? "",
   );
@@ -399,6 +403,30 @@ export function WhatsAppClassActions({
     });
   }
 
+  function handleSendDirect() {
+    if (!preview || !preview.recipientWhatsappNumber) return;
+
+    startSendDirect(async () => {
+      const result = await sendWhatsappViaBot({
+        kelasId: kelas.id,
+        templateKey: preview.templateKey,
+        recipientRole: preview.recipientRole,
+        recipientName: preview.recipientName,
+        recipientWhatsappNumber: preview.recipientWhatsappNumber!,
+        messageContent: preview.message,
+        metadata: preview.metadata ?? {},
+      });
+
+      if (!result.ok) {
+        toast.error(result.error ?? "Gagal kirim via bot WhatsApp.");
+        return;
+      }
+
+      setDialogOpen(false);
+      toast.success("Pesan terkirim langsung via bot WhatsApp.");
+    });
+  }
+
   return (
     <>
       <Card className="rounded-[28px]">
@@ -532,10 +560,20 @@ export function WhatsAppClassActions({
             <DialogDescription>{preview?.description ?? ""}</DialogDescription>
           </DialogHeader>
           <Textarea value={preview?.message ?? ""} readOnly className="min-h-[260px]" />
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Tutup
             </Button>
+            {whatsappBotEnabled && preview?.recipientWhatsappNumber ? (
+              <Button
+                variant="secondary"
+                onClick={handleSendDirect}
+                disabled={sendDirectPending}
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                {sendDirectPending ? "Mengirim..." : "Kirim Langsung (Bot)"}
+              </Button>
+            ) : null}
             {preview?.waLink ? (
               <Button onClick={handleSendWhatsapp} disabled={sendPending}>
                 <MessageCircle className="mr-2 h-4 w-4" />

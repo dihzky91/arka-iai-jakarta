@@ -7,7 +7,7 @@ import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
 import { systemSettings, auditLog } from "@/server/db/schema";
 import { requirePermission, requireSession } from "./auth";
-import { sendEmail } from "@/lib/email/mailjet";
+import { sendEmail, getActiveEmailProvider, getMissingEmailEnv, isEmailProviderReady } from "@/lib/email";
 import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
 import { APP_BRAND_FULL_NAME } from "@/lib/branding";
@@ -17,6 +17,8 @@ import { APP_BRAND_FULL_NAME } from "@/lib/branding";
 const configSchema = z.object({
   defaultDisposisiDeadlineDays: z.number().int().min(0).max(365),
   notificationEmailEnabled: z.boolean(),
+  whatsappBotEnabled: z.boolean(),
+  emailProvider: z.enum(["mailjet", "brevo"]),
   financeContactName: z.string().trim().max(200).optional().nullable(),
   financeWhatsappNumber: z.string().trim().max(30).optional().nullable(),
 });
@@ -36,6 +38,8 @@ export async function updateSystemConfig(input: unknown) {
   const normalizedConfig = {
     defaultDisposisiDeadlineDays: parsed.data.defaultDisposisiDeadlineDays,
     notificationEmailEnabled: parsed.data.notificationEmailEnabled,
+    whatsappBotEnabled: parsed.data.whatsappBotEnabled,
+    emailProvider: parsed.data.emailProvider,
     financeContactName,
     financeWhatsappNumber,
   };
@@ -75,43 +79,42 @@ export async function updateSystemConfig(input: unknown) {
   return { ok: true as const };
 }
 
-// â”€â”€â”€ Test connections (admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Test connections (admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function testEmailConnection() {
   const session = await requirePermission("pengaturan", "configure");
 
-  // Pre-flight check â€” sendEmail silently returns on missing env, jadi kita
-  // harus cek manual supaya test action tidak false-positive.
-  const missing: string[] = [];
-  if (!env.MAILJET_API_KEY) missing.push("MAILJET_API_KEY");
-  if (!env.MAILJET_API_SECRET) missing.push("MAILJET_API_SECRET");
-  if (!env.MAILJET_FROM_EMAIL) missing.push("MAILJET_FROM_EMAIL");
-  if (!env.MAILJET_FROM_NAME) missing.push("MAILJET_FROM_NAME");
+  const provider = await getActiveEmailProvider();
+  const missing = getMissingEmailEnv(provider);
+
   if (missing.length > 0) {
+    const label = provider === "brevo" ? "Brevo" : "Mailjet";
     return {
       ok: false as const,
-      error: `Mailjet belum dikonfigurasi. Env hilang: ${missing.join(", ")}.`,
+      error: `${label} belum dikonfigurasi. Env hilang: ${missing.join(", ")}.`,
     };
   }
+
+  const label = provider === "brevo" ? "Brevo" : "Mailjet";
 
   try {
     await sendEmail({
       to: session.user.email,
       toName: session.user.name ?? "Admin",
-      subject: `[TEST] Koneksi Mailjet - ${APP_BRAND_FULL_NAME}`,
+      subject: `[TEST] Koneksi ${label} - ${APP_BRAND_FULL_NAME}`,
       htmlBody: `
         <h2>Test Email Berhasil</h2>
         <p>Halo ${session.user.name ?? "Admin"},</p>
-        <p>Email ini dikirim dari halaman Pengaturan untuk memverifikasi koneksi Mailjet.</p>
-        <p>Jika Anda menerima email ini, integrasi Mailjet sudah siap digunakan.</p>
+        <p>Email ini dikirim dari halaman Pengaturan untuk memverifikasi koneksi ${label}.</p>
+        <p>Jika Anda menerima email ini, integrasi ${label} sudah siap digunakan.</p>
         <hr/>
         <p><small>Dikirim pada ${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB</small></p>
       `,
-      textBody: `Test Email Berhasil\n\nHalo ${session.user.name ?? "Admin"},\nEmail ini dikirim dari halaman Pengaturan untuk memverifikasi koneksi Mailjet.\n\nDikirim ${new Date().toISOString()}`,
+      textBody: `Test Email Berhasil\n\nHalo ${session.user.name ?? "Admin"},\nEmail ini dikirim dari halaman Pengaturan untuk memverifikasi koneksi ${label}.\n\nDikirim ${new Date().toISOString()}`,
     });
     return {
       ok: true as const,
-      message: `Email test terkirim ke ${session.user.email}. Cek inbox Anda.`,
+      message: `Email test terkirim ke ${session.user.email} via ${label}. Cek inbox Anda.`,
     };
   } catch (e) {
     return {

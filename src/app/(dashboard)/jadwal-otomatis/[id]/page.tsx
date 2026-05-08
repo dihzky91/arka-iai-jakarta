@@ -19,6 +19,7 @@ import {
   listWhatsappTemplatesForClassActions,
 } from "@/server/actions/jadwal-otomatis/whatsapp";
 import { getSession } from "@/server/actions/auth";
+import { getSystemSettings } from "@/server/actions/systemSettings";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -49,6 +50,7 @@ export default async function Page({ params }: Props) {
     whatsappTemplates,
     whatsappLogs,
     session,
+    systemSettings,
   ] = await Promise.all([
     getSessionsByKelas(id),
     getAssignmentsByKelas(id),
@@ -59,10 +61,12 @@ export default async function Page({ params }: Props) {
     listWhatsappTemplatesForClassActions(),
     listWhatsappMessageLogsByKelas(id, 30),
     getSession(),
+    getSystemSettings(),
   ]);
 
   const role = (session?.user as { role?: string } | undefined)?.role;
   const canManage = role === "admin" || role === "staff";
+  const whatsappBotEnabled = systemSettings.whatsappBotEnabled;
   const hasExamSessions = sessions.some((s) => s.isExamDay);
 
   const kelasProp = {
@@ -99,6 +103,7 @@ export default async function Page({ params }: Props) {
             honorariumSnapshot={honorariumSnapshot}
             whatsappTemplates={whatsappTemplates}
             whatsappLogs={whatsappLogs}
+            whatsappBotEnabled={whatsappBotEnabled}
           />
         </TabsContent>
 
@@ -114,6 +119,7 @@ export default async function Page({ params }: Props) {
             honorariumSnapshot={honorariumSnapshot}
             whatsappTemplates={whatsappTemplates}
             whatsappLogs={whatsappLogs}
+            whatsappBotEnabled={whatsappBotEnabled}
           />
         </TabsContent>
 
@@ -129,6 +135,7 @@ export default async function Page({ params }: Props) {
             honorariumSnapshot={honorariumSnapshot}
             whatsappTemplates={whatsappTemplates}
             whatsappLogs={whatsappLogs}
+            whatsappBotEnabled={whatsappBotEnabled}
           />
         </TabsContent>
 

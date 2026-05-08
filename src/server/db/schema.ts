@@ -525,6 +525,10 @@ export const auditLog = pgTable("audit_log", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── EMAIL PROVIDER ────────────────────────────────────────────────────────────
+
+export const emailProviderEnum = pgEnum("email_provider", ["mailjet", "brevo"]);
+
 // ─── SYSTEM SETTINGS ─────────────────────────────────────────────────────────
 // Singleton row — aplikasi hanya punya satu baris konfigurasi identitas sistem.
 
@@ -543,6 +547,10 @@ export const systemSettings = pgTable("system_settings", {
   notificationEmailEnabled: boolean("notification_email_enabled")
     .default(true)
     .notNull(),
+  whatsappBotEnabled: boolean("whatsapp_bot_enabled")
+    .default(false)
+    .notNull(),
+  emailProvider: emailProviderEnum("email_provider").default("mailjet").notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
   updatedBy: text("updated_by").references(() => users.id),
 });

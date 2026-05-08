@@ -13,7 +13,7 @@ import {
   disposisiUpdateStatusSchema,
 } from "@/lib/validators/disposisi.schema";
 import { requirePermission, requireSession } from "./auth";
-import { sendEmail, buildDisposisiEmail } from "@/lib/email/mailjet";
+import { sendEmail, buildDisposisiEmail } from "@/lib/email";
 import { markSuratMasukDiproses } from "./suratMasuk";
 import { notifyDisposisiBaru, notifyDisposisiDeadline } from "./notifications";
 import { syncDisposisiDeadline } from "./calendar";

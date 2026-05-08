@@ -89,6 +89,7 @@ export interface JadwalDetailProps {
     sentAt: Date;
     sentByName: string | null;
   }>;
+  whatsappBotEnabled: boolean;
   mode?: "informasi" | "jadwal" | "instruktur" | "full";
 }
 
