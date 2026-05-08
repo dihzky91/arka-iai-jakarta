@@ -77,6 +77,7 @@ export const JENIS_SURAT_LABEL: Record<string, string> = {
   edaran: "Edaran",
   keterangan: "Keterangan",
   tugas: "Tugas",
+  invoice: "Invoice",
   lainnya: "Lainnya",
 };
 

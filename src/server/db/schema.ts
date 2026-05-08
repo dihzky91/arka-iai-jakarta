@@ -56,6 +56,7 @@ export const jenisSuratEnum = pgEnum("jenis_surat", [
   "edaran",
   "keterangan",
   "tugas",
+  "invoice",
   "lainnya",
 ]);
 
@@ -1202,6 +1203,99 @@ export const userInvitations = pgTable(
   }),
 );
 
+// ─── INVOICE ─────────────────────────────────────────────────────────────────
+// Nomor invoice = nomor surat (dialokasikan via allocateNomorSurat, jenisSurat="invoice")
+
+export const statusInvoiceEnum = pgEnum("status_invoice", [
+  "draft",
+  "terbit",
+  "dibatalkan",
+]);
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    nomorSurat: varchar("nomor_surat", { length: 200 }).unique(),
+    tanggalInvoice: date("tanggal_invoice").notNull(),
+    perihal: varchar("perihal", { length: 300 }).notNull(),
+    kepada: varchar("kepada", { length: 300 }).notNull(),
+    kepadaAlamat: text("kepada_alamat"),
+    items: jsonb("items").notNull(), // [{deskripsi, kuantitas, satuan, hargaSatuan, total}]
+    subtotal: numeric("subtotal", { precision: 14, scale: 2 }).notNull(),
+    pajakPersen: numeric("pajak_persen", { precision: 5, scale: 2 }).default("0"),
+    pajakAmount: numeric("pajak_amount", { precision: 14, scale: 2 }).default("0"),
+    total: numeric("total", { precision: 14, scale: 2 }).notNull(),
+    catatan: text("catatan"),
+    status: statusInvoiceEnum("status").default("draft"),
+    fileUrl: text("file_url"),
+    dibuatOleh: text("dibuat_oleh").references(() => users.id),
+    pejabatId: integer("pejabat_id").references(() => pejabatPenandatangan.id),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    index("inv_status_idx").on(t.status),
+    index("inv_tanggal_idx").on(t.tanggalInvoice),
+  ],
+);
+
+// ─── KUITANSI ──────────────────────────────────────────────────────────────────
+// Penomoran berdiri sendiri, terpisah dari sistem nomor surat.
+
+export const kuitansiCounter = pgTable(
+  "kuitansi_counter",
+  {
+    id: serial("id").primaryKey(),
+    tahun: integer("tahun").notNull(),
+    bulan: integer("bulan").notNull(),
+    counter: integer("counter").default(0).notNull(),
+    prefix: varchar("prefix", { length: 80 }).default("KWT"),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    uniqPeriod: uniqueIndex("kuitansi_counter_period_uniq").on(
+      t.tahun,
+      t.bulan,
+    ),
+  }),
+);
+
+export const statusKuitansiEnum = pgEnum("status_kuitansi", [
+  "draft",
+  "terbit",
+  "dibatalkan",
+]);
+
+export const kuitansi = pgTable(
+  "kuitansi",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    nomorKuitansi: varchar("nomor_kuitansi", { length: 200 }).unique(),
+    tanggalKuitansi: date("tanggal_kuitansi").notNull(),
+    diterimaDari: varchar("diterima_dari", { length: 300 }).notNull(),
+    uraian: text("uraian").notNull(),
+    jumlah: numeric("jumlah", { precision: 14, scale: 2 }).notNull(),
+    terbilang: text("terbilang"),
+    untukPembayaran: varchar("untuk_pembayaran", { length: 300 }).notNull(),
+    catatan: text("catatan"),
+    status: statusKuitansiEnum("status").default("draft"),
+    fileUrl: text("file_url"),
+    dibuatOleh: text("dibuat_oleh").references(() => users.id),
+    pejabatId: integer("pejabat_id").references(() => pejabatPenandatangan.id),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    index("kwt_status_idx").on(t.status),
+    index("kwt_tanggal_idx").on(t.tanggalKuitansi),
+  ],
+);
+
 // ─── TYPE EXPORTS ────────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -2297,3 +2391,11 @@ export type CertificateBatch = typeof certificateBatches.$inferSelect;
 export type NewCertificateBatch = typeof certificateBatches.$inferInsert;
 export type CertificateItem = typeof certificateItems.$inferSelect;
 export type NewCertificateItem = typeof certificateItems.$inferInsert;
+
+// ─── TYPE EXPORTS (Invoice & Kuitansi) ────────────────────────────────────────
+
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+export type KuitansiCounter = typeof kuitansiCounter.$inferSelect;
+export type Kuitansi = typeof kuitansi.$inferSelect;
+export type NewKuitansi = typeof kuitansi.$inferInsert;

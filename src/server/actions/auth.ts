@@ -35,7 +35,9 @@ export type PermissionModule =
   | "profile"
   | "manajemenUser"
   | "absensi"
-  | "cuti";
+  | "cuti"
+  | "invoice"
+  | "kuitansi";
 
 export type PermissionAction =
   | "view"
@@ -203,6 +205,22 @@ const PERMISSION_TO_CAPABILITY: Record<
     update: "cuti:update",
     approve: "cuti:approve",
     manage: "cuti:approve",
+  },
+  invoice: {
+    view: "invoice:view",
+    create: "invoice:create",
+    update: "invoice:edit",
+    delete: "invoice:delete",
+    assign: "invoice:assign",
+    manage: "invoice:manage",
+  },
+  kuitansi: {
+    view: "kuitansi:view",
+    create: "kuitansi:create",
+    update: "kuitansi:edit",
+    delete: "kuitansi:delete",
+    assign: "kuitansi:assign",
+    manage: "kuitansi:manage",
   },
 };
 
