@@ -324,6 +324,7 @@ export function ProjectManager({
               <TableHead>Project</TableHead>
               <TableHead>Tipe</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Progress</TableHead>
               <TableHead>Tanggal</TableHead>
               <TableHead>SKP</TableHead>
               <TableHead>Tim</TableHead>
@@ -359,6 +360,17 @@ export function ProjectManager({
                   <Badge variant="outline" className={statusClass(project.status)}>
                     {statusLabel(project.status)}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${project.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground">{project.progress}%</span>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="flex items-center gap-2 text-sm text-muted-foreground">

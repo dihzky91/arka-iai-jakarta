@@ -102,6 +102,12 @@ export const projectTypeEnum = pgEnum("project_type", [
 
 export const statusPesertaEnum = pgEnum("status_peserta", ["aktif", "dicabut"]);
 
+export const projectTaskStatusEnum = pgEnum("project_task_status", [
+  "todo",
+  "in_progress",
+  "done",
+]);
+
 export type TemplateFieldKey =
   | "namaPeserta"
   | "noSertifikat"
@@ -791,6 +797,7 @@ export const projects = pgTable(
     eventId: integer("event_id").references(() => events.id, {
       onDelete: "set null",
     }),
+    progress: integer("progress").notNull().default(0),
     createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
@@ -934,6 +941,56 @@ export const projectActivityLog = pgTable(
   (t) => ({
     projectIdx: index("project_activity_project_idx").on(t.projectId),
     createdAtIdx: index("project_activity_created_at_idx").on(t.createdAt),
+  }),
+);
+
+export const projectMilestones = pgTable(
+  "project_milestones",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    targetDate: date("target_date"),
+    isCompleted: boolean("is_completed").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_milestones_project_idx").on(t.projectId),
+  }),
+);
+
+export const projectTasks = pgTable(
+  "project_tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    assigneeId: text("assignee_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: projectTaskStatusEnum("status").notNull().default("todo"),
+    dueDate: date("due_date"),
+    milestoneId: uuid("milestone_id").references(() => projectMilestones.id, {
+      onDelete: "set null",
+    }),
+    relatedEntityType: varchar("related_entity_type", { length: 50 }),
+    relatedEntityId: varchar("related_entity_id", { length: 100 }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_tasks_project_idx").on(t.projectId),
+    assigneeIdx: index("project_tasks_assignee_idx").on(t.assigneeId),
+    statusIdx: index("project_tasks_status_idx").on(t.status),
+    milestoneIdx: index("project_tasks_milestone_idx").on(t.milestoneId),
   }),
 );
 
@@ -1345,6 +1402,10 @@ export type ProjectFile = typeof projectFiles.$inferSelect;
 export type NewProjectFile = typeof projectFiles.$inferInsert;
 export type ProjectActivityLog = typeof projectActivityLog.$inferSelect;
 export type NewProjectActivityLog = typeof projectActivityLog.$inferInsert;
+export type ProjectTask = typeof projectTasks.$inferSelect;
+export type NewProjectTask = typeof projectTasks.$inferInsert;
+export type ProjectMilestone = typeof projectMilestones.$inferSelect;
+export type NewProjectMilestone = typeof projectMilestones.$inferInsert;
 export type NewSignatory = typeof signatories.$inferInsert;
 export type EventSignatory = typeof eventSignatories.$inferSelect;
 export type NewEventSignatory = typeof eventSignatories.$inferInsert;

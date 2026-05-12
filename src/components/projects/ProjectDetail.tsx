@@ -41,6 +41,8 @@ import {
   listComments,
   listProjectActivity,
   listProjectFiles,
+  listProjectTasks,
+  listProjectMilestones,
   searchUsersForInvite,
   updateMemberRole,
   removeProjectMember,
@@ -52,7 +54,11 @@ import {
   type ProjectDetailRow,
   type ProjectFileRow,
   type ProjectMemberRow,
+  type ProjectTaskRow,
+  type ProjectMilestoneRow,
 } from "@/server/actions/projects";
+import { TaskSection } from "@/components/projects/TaskSection";
+import { MilestoneSection } from "@/components/projects/MilestoneSection";
 
 function statusLabel(status: ProjectStatus) {
   const labels: Record<ProjectStatus, string> = {
@@ -80,17 +86,23 @@ function canContribute(role: ProjectMemberRole | "admin") {
 
 export function ProjectDetail({
   project,
+  currentUserId,
   initialMembers,
   initialComments,
   initialFiles,
   initialActivity,
+  initialTasks,
+  initialMilestones,
   defaultTab = "overview",
 }: {
   project: ProjectDetailRow;
+  currentUserId: string;
   initialMembers: ProjectMemberRow[];
   initialComments: ProjectCommentRow[];
   initialFiles: ProjectFileRow[];
   initialActivity: ProjectActivityRow[];
+  initialTasks: ProjectTaskRow[];
+  initialMilestones: ProjectMilestoneRow[];
   defaultTab?: string;
 }) {
   const [status, setStatus] = useState(project.status);
@@ -98,22 +110,28 @@ export function ProjectDetail({
   const [comments, setComments] = useState(initialComments);
   const [files, setFiles] = useState(initialFiles);
   const [activity, setActivity] = useState(initialActivity);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [milestones, setMilestones] = useState(initialMilestones);
   const [isPending, startTransition] = useTransition();
   const role = project.currentUserProjectRole;
 
   function refreshAll() {
     startTransition(async () => {
-      const [nextMembers, nextComments, nextFiles, nextActivity] =
+      const [nextMembers, nextComments, nextFiles, nextActivity, nextTasks, nextMilestones] =
         await Promise.all([
           getProjectMembers(project.id),
           listComments(project.id),
           listProjectFiles(project.id),
           listProjectActivity(project.id),
+          listProjectTasks(project.id),
+          listProjectMilestones(project.id),
         ]);
       setMembers(nextMembers);
       setComments(nextComments);
       setFiles(nextFiles);
       setActivity(nextActivity);
+      setTasks(nextTasks);
+      setMilestones(nextMilestones);
     });
   }
 
@@ -157,6 +175,18 @@ export function ProjectDetail({
               <span>{members.length} anggota</span>
               <span>{files.length} file</span>
               <span>{comments.length} komentar</span>
+              <span>{tasks.length} task</span>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="h-2 w-40 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${project.progress}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                {project.progress}%
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -184,6 +214,7 @@ export function ProjectDetail({
       <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList className="flex w-full flex-wrap justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="comments">Comments</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
@@ -191,6 +222,27 @@ export function ProjectDetail({
         </TabsList>
         <TabsContent value="overview">
           <Overview project={project} />
+        </TabsContent>
+        <TabsContent value="tasks">
+          <div className="space-y-4">
+            <MilestoneSection
+              projectId={project.id}
+              milestones={milestones}
+              canManage={canManage(role)}
+              onRefresh={refreshAll}
+              pending={isPending}
+            />
+            <TaskSection
+              projectId={project.id}
+              tasks={tasks}
+              members={members}
+              milestones={milestones}
+              canManage={canManage(role)}
+              currentUserId={currentUserId}
+              onRefresh={refreshAll}
+              pending={isPending}
+            />
+          </div>
         </TabsContent>
         <TabsContent value="comments">
           <CommentSection
