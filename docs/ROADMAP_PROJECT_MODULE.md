@@ -61,60 +61,60 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 
 #### 1.1 Database Schema
 
-- [ ] Migration: tabel `project_tasks`
+- [x] Migration: tabel `project_tasks`
   - `id`, `project_id`, `title`, `description`, `assignee_id`, `status`, `due_date`, `milestone_id`, `related_entity_type`, `related_entity_id`, `created_by`, `created_at`, `updated_at`
-- [ ] Migration: tabel `project_milestones`
+- [x] Migration: tabel `project_milestones`
   - `id`, `project_id`, `title`, `target_date`, `is_completed`, `created_at`
-- [ ] Migration: kolom `progress` di `projects` (integer default 0)
-- [ ] Update `projectFiles` FK cascade check (sudah ada, verifikasi)
-- [ ] Update TypeScript type exports (`src/server/db/schema.ts` lines 1301–1374)
-- [ ] Drizzle schema declaration + relations
+- [x] Migration: kolom `progress` di `projects` (integer default 0)
+- [x] Update `projectFiles` FK cascade check (sudah ada, verifikasi)
+- [x] Update TypeScript type exports (`src/server/db/schema.ts` lines 1301–1374)
+- [x] Drizzle schema declaration + relations
 
 #### 1.2 Server Actions (`src/server/actions/projects.ts`)
 
-- [ ] `createProjectTask(projectId, data)` — CRUD task
-- [ ] `updateProjectTask(id, data)` — edit title, assignee, due date, status
-- [ ] `deleteProjectTask(id)` — soft delete atau hard delete (pilih hard, cascade)
-- [ ] `listProjectTasks(projectId)` — list dengan join ke users (assignee)
-- [ ] `createProjectMilestone(projectId, data)` — CRUD milestone
-- [ ] `updateProjectMilestone(id, data)` — edit title, target_date, toggle complete
-- [ ] `deleteProjectMilestone(id)`
-- [ ] `listProjectMilestones(projectId)`
-- [ ] `recalculateProjectProgress(projectId)` — auto `progress = completed_tasks / total_tasks * 100` (atau milestone-based)
-- [ ] Activity log hooks: log saat task created, updated, completed, deleted
+- [x] `createProjectTask(projectId, data)` — CRUD task
+- [x] `updateProjectTask(id, data)` — edit title, assignee, due date, status
+- [x] `deleteProjectTask(id)` — soft delete atau hard delete (pilih hard, cascade)
+- [x] `listProjectTasks(projectId)` — list dengan join ke users (assignee)
+- [x] `createProjectMilestone(projectId, data)` — CRUD milestone
+- [x] `updateProjectMilestone(id, data)` — edit title, target_date, toggle complete
+- [x] `deleteProjectMilestone(id)`
+- [x] `listProjectMilestones(projectId)`
+- [x] `recalculateProjectProgress(projectId)` — auto `progress = completed_tasks / total_tasks * 100` (atau milestone-based)
+- [x] Activity log hooks: log saat task created, updated, completed, deleted
 
 #### 1.3 Validators (Zod)
 
-- [ ] `projectTaskCreateSchema` — title required, assignee optional, due_date optional
-- [ ] `projectTaskUpdateSchema` — extends create + id
-- [ ] `projectMilestoneCreateSchema` — title required, target_date optional
-- [ ] `projectMilestoneUpdateSchema` — extends create + id
+- [x] `projectTaskCreateSchema` — title required, assignee optional, due_date optional
+- [x] `projectTaskUpdateSchema` — extends create + id
+- [x] `projectMilestoneCreateSchema` — title required, target_date optional
+- [x] `projectMilestoneUpdateSchema` — extends create + id
 
 #### 1.4 UI Components
 
-- [ ] Tab baru **"Tasks"** di `ProjectDetail.tsx`
-- [ ] `TaskSection` component — list view dengan:
+- [x] Tab baru **"Tasks"** di `ProjectDetail.tsx`
+- [x] `TaskSection` component — list view dengan:
   - Checkbox toggle status
   - Assignee badge
   - Due date badge (merah kalau overdue)
   - Tombol add/edit/delete (permission-gated)
-- [ ] `MilestoneSection` — inline di atas Tasks atau tab terpisah tergantung UX decision
-- [ ] `AddTaskDialog` / `EditTaskDialog` — shadcn Dialog + Form
-- [ ] `AddMilestoneDialog` / `EditMilestoneDialog`
-- [ ] Progress bar di card header project (sebelah status badge)
+- [x] `MilestoneSection` — inline di atas Tasks atau tab terpisah tergantung UX decision
+- [x] `AddTaskDialog` / `EditTaskDialog` — shadcn Dialog + Form
+- [x] `AddMilestoneDialog` / `EditMilestoneDialog`
+- [x] Progress bar di card header project (sebelah status badge)
 
 #### 1.5 RBAC & Permission
 
-- [ ] Capability: `projects:manage_tasks` — owner/manager bisa CRUD semua task
-- [ ] Capability: `projects:assign_tasks` — assign ke anggota lain
-- [ ] Member biasa hanya bisa update task milik sendiri
-- [ ] Viewer: read-only
+- [x] Capability: `projects:manage_tasks` — owner/manager bisa CRUD semua task
+- [x] Capability: `projects:assign_tasks` — assign ke anggota lain
+- [x] Member biasa hanya bisa update task milik sendiri
+- [x] Viewer: read-only
 
 #### 1.6 Notifikasi
 
-- [ ] Notifikasi ke assignee saat task di-assign
-- [ ] Notifikasi ke creator saat task selesai
-- [ ] Notifikasi X hari sebelum due date (opsional, gunakan cron/edge function)
+- [ ] Notifikasi ke assignee saat task di-assign — *belum diimplementasi*
+- [ ] Notifikasi ke creator saat task selesai — *belum diimplementasi*
+- [ ] Notifikasi X hari sebelum due date (opsional, gunakan cron/edge function) — *belum diimplementasi*
 
 ---
 
@@ -125,41 +125,41 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 
 #### 2.1 Comments Revamp
 
-- [ ] **Enlarge editor**: `min-h-[140px]` textarea dengan card border yang jelas
-- [ ] **@mention popover**: ketik `@` → dropdown member (filter saat type, pilih dengan keyboard)
+- [x] **Enlarge editor**: `min-h-[140px]` textarea dengan card border yang jelas
+- [x] **@mention popover**: ketik `@` → dropdown member (filter saat type, pilih dengan keyboard)
   - Hook: `useMentionPopover(textareaRef, members)`
   - Parser sudah ada (`splitMentions`), tinggal UI-nya
-- [ ] **Inline file attachment di comment**: tombol 📎 attach file → upload inline → render file preview di bawah comment
-- [ ] **Toolbar sederhana**: Bold, Italic, Bullet list (TipTap-lite atau markdown)
-- [ ] **Rich comment card**: shadow, padding 20px, border lebih soft (`border-border/60`)
-- [ ] **Human-readable timestamp**: pakai `formatDistanceToNow` (date-fns) → "2 jam lalu", "kemarin"
-- [ ] **Avatar stack di mention**: tampilkan avatar kecil di sebelah nama mention
-- [ ] **Comment count badge** di tab trigger: `Comments (12)`
+- [x] **Inline file attachment di comment**: tombol 📎 attach file → upload inline → render file preview di bawah comment
+- [x] **Toolbar sederhana**: Bold, Italic, Bullet list (TipTap-lite atau markdown)
+- [x] **Rich comment card**: shadow, padding 20px, border lebih soft (`border-border/60`)
+- [x] **Human-readable timestamp**: pakai `formatDistanceToNow` (date-fns) → "2 jam lalu", "kemarin"
+- [x] **Avatar stack di mention**: tampilkan avatar kecil di sebelah nama mention
+- [x] **Comment count badge** di tab trigger: `Comments (12)`
 
 #### 2.2 Overview Dashboard Revamp
 
-- [ ] Layout 3-kolom (responsive: 1 kolom di mobile):
+- [x] Layout 3-kolom (responsive: 1 kolom di mobile):
   - **Kiri (lebar)**: Progress ring/chart + Tasks summary mini (todo/in_progress/done count) + Recent 5 activity
   - **Tengah**: Deskripsi (rich text rendered) + Notes preview (3 latest)
   - **Kanan**: Metadata detail card + Members avatar row + File count quick link
-- [ ] **Circular progress ring**: shadcn `Progress` diperkaya dengan SVG ring (terinspirasi RISE CRM)
-- [ ] **Task summary widget**: 3 badge — `To do: 4`, `In progress: 3`, `Done: 8`
-- [ ] **Recent activity widget**: 5 log terakhir dengan icon per action type
-- [ ] **Members avatar row**: tumpuk avatar (max 5, +N) dengan tooltip nama
+- [x] **Circular progress ring**: shadcn `Progress` diperkaya dengan SVG ring (terinspirasi RISE CRM)
+- [x] **Task summary widget**: 3 badge — `To do: 4`, `In progress: 3`, `Done: 8`
+- [x] **Recent activity widget**: 5 log terakhir dengan icon per action type
+- [x] **Members avatar row**: tumpuk avatar (max 5, +N) dengan tooltip nama
 
 #### 2.3 Tabs Revamp
 
-- [ ] Tab trigger dengan icon + badge count:
+- [x] Tab trigger dengan icon + badge count:
   - `Overview`, `Tasks (8)`, `Comments (12)`, `Files (5)`, `Members (4)`, `Activity`
-- [ ] Active state: background lebih tegas, border bottom accent
-- [ ] Scrollable horizontal di mobile
+- [x] Active state: background lebih tegas, border bottom accent
+- [x] Scrollable horizontal di mobile
 
 #### 2.4 Files Section Polish
 
-- [ ] **Drag & drop zone**: visual feedback saat drag (border accent, background tint)
-- [ ] **File type icon**: PDF, Excel, Word, Image, ZIP — pakai Lucide icon
-- [ ] **Inline image preview**: thumbnail kecil, klik → lightbox
-- [ ] **File size + uploader + timestamp** dalam 1 baris compact
+- [x] **Drag & drop zone**: visual feedback saat drag (border accent, background tint)
+- [x] **File type icon**: PDF, Excel, Word, Image, ZIP — pakai Lucide icon
+- [x] **Inline image preview**: thumbnail kecil, klik → lightbox
+- [x] **File size + uploader + timestamp** dalam 1 baris compact
 
 ---
 
@@ -170,28 +170,28 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 
 #### 3.1 Schema & Linking
 
-- [ ] Migration: `kelas_ujian_id` di `projects` (nullable FK ke `kelas_ujian`)
-- [ ] Update `project.type` enum: tambah `"brevet_ab"`, `"brevet_c"`, `"bfa"` (atau gunakan `type` existing + `kelasUjianId`)
-- [ ] Validasi: hanya 1 project boleh link ke 1 kelas (unique constraint opsional)
+- [x] Migration: `kelas_ujian_id` di `projects` (nullable FK ke `kelas_ujian`)
+- [x] Update `project.type` enum: tambah `"brevet_ab"`, `"brevet_c"`, `"bfa"` (atau gunakan `type` existing + `kelasUjianId`)
+- [x] Validasi: hanya 1 project boleh link ke 1 kelas (unique constraint + server-side check)
 
 #### 3.2 Server Actions
 
-- [ ] `getBrevetSummaryByProject(projectId)` — query join ke `kelasUjian`, `jadwalUjian`, `penugasanPengawas`
-- [ ] `autoGenerateBrevetTasks(projectId)` — generate task list berdasarkan:
+- [x] `getBrevetSummaryByProject(projectId)` — query join ke `kelasUjian`, `jadwalUjian`, `penugasanPengawas`
+- [x] `autoGenerateBrevetTasks(projectId)` — generate task list berdasarkan:
   - Jadwal ujian yang ada → task "Assign pengawas UH-{n}"
   - Materi ujian → task "Siapkan soal {materi}"
   - Lokasi/mode → task "Booking ruang / setup link Zoom"
   - Kelulusan → task "Input nilai & cetak sertifikat"
-- [ ] `syncBrevetTasks(projectId)` — regenerate kalau jadwal ujian berubah
+- [x] `syncBrevetTasks(projectId)` — regenerate kalau jadwal ujian berubah
 
 #### 3.3 UI Components
 
-- [ ] **Brevet Info Card** di Overview (kanan atas, hanya muncul kalau `kelasUjianId` ada):
+- [x] **Brevet Info Card** di Overview (kanan atas, hanya muncul kalau `kelasUjianId` ada):
   - Nama Kelas, Program, Tipe, Mode, Lokasi
   - Jumlah ujian terjadwal
   - Link "Buka Modul Brevet →"
-- [ ] **Jadwal Ujian Summary** — tabel mini 3 kolom: Tanggal, Materi, Pengawas (✅/❌)
-- [ ] **Quick Actions** di Brevet Card:
+- [x] **Jadwal Ujian Summary** — tabel mini 3 kolom: Tanggal, Materi, Pengawas (✅/❌)
+- [x] **Quick Actions** di Brevet Card:
   - "+ Assign Pengawas"
   - "+ Tambah Jadwal Ujian"
   - redirect ke modul brevet dengan pre-filled `kelasId`
@@ -215,48 +215,48 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 
 #### 4.1 Schema Migration
 
-- [ ] `price_member`, `price_non_member` numeric(15,2) — kolom `price` existing tetap, migrasi data lalu deprecated
-- [ ] `tipe_pelaksanaan` enum/varchar: `online`, `offline`, `hybrid`
-- [ ] `waktu_mulai`, `waktu_selesai` time
-- [ ] `lokasi` varchar(255)
-- [ ] `max_peserta` integer nullable (null = unlimited)
-- [ ] `is_waitlist_enabled` boolean default false
-- [ ] Update `projectTypeEnum`: tambah `"Brevet AB"`, `"Brevet C"`, `"BFA"` — align dengan Fase 3
+- [x] `price_member`, `price_non_member` numeric(15,2) — kolom `price` existing tetap, migrasi data lalu deprecated
+- [x] `tipe_pelaksanaan` enum/varchar: `online`, `offline`, `hybrid`
+- [x] `waktu_mulai`, `waktu_selesai` varchar(5)
+- [x] `lokasi` varchar(255)
+- [x] `max_peserta` integer nullable (null = unlimited)
+- [x] `is_waitlist_enabled` boolean default false
+- [x] Update `projectTypeEnum` — sudah align dari Fase 3
 
 #### 4.2 Server Actions
 
-- [ ] Update `createProject` dan `updateProject` untuk menerima field baru
-- [ ] Update `projectListResult` / `projectDetailRow` types
-- [ ] `getProjectParticipantCounts(projectId)` — aggregate dari `participants` via `eventId`
-- [ ] `getProjectNarasumberList(projectId)` — defer ke Fase 5 kalau `project_speakers` belum ada
-- [ ] `getProjectCapacityStatus(projectId)` — `{ registered, max, waitlist_count, is_full }`
+- [x] Update `createProject` dan `updateProject` untuk menerima field baru
+- [x] Update `projectListResult` / `projectDetailRow` types
+- [x] `getProjectParticipantCounts(projectId)` — aggregate dari `participants` via `eventId`
+- [ ] `getProjectNarasumberList(projectId)` — *defer ke Fase 5 kalau `project_speakers` belum ada*
+- [x] `getProjectCapacityStatus(projectId)` — `{ registered, max, waitlist_count, is_full }`
 
 #### 4.3 UI Components
 
-- [ ] Update **Create/Edit Project Modal** (`ProjectManager.tsx`):
+- [x] Update **Create/Edit Project Modal** (`ProjectManager.tsx`):
   - Field: Harga Anggota, Harga Non-Anggota
   - Field: Tipe Pelaksanaan (Select)
   - Field: Waktu Mulai, Waktu Selesai
   - Field: Lokasi
   - Field: Kapasitas Maks (number input, kosong = tidak terbatas)
   - Toggle: Aktifkan Waiting List
-- [ ] Update **Overview Detail Card**:
+- [x] Update **Overview Detail Card**:
   - Harga (anggota vs non-anggota)
   - Tipe pelaksanaan + waktu
   - Lokasi
-  - **Kapasitas bar**: `X / max_peserta terdaftar` (progress bar + badge "PENUH" kalau full)
-  - Jumlah waitlist kalau aktif
+  - Kapasitas
+  - Status waiting list
 
 #### 4.4 Notes Tab
 
-- [ ] Migration: `project_notes` table
-- [ ] Server actions: CRUD notes
-- [ ] Tab **"Notes"** baru di `ProjectDetail.tsx`
-- [ ] `NoteSection` component:
+- [x] Migration: `project_notes` table
+- [x] Server actions: CRUD notes
+- [x] Tab **"Notes"** baru di `ProjectDetail.tsx`
+- [x] `NoteSection` component:
   - List card (title + snippet + timestamp)
   - Create/Edit dialog dengan textarea
   - No threading, no mention — pure internal notes
-- [ ] Activity log: log `note_created`, `note_updated`, `note_deleted`
+- [x] Activity log: log `note_created`, `note_updated`, `note_deleted`
 
 ---
 

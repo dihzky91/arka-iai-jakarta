@@ -47,6 +47,8 @@ import { formatTanggal } from "@/lib/utils";
 import {
   PROJECT_STATUSES,
   PROJECT_TYPES,
+  PROJECT_TYPE_LABELS,
+  TIPE_PELAKSANAAN,
   type ProjectStatus,
   type ProjectType,
 } from "@/lib/project-constants";
@@ -70,6 +72,14 @@ const formSchema = z
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     price: z.coerce.number().optional().nullable(),
+    priceMember: z.coerce.number().optional().nullable(),
+    priceNonMember: z.coerce.number().optional().nullable(),
+    tipePelaksanaan: z.string().optional().nullable(),
+    waktuMulai: z.string().optional().nullable(),
+    waktuSelesai: z.string().optional().nullable(),
+    lokasi: z.string().optional().nullable(),
+    maxPeserta: z.coerce.number().int().positive().optional().nullable(),
+    isWaitlistEnabled: z.boolean().optional(),
     status: z.enum(PROJECT_STATUSES),
     skpMode: z.enum(["auto", "manual"]),
     skp: z.coerce.number().optional().nullable(),
@@ -131,6 +141,14 @@ function toFormValues(project?: ProjectListRow): FormValues {
     startDate: project?.startDate ?? "",
     endDate: project?.endDate ?? "",
     price: project?.price ? Number(project.price) : null,
+    priceMember: project?.priceMember ? Number(project.priceMember) : null,
+    priceNonMember: project?.priceNonMember ? Number(project.priceNonMember) : null,
+    tipePelaksanaan: project?.tipePelaksanaan ?? null,
+    waktuMulai: project?.waktuMulai ?? null,
+    waktuSelesai: project?.waktuSelesai ?? null,
+    lokasi: project?.lokasi ?? null,
+    maxPeserta: project?.maxPeserta ?? null,
+    isWaitlistEnabled: project?.isWaitlistEnabled ?? false,
     status: project?.status ?? "not_started",
     skpMode: (project?.skpMode as "auto" | "manual" | undefined) ?? "auto",
     skp: project?.skp ? Number(project.skp) : null,
@@ -206,6 +224,14 @@ export function ProjectManager({
         startDate: values.startDate || null,
         endDate: values.endDate || null,
         price: values.price ?? null,
+        priceMember: values.priceMember ?? null,
+        priceNonMember: values.priceNonMember ?? null,
+        tipePelaksanaan: values.tipePelaksanaan || null,
+        waktuMulai: values.waktuMulai || null,
+        waktuSelesai: values.waktuSelesai || null,
+        lokasi: values.lokasi || null,
+        maxPeserta: values.maxPeserta ?? null,
+        isWaitlistEnabled: values.isWaitlistEnabled ?? false,
         skp: values.skp ?? null,
         halfDaySkp: values.halfDaySkp === "none" ? null : values.halfDaySkp,
         eventId: values.eventId ? Number(values.eventId) : null,
@@ -271,7 +297,7 @@ export function ProjectManager({
               <SelectItem value="all">Semua tipe</SelectItem>
               {PROJECT_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {type}
+                  {PROJECT_TYPE_LABELS[type]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -355,7 +381,7 @@ export function ProjectManager({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>{project.type}</TableCell>
+                <TableCell>{PROJECT_TYPE_LABELS[project.type]}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={statusClass(project.status)}>
                     {statusLabel(project.status)}
@@ -468,7 +494,7 @@ export function ProjectManager({
                   <SelectContent>
                     {PROJECT_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type}
+                        {PROJECT_TYPE_LABELS[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -495,8 +521,73 @@ export function ProjectManager({
                 <FormError message={form.formState.errors.endDate?.message} />
               </div>
               <div className="space-y-2">
-                <Label>Biaya</Label>
+                <Label>Biaya (umum)</Label>
                 <Input type="number" min={0} {...form.register("price")} />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Harga Anggota</Label>
+                <Input type="number" min={0} {...form.register("priceMember")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Harga Non-Anggota</Label>
+                <Input type="number" min={0} {...form.register("priceNonMember")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipe Pelaksanaan</Label>
+                <Select
+                  value={form.watch("tipePelaksanaan") ?? "none"}
+                  onValueChange={(value) =>
+                    form.setValue("tipePelaksanaan", value === "none" ? null : value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih tipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tidak dipilih</SelectItem>
+                    {TIPE_PELAKSANAAN.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Waktu Mulai</Label>
+                <Input type="time" {...form.register("waktuMulai")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Waktu Selesai</Label>
+                <Input type="time" {...form.register("waktuSelesai")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Lokasi</Label>
+                <Input {...form.register("lokasi")} placeholder="Venue / ruang / link Zoom" />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Kapasitas Maks</Label>
+                <Input type="number" min={1} {...form.register("maxPeserta")} placeholder="Kosong = tidak terbatas" />
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex items-center gap-2 pb-2">
+                  <input
+                    type="checkbox"
+                    id="isWaitlistEnabled"
+                    checked={form.watch("isWaitlistEnabled") ?? false}
+                    onChange={(e) => form.setValue("isWaitlistEnabled", e.target.checked)}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="isWaitlistEnabled" className="cursor-pointer text-sm font-normal">
+                    Aktifkan Waiting List
+                  </Label>
+                </div>
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-4">

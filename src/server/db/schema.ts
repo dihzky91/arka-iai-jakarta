@@ -98,6 +98,9 @@ export const projectTypeEnum = pgEnum("project_type", [
   "Lokakarya",
   "Pelatihan",
   "Lainnya",
+  "brevet_ab",
+  "brevet_c",
+  "bfa",
 ]);
 
 export const statusPesertaEnum = pgEnum("status_peserta", ["aktif", "dicabut"]);
@@ -106,6 +109,12 @@ export const projectTaskStatusEnum = pgEnum("project_task_status", [
   "todo",
   "in_progress",
   "done",
+]);
+
+export const tipePelaksanaanEnum = pgEnum("tipe_pelaksanaan", [
+  "online",
+  "offline",
+  "hybrid",
 ]);
 
 export type TemplateFieldKey =
@@ -790,11 +799,22 @@ export const projects = pgTable(
     startDate: date("start_date"),
     endDate: date("end_date"),
     price: numeric("price", { precision: 15, scale: 2 }),
+    priceMember: numeric("price_member", { precision: 15, scale: 2 }),
+    priceNonMember: numeric("price_non_member", { precision: 15, scale: 2 }),
+    tipePelaksanaan: tipePelaksanaanEnum("tipe_pelaksanaan"),
+    waktuMulai: varchar("waktu_mulai", { length: 5 }),
+    waktuSelesai: varchar("waktu_selesai", { length: 5 }),
+    lokasi: varchar("lokasi", { length: 255 }),
+    maxPeserta: integer("max_peserta"),
+    isWaitlistEnabled: boolean("is_waitlist_enabled").notNull().default(false),
     status: varchar("status", { length: 50 }).notNull().default("not_started"),
     skpMode: varchar("skp_mode", { length: 20 }).notNull().default("auto"),
     skp: numeric("skp", { precision: 5, scale: 2 }),
     halfDaySkp: varchar("half_day_skp", { length: 5 }),
     eventId: integer("event_id").references(() => events.id, {
+      onDelete: "set null",
+    }),
+    kelasUjianId: text("kelas_ujian_id").references(() => kelasUjian.id, {
       onDelete: "set null",
     }),
     progress: integer("progress").notNull().default(0),
@@ -808,6 +828,10 @@ export const projects = pgTable(
     statusIdx: index("projects_status_idx").on(t.status),
     createdByIdx: index("projects_created_by_idx").on(t.createdBy),
     eventIdx: index("projects_event_idx").on(t.eventId),
+    kelasUjianIdx: index("projects_kelas_ujian_idx").on(t.kelasUjianId),
+    kelasUjianUniq: uniqueIndex("projects_kelas_ujian_unique_idx")
+      .on(t.kelasUjianId)
+      .where(sql`kelas_ujian_id IS NOT NULL`),
   }),
 );
 
@@ -912,6 +936,9 @@ export const projectFiles = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
+    commentId: uuid("comment_id").references(() => projectComments.id, {
+      onDelete: "set null",
+    }),
     fileName: varchar("file_name", { length: 500 }).notNull(),
     fileUrl: varchar("file_url", { length: 1000 }).notNull(),
     storageKey: varchar("storage_key", { length: 1000 }),
@@ -921,6 +948,7 @@ export const projectFiles = pgTable(
   },
   (t) => ({
     projectIdx: index("project_files_project_idx").on(t.projectId),
+    commentIdx: index("project_files_comment_idx").on(t.commentId),
   }),
 );
 
@@ -958,6 +986,26 @@ export const projectMilestones = pgTable(
   },
   (t) => ({
     projectIdx: index("project_milestones_project_idx").on(t.projectId),
+  }),
+);
+
+export const projectNotes = pgTable(
+  "project_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    content: text("content"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_notes_project_idx").on(t.projectId),
   }),
 );
 
@@ -1406,6 +1454,8 @@ export type ProjectTask = typeof projectTasks.$inferSelect;
 export type NewProjectTask = typeof projectTasks.$inferInsert;
 export type ProjectMilestone = typeof projectMilestones.$inferSelect;
 export type NewProjectMilestone = typeof projectMilestones.$inferInsert;
+export type ProjectNote = typeof projectNotes.$inferSelect;
+export type NewProjectNote = typeof projectNotes.$inferInsert;
 export type NewSignatory = typeof signatories.$inferInsert;
 export type EventSignatory = typeof eventSignatories.$inferSelect;
 export type NewEventSignatory = typeof eventSignatories.$inferInsert;

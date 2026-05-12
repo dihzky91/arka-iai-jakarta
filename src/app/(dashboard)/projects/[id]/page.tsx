@@ -4,11 +4,13 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { ProjectDetail } from "@/components/projects/ProjectDetail";
 import { requireSession } from "@/server/actions/auth";
 import {
+  getBrevetSummaryByProject,
   getProjectById,
   getProjectMembers,
   listComments,
   listProjectActivity,
   listProjectFiles,
+  listProjectNotes,
   listProjectTasks,
   listProjectMilestones,
 } from "@/server/actions/projects";
@@ -29,13 +31,15 @@ export default async function Page({
   const [project, session] = await Promise.all([getProjectById(id), requireSession()]);
   if (!project) notFound();
 
-  const [members, comments, files, activity, tasks, milestones] = await Promise.all([
+  const [members, comments, files, activity, tasks, milestones, notes, brevetSummary] = await Promise.all([
     getProjectMembers(id),
     listComments(id),
     listProjectFiles(id),
     listProjectActivity(id),
     listProjectTasks(id),
     listProjectMilestones(id),
+    listProjectNotes(id),
+    project.kelasUjianId ? getBrevetSummaryByProject(id) : Promise.resolve(null),
   ]);
 
   return (
@@ -49,6 +53,8 @@ export default async function Page({
         initialActivity={activity}
         initialTasks={tasks}
         initialMilestones={milestones}
+        initialNotes={notes}
+        initialBrevetSummary={brevetSummary}
         defaultTab={tab ?? "overview"}
       />
     </PageWrapper>

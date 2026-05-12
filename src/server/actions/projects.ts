@@ -19,13 +19,19 @@ import { db } from "@/server/db";
 import {
   divisi,
   events,
+  jadwalUjian,
+  kelasUjian,
   notifications,
+  participants,
+  pengawas,
+  penugasanPengawas,
   projectActivityLog,
   projectCommentMentions,
   projectComments,
   projectFiles,
   projectLabels,
   projectMembers,
+  projectNotes,
   projects,
   projectTasks,
   projectMilestones,
@@ -46,10 +52,12 @@ import {
   PROJECT_STATUSES,
   PROJECT_TASK_STATUSES,
   PROJECT_TYPES,
+  TIPE_PELAKSANAAN,
   type ProjectMemberRole,
   type ProjectStatus,
   type ProjectTaskStatus,
   type ProjectType,
+  type TipePelaksanaan,
 } from "@/lib/project-constants";
 import {
   projectTaskCreateSchema,
@@ -75,11 +83,20 @@ const projectSchema = z
     startDate: isoDateSchema,
     endDate: isoDateSchema,
     price: z.coerce.number().nonnegative().optional().nullable(),
+    priceMember: z.coerce.number().nonnegative().optional().nullable(),
+    priceNonMember: z.coerce.number().nonnegative().optional().nullable(),
+    tipePelaksanaan: z.enum(TIPE_PELAKSANAAN).optional().nullable(),
+    waktuMulai: z.string().optional().nullable(),
+    waktuSelesai: z.string().optional().nullable(),
+    lokasi: z.string().max(255).optional().nullable(),
+    maxPeserta: z.coerce.number().int().positive().optional().nullable(),
+    isWaitlistEnabled: z.boolean().optional().default(false),
     status: z.enum(PROJECT_STATUSES).default("not_started"),
     skpMode: z.enum(["auto", "manual"]).default("auto"),
     skp: z.coerce.number().nonnegative().optional().nullable(),
     halfDaySkp: z.enum(["2", "4"]).optional().nullable(),
     eventId: eventIdSchema,
+    kelasUjianId: z.string().optional().nullable(),
     labelIds: z.array(uuidSchema).optional(),
   })
   .refine(
@@ -94,12 +111,14 @@ const commentSchema = z.object({
   content: z.string().trim().min(1, "Komentar wajib diisi."),
   parentId: uuidSchema.optional().nullable(),
   isInternal: z.boolean().optional().default(false),
+  fileIds: z.array(uuidSchema).optional().default([]),
 });
 
 const uploadSchema = z.object({
   fileName: z.string().min(1),
   contentType: z.string().min(1),
   dataUrl: z.string().min(1),
+  commentId: uuidSchema.optional().nullable(),
 });
 
 const projectMimeTypes = new Set([
@@ -132,10 +151,19 @@ export type ProjectListRow = {
   startDate: string | null;
   endDate: string | null;
   price: string | null;
+  priceMember: string | null;
+  priceNonMember: string | null;
+  tipePelaksanaan: TipePelaksanaan | null;
+  waktuMulai: string | null;
+  waktuSelesai: string | null;
+  lokasi: string | null;
+  maxPeserta: number | null;
+  isWaitlistEnabled: boolean;
   skp: string | null;
   skpMode: string;
   halfDaySkp: string | null;
   progress: number;
+  kelasUjianId: string | null;
   createdBy: string;
   createdByName: string | null;
   createdAt: Date;
@@ -158,7 +186,19 @@ export type ProjectDetailRow = ProjectListRow & {
   description: string | null;
   eventId: number | null;
   eventName: string | null;
+  kelasUjianId: string | null;
   currentUserProjectRole: ProjectMemberRole | "admin";
+};
+
+export type ProjectNoteRow = {
+  id: string;
+  projectId: string;
+  title: string;
+  content: string | null;
+  createdBy: string;
+  createdByName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export type ProjectMemberRow = {
@@ -170,6 +210,14 @@ export type ProjectMemberRow = {
   divisiNama: string | null;
   role: ProjectMemberRole;
   addedAt: Date;
+};
+
+export type CommentAttachmentRow = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  mimeType: string;
 };
 
 export type ProjectCommentRow = {
@@ -185,11 +233,13 @@ export type ProjectCommentRow = {
   authorName: string | null;
   authorAvatarUrl: string | null;
   authorDivisi: string | null;
+  attachments: CommentAttachmentRow[];
 };
 
 export type ProjectFileRow = {
   id: string;
   projectId: string;
+  commentId: string | null;
   fileName: string;
   fileUrl: string;
   fileSize: number;
@@ -410,10 +460,19 @@ function mapProjectBase(row: {
   startDate: string | null;
   endDate: string | null;
   price: string | null;
+  priceMember: string | null;
+  priceNonMember: string | null;
+  tipePelaksanaan: string | null;
+  waktuMulai: string | null;
+  waktuSelesai: string | null;
+  lokasi: string | null;
+  maxPeserta: number | null;
+  isWaitlistEnabled: boolean;
   skp: string | null;
   skpMode: string;
   halfDaySkp: string | null;
   progress: number;
+  kelasUjianId: string | null;
   createdBy: string;
   createdByName: string | null;
   createdAt: Date;
@@ -423,6 +482,8 @@ function mapProjectBase(row: {
     ...row,
     type: row.type as ProjectType,
     status: row.status as ProjectStatus,
+    tipePelaksanaan: row.tipePelaksanaan as TipePelaksanaan | null,
+    kelasUjianId: row.kelasUjianId,
   };
 }
 
@@ -484,10 +545,19 @@ export async function listProjects(filters: {
         startDate: projects.startDate,
         endDate: projects.endDate,
         price: projects.price,
+        priceMember: projects.priceMember,
+        priceNonMember: projects.priceNonMember,
+        tipePelaksanaan: projects.tipePelaksanaan,
+        waktuMulai: projects.waktuMulai,
+        waktuSelesai: projects.waktuSelesai,
+        lokasi: projects.lokasi,
+        maxPeserta: projects.maxPeserta,
+        isWaitlistEnabled: projects.isWaitlistEnabled,
         skp: projects.skp,
         skpMode: projects.skpMode,
         halfDaySkp: projects.halfDaySkp,
         progress: projects.progress,
+        kelasUjianId: projects.kelasUjianId,
         createdBy: projects.createdBy,
         createdByName: users.namaLengkap,
         createdAt: projects.createdAt,
@@ -526,12 +596,21 @@ export async function getProjectById(id: string): Promise<ProjectDetailRow | nul
       startDate: projects.startDate,
       endDate: projects.endDate,
       price: projects.price,
+      priceMember: projects.priceMember,
+      priceNonMember: projects.priceNonMember,
+      tipePelaksanaan: projects.tipePelaksanaan,
+      waktuMulai: projects.waktuMulai,
+      waktuSelesai: projects.waktuSelesai,
+      lokasi: projects.lokasi,
+      maxPeserta: projects.maxPeserta,
+      isWaitlistEnabled: projects.isWaitlistEnabled,
       skp: projects.skp,
       skpMode: projects.skpMode,
       halfDaySkp: projects.halfDaySkp,
       progress: projects.progress,
       eventId: projects.eventId,
       eventName: events.namaKegiatan,
+      kelasUjianId: projects.kelasUjianId,
       createdBy: projects.createdBy,
       createdByName: users.namaLengkap,
       createdAt: projects.createdAt,
@@ -553,8 +632,21 @@ export async function getProjectById(id: string): Promise<ProjectDetailRow | nul
     description: row.description,
     eventId: row.eventId,
     eventName: row.eventName,
+    kelasUjianId: row.kelasUjianId,
     currentUserProjectRole: role,
   };
+}
+
+async function assertKelasUjianUnique(kelasUjianId: string, excludeProjectId?: string) {
+  const [existing] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.kelasUjianId, kelasUjianId))
+    .limit(1);
+  if (existing && existing.id !== excludeProjectId) {
+    return "Kelas ujian ini sudah terhubung ke project lain.";
+  }
+  return null;
 }
 
 export async function createProject(data: unknown) {
@@ -563,6 +655,11 @@ export async function createProject(data: unknown) {
     return { ok: false as const, error: result.error.issues[0]?.message ?? "Data tidak valid." };
   }
   const parsed = result.data;
+
+  if (parsed.kelasUjianId) {
+    const conflict = await assertKelasUjianUnique(parsed.kelasUjianId);
+    if (conflict) return { ok: false as const, error: conflict };
+  }
 
   try {
     const session = await requireCapability("projects:create");
@@ -576,11 +673,20 @@ export async function createProject(data: unknown) {
         startDate: parsed.startDate ?? null,
         endDate: parsed.endDate ?? null,
         price: numberToNumeric(parsed.price),
+        priceMember: numberToNumeric(parsed.priceMember),
+        priceNonMember: numberToNumeric(parsed.priceNonMember),
+        tipePelaksanaan: parsed.tipePelaksanaan ?? null,
+        waktuMulai: parsed.waktuMulai ?? null,
+        waktuSelesai: parsed.waktuSelesai ?? null,
+        lokasi: parsed.lokasi ?? null,
+        maxPeserta: parsed.maxPeserta ?? null,
+        isWaitlistEnabled: parsed.isWaitlistEnabled ?? false,
         status: parsed.status,
         skpMode: parsed.skpMode,
         skp: resolveSkp(parsed),
         halfDaySkp: parsed.halfDaySkp ?? null,
         eventId: parsed.eventId ?? null,
+        kelasUjianId: parsed.kelasUjianId ?? null,
         createdBy: session.user.id,
         updatedAt: new Date(),
       })
@@ -619,10 +725,15 @@ export async function updateProject(id: string, data: unknown) {
     return { ok: false as const, error: schemaResult.error.issues[0]?.message ?? "Data tidak valid." };
   }
   const parsed = schemaResult.data;
+  const projectId = uuidSchema.parse(id);
+
+  if (parsed.kelasUjianId) {
+    const conflict = await assertKelasUjianUnique(parsed.kelasUjianId, projectId);
+    if (conflict) return { ok: false as const, error: conflict };
+  }
 
   try {
     await requireCapability("projects:edit");
-    const projectId = uuidSchema.parse(id);
     const { session } = await requireProjectRole(projectId, ["owner", "manager"]);
 
     const [row] = await db
@@ -634,11 +745,20 @@ export async function updateProject(id: string, data: unknown) {
         startDate: parsed.startDate ?? null,
         endDate: parsed.endDate ?? null,
         price: numberToNumeric(parsed.price),
+        priceMember: numberToNumeric(parsed.priceMember),
+        priceNonMember: numberToNumeric(parsed.priceNonMember),
+        tipePelaksanaan: parsed.tipePelaksanaan ?? null,
+        waktuMulai: parsed.waktuMulai ?? null,
+        waktuSelesai: parsed.waktuSelesai ?? null,
+        lokasi: parsed.lokasi ?? null,
+        maxPeserta: parsed.maxPeserta ?? null,
+        isWaitlistEnabled: parsed.isWaitlistEnabled ?? false,
         status: parsed.status,
         skpMode: parsed.skpMode,
         skp: resolveSkp(parsed),
         halfDaySkp: parsed.halfDaySkp ?? null,
         eventId: parsed.eventId ?? null,
+        kelasUjianId: parsed.kelasUjianId ?? null,
         updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId))
@@ -928,7 +1048,7 @@ export async function listComments(projectId: string): Promise<ProjectCommentRow
   const parsedId = uuidSchema.parse(projectId);
   await requireProjectMember(parsedId);
 
-  return db
+  const rows = await db
     .select({
       id: projectComments.id,
       projectId: projectComments.projectId,
@@ -948,6 +1068,32 @@ export async function listComments(projectId: string): Promise<ProjectCommentRow
     .leftJoin(divisi, eq(users.divisiId, divisi.id))
     .where(eq(projectComments.projectId, parsedId))
     .orderBy(asc(projectComments.createdAt));
+
+  const commentIds = rows.map((r) => r.id);
+  const attachmentRows =
+    commentIds.length > 0
+      ? await db
+          .select({
+            commentId: projectFiles.commentId,
+            id: projectFiles.id,
+            fileName: projectFiles.fileName,
+            fileUrl: projectFiles.fileUrl,
+            fileSize: projectFiles.fileSize,
+            mimeType: projectFiles.mimeType,
+          })
+          .from(projectFiles)
+          .where(inArray(projectFiles.commentId, commentIds))
+      : [];
+
+  const attachmentMap = new Map<string, CommentAttachmentRow[]>();
+  for (const a of attachmentRows) {
+    if (!a.commentId) continue;
+    const list = attachmentMap.get(a.commentId) ?? [];
+    list.push({ id: a.id, fileName: a.fileName, fileUrl: a.fileUrl, fileSize: a.fileSize, mimeType: a.mimeType });
+    attachmentMap.set(a.commentId, list);
+  }
+
+  return rows.map((r) => ({ ...r, attachments: attachmentMap.get(r.id) ?? [] }));
 }
 
 export async function createComment(projectId: string, data: unknown) {
@@ -975,6 +1121,19 @@ export async function createComment(projectId: string, data: unknown) {
       .returning({ id: projectComments.id, content: projectComments.content });
 
     if (!comment) return { ok: false as const, error: "Gagal menyimpan komentar." };
+
+    if (parsed.fileIds.length > 0) {
+      await db
+        .update(projectFiles)
+        .set({ commentId: comment.id })
+        .where(
+          and(
+            inArray(projectFiles.id, parsed.fileIds),
+            eq(projectFiles.projectId, parsedId),
+            eq(projectFiles.userId, session.user.id),
+          ),
+        );
+    }
 
     const [project] = await db
       .select({ title: projects.title })
@@ -1087,6 +1246,7 @@ export async function listProjectFiles(projectId: string): Promise<ProjectFileRo
     .select({
       id: projectFiles.id,
       projectId: projectFiles.projectId,
+      commentId: projectFiles.commentId,
       fileName: projectFiles.fileName,
       fileUrl: projectFiles.fileUrl,
       fileSize: projectFiles.fileSize,
@@ -1097,7 +1257,7 @@ export async function listProjectFiles(projectId: string): Promise<ProjectFileRo
     })
     .from(projectFiles)
     .innerJoin(users, eq(projectFiles.userId, users.id))
-    .where(eq(projectFiles.projectId, parsedId))
+    .where(and(eq(projectFiles.projectId, parsedId), sql`${projectFiles.commentId} IS NULL`))
     .orderBy(desc(projectFiles.uploadedAt));
 }
 
@@ -1141,6 +1301,7 @@ export async function uploadProjectFile(projectId: string, data: unknown) {
       .values({
         projectId: parsedId,
         userId: session.user.id,
+        commentId: parsed.commentId ?? null,
         fileName: uploaded.fileName || sanitizeFileName(parsed.fileName),
         fileUrl: uploaded.url,
         storageKey: uploaded.key,
@@ -1799,4 +1960,515 @@ export async function recalculateProjectProgress(projectId: string) {
     .update(projects)
     .set({ progress, updatedAt: new Date() })
     .where(eq(projects.id, parsedId));
+}
+
+// ─── BREVET INTEGRATION ────────────────────────────────────────────────────────
+
+export type BrevetJadwalSummary = {
+  id: string;
+  tanggalUjian: string;
+  mataPelajaran: string[];
+  jamMulai: string;
+  jamSelesai: string;
+  pengawasAssigned: boolean;
+  pengawasNama: string | null;
+};
+
+export type BrevetSummary = {
+  kelasUjianId: string;
+  kelasNama: string;
+  program: string;
+  tipe: string;
+  mode: string;
+  lokasi: string | null;
+  totalUjian: number;
+  jadwal: BrevetJadwalSummary[];
+};
+
+export async function getBrevetSummaryByProject(
+  projectId: string,
+): Promise<BrevetSummary | null> {
+  const parsedId = uuidSchema.parse(projectId);
+  await requireProjectMember(parsedId);
+
+  const [project] = await db
+    .select({ kelasUjianId: projects.kelasUjianId })
+    .from(projects)
+    .where(eq(projects.id, parsedId))
+    .limit(1);
+
+  if (!project?.kelasUjianId) return null;
+
+  const [kelas] = await db
+    .select({
+      namaKelas: kelasUjian.namaKelas,
+      program: kelasUjian.program,
+      tipe: kelasUjian.tipe,
+      mode: kelasUjian.mode,
+      lokasi: kelasUjian.lokasi,
+    })
+    .from(kelasUjian)
+    .where(eq(kelasUjian.id, project.kelasUjianId))
+    .limit(1);
+
+  if (!kelas) return null;
+
+  const jadwalRows = await db
+    .select({
+      id: jadwalUjian.id,
+      tanggalUjian: jadwalUjian.tanggalUjian,
+      mataPelajaran: jadwalUjian.mataPelajaran,
+      jamMulai: jadwalUjian.jamMulai,
+      jamSelesai: jadwalUjian.jamSelesai,
+      pengawasId: penugasanPengawas.pengawasId,
+      pengawasNama: pengawas.nama,
+    })
+    .from(jadwalUjian)
+    .leftJoin(
+      penugasanPengawas,
+      eq(jadwalUjian.id, penugasanPengawas.ujianId),
+    )
+    .leftJoin(pengawas, eq(penugasanPengawas.pengawasId, pengawas.id))
+    .where(eq(jadwalUjian.kelasId, project.kelasUjianId))
+    .orderBy(asc(jadwalUjian.tanggalUjian));
+
+  const jadwalMap = new Map<string, BrevetJadwalSummary>();
+  for (const row of jadwalRows) {
+    if (!jadwalMap.has(row.id)) {
+      jadwalMap.set(row.id, {
+        id: row.id,
+        tanggalUjian: row.tanggalUjian,
+        mataPelajaran: row.mataPelajaran,
+        jamMulai: row.jamMulai,
+        jamSelesai: row.jamSelesai,
+        pengawasAssigned: !!row.pengawasId,
+        pengawasNama: row.pengawasNama ?? null,
+      });
+    }
+  }
+
+  return {
+    kelasUjianId: project.kelasUjianId,
+    kelasNama: kelas.namaKelas,
+    program: kelas.program,
+    tipe: kelas.tipe,
+    mode: kelas.mode,
+    lokasi: kelas.lokasi,
+    totalUjian: jadwalMap.size,
+    jadwal: Array.from(jadwalMap.values()),
+  };
+}
+
+export async function autoGenerateBrevetTasks(projectId: string) {
+  const parsedId = uuidSchema.parse(projectId);
+  const { session } = await requireProjectRole(parsedId, [
+    "owner",
+    "manager",
+  ]);
+
+  const summary = await getBrevetSummaryByProject(parsedId);
+  if (!summary) {
+    return { ok: false as const, error: "Project tidak terhubung ke kelas ujian." };
+  }
+
+  const newTasks: Array<{
+    title: string;
+    assigneeId: string | null;
+    dueDate: string | null;
+    relatedEntityType: string;
+    relatedEntityId: string;
+  }> = [
+    {
+      title: `Assign pengawas untuk semua ujian — ${summary.kelasNama}`,
+      assigneeId: session.user.id,
+      dueDate: null,
+      relatedEntityType: "brevet",
+      relatedEntityId: "pengawas",
+    },
+  ];
+
+  for (const jadwal of summary.jadwal) {
+    const materiStr = jadwal.mataPelajaran.join(", ");
+    newTasks.push({
+      title: `Siapkan soal ${materiStr} — ${jadwal.tanggalUjian}`,
+      assigneeId: session.user.id,
+      dueDate: jadwal.tanggalUjian,
+      relatedEntityType: "brevet_ujian",
+      relatedEntityId: jadwal.id,
+    });
+  }
+
+  for (const jadwal of summary.jadwal) {
+    newTasks.push({
+      title: `Cetak & siapkan berkas ujian — ${jadwal.tanggalUjian}`,
+      assigneeId: null,
+      dueDate: jadwal.tanggalUjian,
+      relatedEntityType: "brevet_ujian",
+      relatedEntityId: jadwal.id,
+    });
+  }
+
+  newTasks.push({
+    title: `Input nilai & cetak sertifikat — ${summary.kelasNama}`,
+    assigneeId: session.user.id,
+    dueDate: null,
+    relatedEntityType: "brevet",
+    relatedEntityId: "selesai",
+  });
+
+  const existing = await db
+    .select({ id: projectTasks.id })
+    .from(projectTasks)
+    .where(
+      and(
+        eq(projectTasks.projectId, parsedId),
+        inArray(projectTasks.relatedEntityType, ["brevet", "brevet_ujian"]),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    return { ok: false as const, error: "Tugas brevet sudah ada. Gunakan syncBrevetTasks untuk memperbarui." };
+  }
+
+  try {
+    await db.insert(projectTasks).values(
+      newTasks.map((task) => ({
+        projectId: parsedId,
+        title: task.title,
+        assigneeId: task.assigneeId,
+        status: "todo" as const,
+        dueDate: task.dueDate,
+        relatedEntityType: task.relatedEntityType,
+        relatedEntityId: task.relatedEntityId,
+        createdBy: session.user.id,
+        updatedAt: new Date(),
+      })),
+    );
+
+    await logProjectActivity(
+      parsedId,
+      session.user.id,
+      "brevet_tasks_generated",
+      `Task brevet di-generate untuk "${summary.kelasNama}" (${newTasks.length} task).`,
+    );
+
+    await recalculateProjectProgress(parsedId);
+    revalidatePath(`/projects/${parsedId}`);
+    return { ok: true as const, count: newTasks.length };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false as const, error: `Gagal generate task: ${message}` };
+  }
+}
+
+export async function syncBrevetTasks(projectId: string) {
+  const parsedId = uuidSchema.parse(projectId);
+  const { session } = await requireProjectRole(parsedId, ["owner", "manager"]);
+
+  const summary = await getBrevetSummaryByProject(parsedId);
+  if (!summary) {
+    return { ok: false as const, error: "Project tidak terhubung ke kelas ujian." };
+  }
+
+  const newTasks = [
+    {
+      title: `Assign pengawas untuk semua ujian — ${summary.kelasNama}`,
+      assigneeId: session.user.id,
+      dueDate: null as string | null,
+      relatedEntityType: "brevet",
+      relatedEntityId: "pengawas",
+    },
+    ...summary.jadwal.map((jadwal) => ({
+      title: `Siapkan soal ${jadwal.mataPelajaran.join(", ")} — ${jadwal.tanggalUjian}`,
+      assigneeId: session.user.id,
+      dueDate: jadwal.tanggalUjian as string | null,
+      relatedEntityType: "brevet_ujian",
+      relatedEntityId: jadwal.id,
+    })),
+    ...summary.jadwal.map((jadwal) => ({
+      title: `Cetak & siapkan berkas ujian — ${jadwal.tanggalUjian}`,
+      assigneeId: null as string | null,
+      dueDate: jadwal.tanggalUjian as string | null,
+      relatedEntityType: "brevet_ujian",
+      relatedEntityId: jadwal.id,
+    })),
+    {
+      title: `Input nilai & cetak sertifikat — ${summary.kelasNama}`,
+      assigneeId: session.user.id,
+      dueDate: null as string | null,
+      relatedEntityType: "brevet",
+      relatedEntityId: "selesai",
+    },
+  ];
+
+  try {
+    await db
+      .delete(projectTasks)
+      .where(
+        and(
+          eq(projectTasks.projectId, parsedId),
+          inArray(projectTasks.relatedEntityType, ["brevet", "brevet_ujian"]),
+        ),
+      );
+
+    await db.insert(projectTasks).values(
+      newTasks.map((task) => ({
+        projectId: parsedId,
+        title: task.title,
+        assigneeId: task.assigneeId,
+        status: "todo" as const,
+        dueDate: task.dueDate,
+        relatedEntityType: task.relatedEntityType,
+        relatedEntityId: task.relatedEntityId,
+        createdBy: session.user.id,
+        updatedAt: new Date(),
+      })),
+    );
+
+    await logProjectActivity(
+      parsedId,
+      session.user.id,
+      "brevet_tasks_synced",
+      `Task brevet di-sync ulang untuk "${summary.kelasNama}" (${newTasks.length} task).`,
+    );
+
+    await recalculateProjectProgress(parsedId);
+    revalidatePath(`/projects/${parsedId}`);
+    return { ok: true as const, count: newTasks.length };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false as const, error: `Gagal sync task: ${message}` };
+  }
+}
+
+// ─── PARTICIPANT & CAPACITY ────────────────────────────────────────────────────
+
+export type ProjectParticipantCounts = {
+  registered: number;
+  waitlisted: number;
+};
+
+export type ProjectCapacityStatus = {
+  registered: number;
+  max: number | null;
+  waitlistCount: number;
+  isFull: boolean;
+  isWaitlistEnabled: boolean;
+};
+
+export async function getProjectParticipantCounts(
+  projectId: string,
+): Promise<ProjectParticipantCounts> {
+  const parsedId = uuidSchema.parse(projectId);
+  await requireProjectMember(parsedId);
+
+  const [project] = await db
+    .select({ eventId: projects.eventId })
+    .from(projects)
+    .where(eq(projects.id, parsedId))
+    .limit(1);
+
+  if (!project?.eventId) {
+    return { registered: 0, waitlisted: 0 };
+  }
+
+  const [agg] = await db
+    .select({
+      registered: count(),
+    })
+    .from(participants)
+    .where(eq(participants.eventId, project.eventId));
+
+  return {
+    registered: Number(agg?.registered ?? 0),
+    waitlisted: 0,
+  };
+}
+
+export async function getProjectCapacityStatus(
+  projectId: string,
+): Promise<ProjectCapacityStatus> {
+  const parsedId = uuidSchema.parse(projectId);
+  await requireProjectMember(parsedId);
+
+  const [project] = await db
+    .select({
+      maxPeserta: projects.maxPeserta,
+      isWaitlistEnabled: projects.isWaitlistEnabled,
+      eventId: projects.eventId,
+    })
+    .from(projects)
+    .where(eq(projects.id, parsedId))
+    .limit(1);
+
+  if (!project) {
+    return { registered: 0, max: null, waitlistCount: 0, isFull: false, isWaitlistEnabled: false };
+  }
+
+  const participantCounts = await getProjectParticipantCounts(parsedId);
+  const max = project.maxPeserta ? Number(project.maxPeserta) : null;
+
+  return {
+    registered: participantCounts.registered,
+    max,
+    waitlistCount: participantCounts.waitlisted,
+    isFull: max != null && participantCounts.registered >= max,
+    isWaitlistEnabled: project.isWaitlistEnabled,
+  };
+}
+
+// ─── NOTES CRUD ────────────────────────────────────────────────────────────────
+
+export async function listProjectNotes(
+  projectId: string,
+): Promise<ProjectNoteRow[]> {
+  const parsedId = uuidSchema.parse(projectId);
+  await requireProjectMember(parsedId);
+
+  const rows = await db
+    .select({
+      id: projectNotes.id,
+      projectId: projectNotes.projectId,
+      title: projectNotes.title,
+      content: projectNotes.content,
+      createdBy: projectNotes.createdBy,
+      createdByName: users.namaLengkap,
+      createdAt: projectNotes.createdAt,
+      updatedAt: projectNotes.updatedAt,
+    })
+    .from(projectNotes)
+    .leftJoin(users, eq(projectNotes.createdBy, users.id))
+    .where(eq(projectNotes.projectId, parsedId))
+    .orderBy(desc(projectNotes.createdAt));
+
+  return rows;
+}
+
+const noteSchema = z.object({
+  title: z.string().trim().min(1, "Judul wajib diisi.").max(255),
+  content: z.string().optional().nullable(),
+});
+
+export async function createProjectNote(projectId: string, data: unknown) {
+  const result = noteSchema.safeParse(data);
+  if (!result.success) {
+    return { ok: false as const, error: result.error.issues[0]?.message ?? "Data tidak valid." };
+  }
+  const parsed = result.data;
+
+  try {
+    const parsedId = uuidSchema.parse(projectId);
+    const { session, role } = await requireProjectMember(parsedId);
+    if (role === "viewer") return { ok: false as const, error: "Viewer tidak bisa membuat catatan." };
+
+    const [row] = await db
+      .insert(projectNotes)
+      .values({
+        projectId: parsedId,
+        title: parsed.title,
+        content: parsed.content ?? null,
+        createdBy: session.user.id,
+        updatedAt: new Date(),
+      })
+      .returning({ id: projectNotes.id, title: projectNotes.title });
+
+    if (!row) throw new Error("INSERT_FAILED");
+
+    await logProjectActivity(parsedId, session.user.id, "note_created", `Catatan "${row.title}" dibuat.`);
+    revalidatePath(`/projects/${parsedId}`);
+    return { ok: true as const, data: row };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === "Forbidden") return { ok: false as const, error: "Anda tidak memiliki izin membuat catatan." };
+    return { ok: false as const, error: `Gagal membuat catatan: ${message}` };
+  }
+}
+
+export async function updateProjectNote(noteId: string, data: unknown) {
+  const result = noteSchema.safeParse(data);
+  if (!result.success) {
+    return { ok: false as const, error: result.error.issues[0]?.message ?? "Data tidak valid." };
+  }
+  const parsed = result.data;
+
+  try {
+    const parsedId = uuidSchema.parse(noteId);
+    const session = await requireSession();
+
+    const [existing] = await db
+      .select({ id: projectNotes.id, projectId: projectNotes.projectId, title: projectNotes.title, createdBy: projectNotes.createdBy })
+      .from(projectNotes)
+      .where(eq(projectNotes.id, parsedId))
+      .limit(1);
+
+    if (!existing) return { ok: false as const, error: "Catatan tidak ditemukan." };
+
+    const access = await getGlobalAccess(session.user.id);
+    const role = await getProjectRole(existing.projectId, session.user.id);
+    const isAdmin = access.isAdmin;
+    const isMember = role !== null;
+    const isCreator = existing.createdBy === session.user.id;
+    const isManager = role === "owner" || role === "manager";
+
+    if (!isAdmin && !isManager && !(isCreator && isMember)) {
+      return { ok: false as const, error: "Anda tidak memiliki izin mengubah catatan ini." };
+    }
+
+    const [row] = await db
+      .update(projectNotes)
+      .set({
+        title: parsed.title,
+        content: parsed.content ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(projectNotes.id, parsedId))
+      .returning({ id: projectNotes.id, title: projectNotes.title });
+
+    if (!row) return { ok: false as const, error: "Catatan tidak ditemukan." };
+
+    await logProjectActivity(existing.projectId, session.user.id, "note_updated", `Catatan "${row.title}" diperbarui.`);
+    revalidatePath(`/projects/${existing.projectId}`);
+    return { ok: true as const, data: row };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === "Forbidden") return { ok: false as const, error: "Anda tidak memiliki izin mengubah catatan." };
+    return { ok: false as const, error: `Gagal mengubah catatan: ${message}` };
+  }
+}
+
+export async function deleteProjectNote(noteId: string) {
+  try {
+    const parsedId = uuidSchema.parse(noteId);
+    const session = await requireSession();
+
+    const [existing] = await db
+      .select({ id: projectNotes.id, projectId: projectNotes.projectId, title: projectNotes.title, createdBy: projectNotes.createdBy })
+      .from(projectNotes)
+      .where(eq(projectNotes.id, parsedId))
+      .limit(1);
+
+    if (!existing) return { ok: false as const, error: "Catatan tidak ditemukan." };
+
+    const access = await getGlobalAccess(session.user.id);
+    const role = await getProjectRole(existing.projectId, session.user.id);
+    const isAdmin = access.isAdmin;
+    const isMember = role !== null;
+    const isCreator = existing.createdBy === session.user.id;
+    const isManager = role === "owner" || role === "manager";
+
+    if (!isAdmin && !isManager && !(isCreator && isMember)) {
+      return { ok: false as const, error: "Anda tidak memiliki izin menghapus catatan ini." };
+    }
+
+    await db.delete(projectNotes).where(eq(projectNotes.id, parsedId));
+
+    await logProjectActivity(existing.projectId, session.user.id, "note_deleted", `Catatan "${existing.title}" dihapus.`);
+    revalidatePath(`/projects/${existing.projectId}`);
+    return { ok: true as const };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === "Forbidden") return { ok: false as const, error: "Anda tidak memiliki izin menghapus catatan." };
+    return { ok: false as const, error: `Gagal menghapus catatan: ${message}` };
+  }
 }
