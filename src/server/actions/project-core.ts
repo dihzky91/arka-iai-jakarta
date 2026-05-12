@@ -43,8 +43,6 @@ import {
   type ProjectListRow,
 } from "./_project-shared";
 
-export type { ProjectLabelRow, ProjectListRow };
-
 export type ProjectListResult = {
   rows: ProjectListRow[];
   total: number;
