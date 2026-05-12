@@ -1,21 +1,44 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { id } from "date-fns/locale";
 import {
+  Archive,
+  Bold,
+  CheckCircle2,
+  Circle,
+  Clock,
   Download,
+  File,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
   FileUp,
+  ImageIcon,
+  Italic,
+  List,
   Loader2,
   MessageSquare,
+  MoreHorizontal,
+  Paperclip,
+  Pencil,
   Plus,
   Trash2,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -32,6 +55,7 @@ import {
   PROJECT_MEMBER_ROLES,
   type ProjectMemberRole,
   type ProjectStatus,
+  type ProjectTaskStatus,
 } from "@/lib/project-constants";
 import {
   addProjectMembers,
@@ -76,12 +100,52 @@ function fileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function fileTypeIcon(mimeType: string) {
+  if (mimeType.startsWith("image/")) return FileImage;
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return FileSpreadsheet;
+  if (mimeType.includes("pdf")) return FileText;
+  if (mimeType.includes("word") || mimeType.includes("document")) return FileText;
+  if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("7z")) return Archive;
+  return File;
+}
+
 function canManage(role: ProjectMemberRole | "admin") {
   return role === "admin" || role === "owner" || role === "manager";
 }
 
 function canContribute(role: ProjectMemberRole | "admin") {
   return canManage(role) || role === "member";
+}
+
+function Avatar({
+  name,
+  avatarUrl,
+  size = "sm",
+}: {
+  name: string | null;
+  avatarUrl?: string | null;
+  size?: "sm" | "md";
+}) {
+  const dim = size === "md" ? 8 : 6;
+  const initial = (name ?? "?").charAt(0).toUpperCase();
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name ?? ""}
+        className={`h-${dim} w-${dim} shrink-0 rounded-full border border-border bg-muted object-cover`}
+        title={name ?? ""}
+      />
+    );
+  }
+  return (
+    <div
+      className={`flex h-${dim} w-${dim} shrink-0 items-center justify-center rounded-full border border-border bg-primary/10 text-xs font-semibold text-primary`}
+      title={name ?? ""}
+    >
+      {initial}
+    </div>
+  );
 }
 
 export function ProjectDetail({
@@ -148,6 +212,15 @@ export function ProjectDetail({
     });
   }
 
+  const tabItems = [
+    { value: "overview", icon: null, label: "Overview", count: null },
+    { value: "tasks", icon: CheckCircle2, label: "Tasks", count: tasks.length },
+    { value: "comments", icon: MessageSquare, label: "Comments", count: comments.length },
+    { value: "files", icon: Paperclip, label: "Files", count: files.length },
+    { value: "members", icon: Users, label: "Members", count: members.length },
+    { value: "activity", icon: Clock, label: "Activity", count: null },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -212,16 +285,31 @@ export function ProjectDetail({
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-4">
-        <TabsList className="flex w-full flex-wrap justify-start">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="comments">Comments</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
+          {tabItems.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-sm data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-accent/30 data-[state=active]:font-semibold"
+            >
+              {tab.icon ? <tab.icon className="h-4 w-4" /> : null}
+              {tab.label}
+              {tab.count !== null && tab.count > 0 ? (
+                <Badge variant="outline" className="ml-0.5 h-5 min-w-5 rounded-full px-1.5 text-[11px]">
+                  {tab.count}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+          ))}
         </TabsList>
         <TabsContent value="overview">
-          <Overview project={project} />
+          <Overview
+            project={project}
+            tasks={tasks}
+            activity={activity}
+            members={members}
+            files={files}
+          />
         </TabsContent>
         <TabsContent value="tasks">
           <div className="space-y-4">
@@ -281,10 +369,99 @@ export function ProjectDetail({
   );
 }
 
-function Overview({ project }: { project: ProjectDetailRow }) {
+function CircularProgress({ value, size = 80 }: { value: number; size?: number }) {
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - value / 100);
+
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-      <section className="rounded-xl border border-border bg-card p-5">
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="hsl(var(--muted))"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-500"
+        />
+      </svg>
+      <span className="absolute text-sm font-semibold">{value}%</span>
+    </div>
+  );
+}
+
+function Overview({
+  project,
+  tasks,
+  activity,
+  members,
+  files,
+}: {
+  project: ProjectDetailRow;
+  tasks: ProjectTaskRow[];
+  activity: ProjectActivityRow[];
+  members: ProjectMemberRow[];
+  files: ProjectFileRow[];
+}) {
+  const todoCount = tasks.filter((t) => t.status === "todo").length;
+  const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
+  const doneCount = tasks.filter((t) => t.status === "done").length;
+  const recentActivity = activity.slice(-5).reverse();
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_0.9fr]">
+      <section className="space-y-4">
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-4">
+            <CircularProgress value={project.progress} />
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="outline" className="text-xs">{todoCount} To Do</Badge>
+              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-xs">
+                {inProgressCount} In Progress
+              </Badge>
+              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs">
+                {doneCount} Done
+              </Badge>
+            </div>
+          </div>
+        </div>
+        {recentActivity.length > 0 ? (
+          <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold">Aktivitas Terbaru</h3>
+            <div className="space-y-2">
+              {recentActivity.map((row) => (
+                <div key={row.id} className="flex items-start gap-2 text-sm">
+                  <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40" />
+                  <div className="min-w-0">
+                    <span className="font-medium">{row.userName ?? "User"}</span>
+                    <span className="text-muted-foreground">
+                      {" "}{row.description ?? row.action}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(row.createdAt), { addSuffix: true, locale: id })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
+      <section className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
         <h2 className="text-base font-semibold">Deskripsi</h2>
         {project.description ? (
           <div
@@ -296,18 +473,46 @@ function Overview({ project }: { project: ProjectDetailRow }) {
             Belum ada deskripsi.
           </p>
         )}
+        {files.length > 0 ? (
+          <div className="mt-4">
+            <Link
+              href={`/projects/${project.id}?tab=files`}
+              className="text-sm text-primary hover:underline"
+            >
+              {files.length} file terlampir →
+            </Link>
+          </div>
+        ) : null}
       </section>
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="text-base font-semibold">Detail</h2>
-        <dl className="mt-4 space-y-3 text-sm">
-          <Info label="Tipe" value={project.type} />
-          <Info label="Status" value={statusLabel(project.status)} />
-          <Info label="Tanggal" value={`${formatTanggal(project.startDate)} - ${formatTanggal(project.endDate)}`} />
-          <Info label="SKP" value={formatSKP(project.skp)} />
-          <Info label="Biaya" value={project.price ? `Rp ${Number(project.price).toLocaleString("id-ID")}` : "-"} />
-          <Info label="Event" value={project.eventName ?? "-"} />
-          <Info label="Dibuat oleh" value={project.createdByName ?? "-"} />
-        </dl>
+      <section className="space-y-4">
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <h2 className="text-base font-semibold">Detail</h2>
+          <dl className="mt-4 space-y-3 text-sm">
+            <Info label="Tipe" value={project.type} />
+            <Info label="Status" value={statusLabel(project.status)} />
+            <Info label="Tanggal" value={`${formatTanggal(project.startDate)} - ${formatTanggal(project.endDate)}`} />
+            <Info label="SKP" value={formatSKP(project.skp)} />
+            <Info label="Biaya" value={project.price ? `Rp ${Number(project.price).toLocaleString("id-ID")}` : "-"} />
+            <Info label="Event" value={project.eventName ?? "-"} />
+            <Info label="Dibuat oleh" value={project.createdByName ?? "-"} />
+          </dl>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <h3 className="text-sm font-semibold">Anggota</h3>
+          <div className="mt-3 flex items-center gap-1">
+            {members.slice(0, 5).map((member) => (
+              <Avatar key={member.userId} name={member.namaLengkap} avatarUrl={member.avatarUrl} />
+            ))}
+            {members.length > 5 ? (
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-muted text-[10px] font-medium text-muted-foreground">
+                +{members.length - 5}
+              </div>
+            ) : null}
+            {members.length === 0 ? (
+              <span className="text-xs text-muted-foreground">Belum ada anggota</span>
+            ) : null}
+          </div>
+        </div>
       </section>
     </div>
   );
@@ -315,11 +520,21 @@ function Overview({ project }: { project: ProjectDetailRow }) {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[120px_1fr] gap-3">
+    <div className="grid grid-cols-[110px_1fr] gap-2">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium">{value}</dd>
     </div>
   );
+}
+
+function getMentionContext(text: string, cursorPos: number): { start: number; query: string } | null {
+  const beforeCursor = text.slice(0, cursorPos);
+  const atIndex = beforeCursor.lastIndexOf("@");
+  if (atIndex < 0) return null;
+  const afterAt = beforeCursor.slice(atIndex + 1);
+  if (afterAt.includes(" ")) return null;
+  if (!/^[a-zA-Z0-9\s.]*$/.test(afterAt)) return null;
+  return { start: atIndex, query: afterAt };
 }
 
 function CommentSection({
@@ -340,6 +555,10 @@ function CommentSection({
   const [content, setContent] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionContext, setMentionContext] = useState<{ start: number; query: string } | null>(null);
+
   const rootComments = comments.filter((comment) => !comment.parentId);
   const repliesByParent = useMemo(() => {
     const map = new Map<string, ProjectCommentRow[]>();
@@ -350,9 +569,56 @@ function CommentSection({
     return map;
   }, [comments]);
 
-  function insertMention(name: string | null) {
-    if (!name) return;
-    setContent((current) => `${current}${current.endsWith(" ") || !current ? "" : " "}@${name} `);
+  const filteredMembers = useMemo(() => {
+    if (!mentionContext) return [];
+    const q = mentionContext.query.toLowerCase();
+    return members.filter((m) => m.namaLengkap?.toLowerCase().includes(q));
+  }, [mentionContext, members]);
+
+  function handleContentChange(value: string) {
+    setContent(value);
+    const sel = textareaRef.current;
+    if (sel) {
+      const ctx = getMentionContext(value, sel.selectionStart);
+      setMentionContext(ctx);
+      setMentionOpen(!!ctx);
+    }
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if (mentionOpen && event.key === "Escape") {
+      setMentionOpen(false);
+      event.preventDefault();
+    }
+    if (mentionOpen && filteredMembers.length > 0 && (event.key === "Enter" || event.key === "Tab")) {
+      event.preventDefault();
+      selectMention(filteredMembers[0]!);
+    }
+  }
+
+  function selectMention(member: ProjectMemberRow) {
+    if (!mentionContext) return;
+    const before = content.slice(0, mentionContext.start);
+    const after = content.slice(mentionContext.start + 1 + mentionContext.query.length);
+    const mentionText = `@${member.namaLengkap} `;
+    setContent(before + mentionText + after);
+    setMentionOpen(false);
+    setMentionContext(null);
+    textareaRef.current?.focus();
+  }
+
+  function insertMarkdown(prefix: string, suffix = "") {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = content.slice(start, end);
+    const newContent = content.slice(0, start) + prefix + selected + suffix + content.slice(end);
+    setContent(newContent);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+    });
   }
 
   function submit() {
@@ -373,7 +639,7 @@ function CommentSection({
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+    <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       {canComment ? (
         <div className="space-y-3">
           {replyTo ? (
@@ -384,26 +650,81 @@ function CommentSection({
               </Button>
             </div>
           ) : null}
-          <Textarea
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            placeholder="Tulis komentar..."
-            rows={4}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            {members.slice(0, 8).map((member) => (
-              <Button
-                key={member.userId}
+          <div className="rounded-xl border border-border focus-within:border-primary/50">
+            <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => insertMention(member.namaLengkap)}
+                className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={() => insertMarkdown("**", "**")}
+                title="Bold"
               >
-                @{member.namaLengkap}
-              </Button>
-            ))}
+                <Bold className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={() => insertMarkdown("*", "*")}
+                title="Italic"
+              >
+                <Italic className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={() => insertMarkdown("- ")}
+                title="Bullet list"
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+              <div className="ml-auto flex items-center gap-1">
+                <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      title="Mention anggota"
+                    >
+                      @
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-56 p-1"
+                    align="start"
+                    side="top"
+                    onOpenAutoFocus={(event) => event.preventDefault()}
+                  >
+                    {filteredMembers.length > 0 ? (
+                      <div className="max-h-40 overflow-y-auto">
+                        {filteredMembers.map((member) => (
+                          <button
+                            key={member.userId}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                            onClick={() => selectMention(member)}
+                          >
+                            <Avatar name={member.namaLengkap} avatarUrl={member.avatarUrl} size="sm" />
+                            <span className="truncate">{member.namaLengkap ?? member.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="p-2 text-sm text-muted-foreground">Tidak ditemukan</p>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <Textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(event) => handleContentChange(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Tulis komentar... Gunakan @ untuk mention anggota"
+              className="min-h-[140px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+          </div>
+          <div className="flex items-center gap-2">
             <Button
-              className="ml-auto"
               type="button"
               disabled={!content.trim() || isPending || pending}
               onClick={submit}
@@ -421,6 +742,7 @@ function CommentSection({
             key={comment.id}
             comment={comment}
             replies={repliesByParent.get(comment.id) ?? []}
+            members={members}
             onReply={() => setReplyTo(comment.id)}
           />
         ))}
@@ -437,41 +759,78 @@ function CommentSection({
 function CommentItem({
   comment,
   replies,
+  members,
   onReply,
 }: {
   comment: ProjectCommentRow;
   replies: ProjectCommentRow[];
+  members: ProjectMemberRow[];
   onReply: () => void;
 }) {
+  const memberMap = useMemo(() => {
+    const map = new Map<string, ProjectMemberRow>();
+    for (const m of members) map.set(m.userId, m);
+    if (comment.authorId) {
+      map.set(comment.authorId, {
+        id: "",
+        userId: comment.authorId,
+        namaLengkap: comment.authorName,
+        email: null,
+        avatarUrl: comment.authorAvatarUrl,
+        divisiNama: comment.authorDivisi,
+        role: "member",
+        addedAt: new Date(),
+      });
+    }
+    return map;
+  }, [members, comment.authorId, comment.authorName, comment.authorAvatarUrl, comment.authorDivisi]);
+
+  const parts = useMemo(() => splitMentions(comment.content), [comment.content]);
+
   return (
-    <article className="rounded-xl border border-border p-4">
+    <article className="rounded-xl border border-border/60 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-medium">{comment.authorName ?? "User"}</p>
-          <p className="text-xs text-muted-foreground">
-            {comment.authorDivisi ?? "-"} - {formatTanggalWaktuJakarta(comment.createdAt)}
-            {comment.isEdited ? " - diedit" : ""}
-          </p>
+        <div className="flex items-center gap-2">
+          <Avatar name={comment.authorName} avatarUrl={comment.authorAvatarUrl} />
+          <div>
+            <p className="font-medium">{comment.authorName ?? "User"}</p>
+            <p className="text-xs text-muted-foreground">
+              {comment.authorDivisi ?? "-"} &middot;{" "}
+              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: id })}
+              {comment.isEdited ? " (diedit)" : ""}
+            </p>
+          </div>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onReply}>
           Reply
         </Button>
       </div>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-6">
-        {splitMentions(comment.content).map((part, index) =>
-          part.mention ? (
-            <span key={index} className="rounded bg-primary/10 px-1 font-medium text-primary">
-              {part.text}
-            </span>
-          ) : (
-            <span key={index}>{part.text}</span>
-          ),
-        )}
-      </p>
+      <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
+        {parts.map((part, index) => {
+          if (part.mention) {
+            const mentionedName = part.text.replace("@", "");
+            const mentionedMember = Array.from(memberMap.values()).find(
+              (m) => m.namaLengkap === mentionedName,
+            );
+            return (
+              <span
+                key={index}
+                className="inline-flex items-center gap-1 rounded bg-primary/10 px-1 font-medium text-primary"
+              >
+                {mentionedMember ? (
+                  <Avatar name={mentionedMember.namaLengkap} avatarUrl={mentionedMember.avatarUrl} />
+                ) : null}
+                {part.text}
+              </span>
+            );
+          }
+          return <span key={index}>{part.text}</span>;
+        })}
+      </div>
       {replies.length ? (
-        <div className="mt-4 space-y-3 border-l border-border pl-4">
+        <div className="mt-4 space-y-3 border-l-2 border-border/60 pl-4">
           {replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} replies={[]} onReply={onReply} />
+            <CommentItem key={reply.id} comment={reply} replies={[]} members={members} onReply={onReply} />
           ))}
         </div>
       ) : null}
@@ -493,6 +852,9 @@ function FileSection({
   pending: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [dragOver, setDragOver] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function upload(file: File | null) {
     if (!file) return;
@@ -515,6 +877,23 @@ function FileSection({
     reader.readAsDataURL(file);
   }
 
+  function handleDrop(event: React.DragEvent) {
+    event.preventDefault();
+    setDragOver(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) upload(file);
+  }
+
+  function handleDragOver(event: React.DragEvent) {
+    event.preventDefault();
+    setDragOver(true);
+  }
+
+  function handleDragLeave(event: React.DragEvent) {
+    event.preventDefault();
+    setDragOver(false);
+  }
+
   function remove(file: ProjectFileRow) {
     if (!window.confirm(`Hapus file "${file.fileName}"?`)) return;
     startTransition(async () => {
@@ -529,13 +908,30 @@ function FileSection({
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+    <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       {canUpload ? (
-        <div className="rounded-xl border border-dashed border-border p-4">
-          <Label className="flex cursor-pointer items-center justify-center gap-2 text-sm">
-            {isPending || pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-            Upload file project
+        <div
+          className={`relative rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
+            dragOver
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-muted-foreground/30"
+          }`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+        >
+          <Label className="flex cursor-pointer flex-col items-center gap-2 text-sm">
+            {isPending || pending ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <FileUp className="h-5 w-5 text-muted-foreground" />
+            )}
+            <span className="font-medium text-foreground">
+              {dragOver ? "Lepaskan file di sini" : "Klik atau seret file ke sini untuk upload"}
+            </span>
+            <span className="text-xs text-muted-foreground">PDF, Excel, Word, Gambar, ZIP — max 20 MB</span>
             <Input
+              ref={fileInputRef}
               type="file"
               className="hidden"
               onChange={(event) => upload(event.target.files?.[0] ?? null)}
@@ -543,29 +939,69 @@ function FileSection({
           </Label>
         </div>
       ) : null}
-      <div className="space-y-3">
-        {files.map((file) => (
-          <div key={file.id} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-medium">{file.fileName}</p>
-              <p className="text-sm text-muted-foreground">
-                {fileSize(file.fileSize)} - {file.uploaderName ?? "User"} - {formatTanggalWaktuJakarta(file.uploadedAt)}
-              </p>
+
+      {previewUrl ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        {files.map((file) => {
+          const Icon = fileTypeIcon(file.mimeType);
+          const isImage = file.mimeType.startsWith("image/");
+          return (
+            <div
+              key={file.id}
+              className="flex items-center gap-3 rounded-xl border border-border/60 p-3 transition-colors hover:bg-accent/30"
+            >
+              {isImage ? (
+                <button
+                  type="button"
+                  className="shrink-0"
+                  onClick={() => setPreviewUrl(file.fileUrl)}
+                >
+                  <img
+                    src={file.fileUrl}
+                    alt={file.fileName}
+                    className="h-10 w-10 rounded-md border border-border object-cover"
+                  />
+                </button>
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50">
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{file.fileName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {fileSize(file.fileSize)} &middot; {file.uploaderName ?? "User"} &middot;{" "}
+                  {formatDistanceToNow(new Date(file.uploadedAt), { addSuffix: true, locale: id })}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button asChild variant="ghost" size="icon-sm">
+                  <a href={file.fileUrl} target="_blank" rel="noreferrer">
+                    <Download className="h-4 w-4" />
+                  </a>
+                </Button>
+                {canUpload ? (
+                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => remove(file)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                ) : null}
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button asChild variant="outline" size="sm">
-                <a href={file.fileUrl} target="_blank" rel="noreferrer">
-                  <Download className="h-4 w-4" />
-                  Download
-                </a>
-              </Button>
-              <Button type="button" variant="destructive" size="sm" onClick={() => remove(file)}>
-                <Trash2 className="h-4 w-4" />
-                Hapus
-              </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {files.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Belum ada file.
@@ -661,7 +1097,7 @@ function MemberSection({
   const canEditRoles = actorRole === "admin" || actorRole === "owner";
 
   return (
-    <section className="space-y-5 rounded-xl border border-border bg-card p-5">
+    <section className="space-y-5 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       {canManage ? (
         <div className="space-y-3 rounded-xl border border-border p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
@@ -715,9 +1151,12 @@ function MemberSection({
       <div className="space-y-3">
         {members.map((member) => (
           <div key={member.userId} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-medium">{member.namaLengkap ?? member.email}</p>
-              <p className="text-sm text-muted-foreground">{member.divisiNama ?? "-"} - {member.email}</p>
+            <div className="flex items-center gap-3">
+              <Avatar name={member.namaLengkap} avatarUrl={member.avatarUrl} />
+              <div>
+                <p className="font-medium">{member.namaLengkap ?? member.email}</p>
+                <p className="text-sm text-muted-foreground">{member.divisiNama ?? "-"} - {member.email}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {canEditRoles ? (
@@ -754,16 +1193,17 @@ function MemberSection({
 
 function ActivityLog({ rows }: { rows: ProjectActivityRow[] }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="space-y-3">
         {rows.map((row) => (
-          <div key={row.id} className="grid gap-2 rounded-xl border border-border p-4 md:grid-cols-[180px_1fr]">
-            <time className="text-sm text-muted-foreground">
-              {formatTanggalWaktuJakarta(row.createdAt)}
-            </time>
-            <div>
+          <div key={row.id} className="flex items-start gap-3 rounded-xl border border-border/60 p-4">
+            <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary/30" />
+            <div className="min-w-0">
               <p className="font-medium">{row.userName ?? "User"}</p>
               <p className="text-sm text-muted-foreground">{row.description ?? row.action}</p>
+              <time className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(row.createdAt), { addSuffix: true, locale: id })}
+              </time>
             </div>
           </div>
         ))}

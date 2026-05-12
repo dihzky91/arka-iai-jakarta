@@ -13,7 +13,9 @@ const envServerActionOrigins = parseOrigins(
 );
 const envAllowedDevOrigins = parseOrigins(process.env.NEXT_ALLOWED_DEV_ORIGINS);
 const defaultDevTunnelOrigins =
-  process.env.NODE_ENV === "development" ? ["*.devtunnels.ms"] : [];
+  process.env.NODE_ENV === "development"
+    ? ["*.devtunnels.ms", "localhost:6700"]
+    : [];
 const serverActionsAllowedOrigins = Array.from(
   new Set([...defaultDevTunnelOrigins, ...envServerActionOrigins]),
 );

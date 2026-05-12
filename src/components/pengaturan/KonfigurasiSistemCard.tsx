@@ -29,7 +29,6 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
     initial.defaultDisposisiDeadlineDays,
   );
   const [emailEnabled, setEmailEnabled] = useState(initial.notificationEmailEnabled);
-  const [whatsappBotEnabled, setWhatsappBotEnabled] = useState(initial.whatsappBotEnabled);
   const [financeContactName, setFinanceContactName] = useState(initial.financeContactName ?? "");
   const [financeWhatsappNumber, setFinanceWhatsappNumber] = useState(
     initial.financeWhatsappNumber ?? "",
@@ -51,7 +50,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
       const result = await updateSystemConfig({
         defaultDisposisiDeadlineDays: defaultDeadline,
         notificationEmailEnabled: emailEnabled,
-        whatsappBotEnabled,
+        whatsappBotEnabled: true,
         emailProvider,
         financeContactName: financeContactName.trim() || null,
         financeWhatsappNumber: financeWhatsappNumber.trim() || null,
@@ -231,34 +230,6 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                 <span
                   className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
                     emailEnabled ? "translate-x-5" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <Label className="text-sm font-medium">
-                  WhatsApp Bot (Baileys)
-                </Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Aktifkan untuk kirim pesan WA langsung dari server (tanpa buka HP).
-                  Membutuhkan koneksi Baileys aktif. Nonaktifkan jika bot sedang
-                  tidak terhubung — tombol kirim otomatis akan disembunyikan.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={whatsappBotEnabled}
-                onClick={() => setWhatsappBotEnabled((v) => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                  whatsappBotEnabled ? "bg-primary" : "bg-muted-foreground/25"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    whatsappBotEnabled ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
               </button>
