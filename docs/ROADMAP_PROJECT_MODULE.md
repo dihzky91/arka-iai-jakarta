@@ -228,7 +228,7 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 - [x] Update `createProject` dan `updateProject` untuk menerima field baru
 - [x] Update `projectListResult` / `projectDetailRow` types
 - [x] `getProjectParticipantCounts(projectId)` — aggregate dari `participants` via `eventId`
-- [ ] `getProjectNarasumberList(projectId)` — *defer ke Fase 5 kalau `project_speakers` belum ada*
+- [x] `getProjectNarasumberList(projectId)` — diimplementasi sebagai `listProjectSpeakers(projectId)`
 - [x] `getProjectCapacityStatus(projectId)` — `{ registered, max, waitlist_count, is_full }`
 
 #### 4.3 UI Components
@@ -267,41 +267,41 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 
 #### 5.1 Narasumber Management
 
-- [ ] Migration: `project_speakers` table
+- [x] Migration: `project_speakers` table
   - `id`, `project_id`, `user_id` (nullable, internal), `nama`, `email`, `topik`, `durasi_menit`, `skp`, `is_external`
-- [ ] Server actions: CRUD speaker
-- [ ] UI: Section di Overview kanan atau tab terpisah
-- [ ] Quick add: search user internal → auto-fill, atau input manual untuk eksternal
+- [x] Server actions: CRUD speaker
+- [x] UI: Section di Overview kanan atau tab terpisah
+- [x] Quick add: search user internal → auto-fill, atau input manual untuk eksternal
 
 #### 5.2 Budget Planning (Pra-Pelaksanaan)
 
 > Distinct dari Expenses (aktual). Budget = rencana sebelum event.
 
-- [ ] Migration: `project_budget_items` table
+- [x] Migration: `project_budget_items` table
   - `id`, `project_id`, `kategori`, `deskripsi`, `jumlah_rencana numeric(15,2)`, `created_by`, `created_at`
-- [ ] Server actions: CRUD budget items + `getTotalBudget(projectId)`
-- [ ] Section di tab Expenses atau sub-tab tersendiri:
+- [x] Server actions: CRUD budget items + total budget via `getProjectFinancialSummary(projectId)`
+- [x] Section di tab Expenses atau sub-tab tersendiri:
   - Input: kategori, deskripsi, jumlah rencana
   - Summary: total anggaran
-- [ ] **Budget vs Actuals view**: tabel paralel rencana vs realisasi (join budget_items + expenses per kategori)
+- [x] **Budget vs Actuals view**: tabel paralel rencana vs realisasi (join budget_items + expenses per kategori)
   - Delta badge: surplus (hijau) / defisit (merah)
 
 #### 5.3 Expenses Tracking (Aktual)
 
-- [ ] Migration: `project_expenses` table
+- [x] Migration: `project_expenses` table
   - `id`, `project_id`, `kategori`, `jumlah numeric(15,2)`, `tanggal`, `keterangan`, `bukti_url`, `uploaded_by`, `created_at`
-- [ ] Server actions: CRUD expenses + total summary
-- [ ] Tab **"Expenses"** dengan:
+- [x] Server actions: CRUD expenses + total summary
+- [x] Tab **"Expenses"** dengan:
   - Form: kategori (select/ketik), jumlah, tanggal, keterangan, upload bukti
   - Summary card: total pengeluaran vs total anggaran
   - Table list dengan kategori badge
 
 #### 5.4 Timesheets / Timer
 
-- [ ] Migration: `project_timesheets` table
+- [x] Migration: `project_timesheets` table
   - `id`, `project_id`, `user_id`, `start_time`, `end_time`, `duration_minutes`, `description`
-- [ ] Server actions: start timer, stop timer, list, edit, delete
-- [ ] Tab **"Timesheets"** dengan:
+- [x] Server actions: start timer, stop timer, list, edit, delete
+- [x] Tab **"Timesheets"** dengan:
   - Tombol "Start / Stop Timer" (mirip RISE CRM `project_timer.php`)
   - Summary: total jam kerja per user + project
   - Table: tanggal, durasi, deskripsi
@@ -313,31 +313,31 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 **Estimasi**: 2 sprint (4 minggu)  
 **Goal**: Fitur nice-to-have yang meningkatkan profesionalisme.
 
-- [ ] **Kanban Board** untuk Tasks (alternatif view selain list)
-  - Library: `@dnd-kit/core` atau `react-beautiful-dnd`
+- [x] **Kanban Board** untuk Tasks (alternatif view selain list)
+  - Library: `@dnd-kit/core` + `@dnd-kit/sortable`
   - Kolom: `To Do`, `In Progress`, `Done`
   - Drag to change status
 - [ ] **Gantt Chart** (defer — overkill untuk short-term, tapi bisa dibuat sederhana)
   - Hanya kalau ada demand nyata
-- [ ] **Project Duplication / Clone**
+- [x] **Project Duplication / Clone**
   - Tombol "Duplikat Project" → copy metadata + milestones + task structure (bukan members/comments/files)
   - Set `template_source_id` ke project asal
   - Useful untuk pelatihan berulang (monthly workshop, brevet sesi baru)
-- [ ] **Project Templates**
+- [x] **Project Templates**
   - Template: "Workshop 2 Hari", "Seminar 1 Hari", "Brevet AB"
   - Auto-generate tasks, milestones, dan checklist standar
   - Bisa dihasilkan dari Duplikat Project yang di-mark sebagai template
-- [ ] **Project Labels Enhancement**
+- [x] **Project Labels Enhancement**
   - Color picker yang lebih kaya
   - Label groups: `Program`, `Priority`, `Tahun`
-- [ ] **Export Project Summary**
-  - PDF / Excel: ringkasan project, tasks, expenses, peserta, budget vs actuals
+- [x] **Export Project Summary**
+  - PDF: ringkasan project, tasks, milestones, members via jsPDF + autoTable
 - [ ] **Email Digest**
   - Weekly summary ke anggota project (pending tasks, upcoming milestones)
-- [ ] **Mobile Responsive Polish**
+- [x] **Mobile Responsive Polish**
   - Tabs scrollable
-  - Task list card-based di mobile
-  - Comment editor fullscreen di mobile
+  - Kanban board horizontal scroll di mobile
+  - Project table scrollable di mobile
 
 ---
 
@@ -454,7 +454,7 @@ Fase 7 bisa dikerjakan paralel dengan Fase 3/5 karena tidak ada dependency schem
 ### Files yang Akan Dimodifikasi
 
 - `src/server/db/schema.ts` — semua migration schema
-- `src/server/actions/projects.ts` — server actions utama
+- `src/server/actions/projects.ts` — barrel re-export (lihat Refactor Log di bawah)
 - `src/server/actions/calendar.ts` — extend untuk project calendar entries (Fase 7.4)
 - `src/server/actions/announcements.ts` — tambah `createAnnouncementFromProject` (Fase 7.5)
 - `src/components/projects/ProjectDetail.tsx` — tab layout + overview
@@ -463,6 +463,33 @@ Fase 7 bisa dikerjakan paralel dengan Fase 3/5 karena tidak ada dependency schem
 - `src/lib/project-constants.ts` — tambah enum/status
 - `src/lib/validators/` — schema Zod baru
 - `src/components/projects/` — komponen baru (TaskSection, MilestoneSection, NoteSection, BudgetSection, HonorariumCard, dll)
+
+---
+
+## Refactor Log
+
+### [2026-05-13] Pemecahan `projects.ts` → Domain Files
+
+**Latar belakang**: Setelah Fase 5 selesai diimplementasi, `src/server/actions/projects.ts` tumbuh menjadi **3079 baris** — sulit dibaca, sulit di-navigate, dan terlalu besar untuk satu file.
+
+**Keputusan**: Pecah menjadi domain files terpisah dengan barrel re-export agar semua consumer import (`@/server/actions/projects`) tetap tidak perlu diubah.
+
+**Struktur baru**:
+
+| File | Isi |
+|------|-----|
+| `src/server/actions/projects.ts` | Barrel re-export — tidak ada logic, hanya `export * from` |
+| `src/server/actions/_project-shared.ts` | Helper internal: schemas (Zod), RBAC guards, utility functions, shared types. Prefix `_` = tidak diimpor langsung dari luar. Tanpa `"use server"`. |
+| `src/server/actions/project-core.ts` | CRUD project, members, labels, event options |
+| `src/server/actions/project-content.ts` | Komentar, file, activity log, notes |
+| `src/server/actions/project-tasks.ts` | Tasks, milestones, progress, brevet tasks |
+| `src/server/actions/project-resources.ts` | Narasumber, budget, expenses, timesheets |
+
+**Pola `"use server"`**: Setiap domain file punya `"use server"` sendiri. Barrel (`projects.ts`) tidak punya — Next.js resolve batas server action melalui barrel ke file domain.
+
+**Impact ke consumer**: **Nol** — semua import yang ada di `ProjectDetail.tsx`, `ProjectPhase5Section.tsx`, `page.tsx`, dll tetap `from "@/server/actions/projects"` tanpa perubahan.
+
+**Catatan tambahan**: File `project-phase5.ts` (dibuat oleh agent saat implementasi Fase 5) juga dihapus dan kontennya digabung ke dalam struktur domain di atas.
 
 ---
 

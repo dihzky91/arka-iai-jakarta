@@ -6,13 +6,19 @@ import { requireSession } from "@/server/actions/auth";
 import {
   getBrevetSummaryByProject,
   getProjectById,
+  getProjectFinancialSummary,
   getProjectMembers,
+  getProjectTimesheetSummary,
   listComments,
   listProjectActivity,
+  listProjectBudgetItems,
+  listProjectExpenses,
   listProjectFiles,
   listProjectNotes,
+  listProjectSpeakers,
   listProjectTasks,
   listProjectMilestones,
+  listProjectTimesheets,
 } from "@/server/actions/projects";
 
 export const metadata: Metadata = {
@@ -31,7 +37,22 @@ export default async function Page({
   const [project, session] = await Promise.all([getProjectById(id), requireSession()]);
   if (!project) notFound();
 
-  const [members, comments, files, activity, tasks, milestones, notes, brevetSummary] = await Promise.all([
+  const [
+    members,
+    comments,
+    files,
+    activity,
+    tasks,
+    milestones,
+    notes,
+    speakers,
+    budgetItems,
+    expenses,
+    financialSummary,
+    timesheets,
+    timesheetSummary,
+    brevetSummary,
+  ] = await Promise.all([
     getProjectMembers(id),
     listComments(id),
     listProjectFiles(id),
@@ -39,6 +60,12 @@ export default async function Page({
     listProjectTasks(id),
     listProjectMilestones(id),
     listProjectNotes(id),
+    listProjectSpeakers(id),
+    listProjectBudgetItems(id),
+    listProjectExpenses(id),
+    getProjectFinancialSummary(id),
+    listProjectTimesheets(id),
+    getProjectTimesheetSummary(id),
     project.kelasUjianId ? getBrevetSummaryByProject(id) : Promise.resolve(null),
   ]);
 
@@ -54,6 +81,12 @@ export default async function Page({
         initialTasks={tasks}
         initialMilestones={milestones}
         initialNotes={notes}
+        initialSpeakers={speakers}
+        initialBudgetItems={budgetItems}
+        initialExpenses={expenses}
+        initialFinancialSummary={financialSummary}
+        initialTimesheets={timesheets}
+        initialTimesheetSummary={timesheetSummary}
         initialBrevetSummary={brevetSummary}
         defaultTab={tab ?? "overview"}
       />

@@ -792,7 +792,41 @@ src/
 
 ---
 
-## 15. Catatan Penting
+## 15. Fase 5 Administrasi Pelatihan
+
+Fase 5 menambahkan tab **Admin** di detail project dengan tiga sub-tab:
+
+| Sub-tab | Fungsi |
+|---|---|
+| Narasumber | CRUD narasumber internal/eksternal, auto-fill dari member project, topik, durasi, SKP |
+| Expenses | Budget planning, expenses aktual, upload bukti, dan budget vs actuals per kategori |
+| Timesheets | Start/stop timer, input manual, total jam kerja per user |
+
+### Schema Baru
+
+- `project_speakers`
+- `project_budget_items`
+- `project_expenses`
+- `project_timesheets`
+
+### Server Actions
+
+Lokasi: `src/server/actions/project-phase5.ts`
+
+- Speakers: `listProjectSpeakers`, `createProjectSpeaker`, `updateProjectSpeaker`, `deleteProjectSpeaker`
+- Budget: `listProjectBudgetItems`, `createProjectBudgetItem`, `updateProjectBudgetItem`, `deleteProjectBudgetItem`
+- Expenses: `listProjectExpenses`, `createProjectExpense`, `updateProjectExpense`, `deleteProjectExpense`, `getProjectFinancialSummary`
+- Timesheets: `listProjectTimesheets`, `getProjectTimesheetSummary`, `startProjectTimer`, `stopProjectTimer`, `createProjectTimesheet`, `updateProjectTimesheet`, `deleteProjectTimesheet`
+
+### RBAC
+
+- Read: semua member project.
+- Mutasi narasumber, budget, expenses: `owner`, `manager`, atau admin.
+- Timesheet: member bisa start/stop dan edit/hapus timesheet miliknya sendiri; `owner`, `manager`, admin bisa mengelola semua timesheet.
+
+---
+
+## 16. Catatan Penting
 
 1. **Divisi tidak under project.** Divisi = setting global (`users.divisiId`). Di project hanya tampil sebagai info saat invite member (biar tahu orangnya dari divisi mana).
 2. **SKP default auto-calculated** dari rentang tanggal, tapi bisa di-override manual untuk kasus khusus (misal: workshop yang SKP-nya sudah ditentukan oleh asosiasi).

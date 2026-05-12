@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CalendarDays,
+  Copy,
   Eye,
   Loader2,
   Pencil,
@@ -25,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { HtmlEditor } from "@/components/ui/html-editor";
+import { LabelManager } from "@/components/projects/LabelManager";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -54,12 +56,16 @@ import {
 } from "@/lib/project-constants";
 import {
   createProject,
+  createProjectFromTemplate,
   deleteProject,
+  duplicateProject,
+  listProjectTemplates,
   listProjects,
   updateProject,
   type ProjectLabelRow,
   type ProjectListResult,
   type ProjectListRow,
+  type ProjectTemplateRow,
 } from "@/server/actions/projects";
 
 type EventOption = { id: number; title: string; date: string };
@@ -171,6 +177,12 @@ export function ProjectManager({
   const [data, setData] = useState(initialProjectList);
   const [editingProject, setEditingProject] = useState<ProjectListRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templates, setTemplates] = useState<ProjectTemplateRow[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [templateTitle, setTemplateTitle] = useState("");
+  const [templateStartDate, setTemplateStartDate] = useState("");
+  const [templateEndDate, setTemplateEndDate] = useState("");
   const [isPending, startTransition] = useTransition();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -197,6 +209,39 @@ export function ProjectManager({
     setEditingProject(null);
     form.reset(toFormValues());
     setDialogOpen(true);
+  }
+
+  function openFromTemplate() {
+    setTemplateTitle("");
+    setTemplateStartDate("");
+    setTemplateEndDate("");
+    setSelectedTemplateId("");
+    startTransition(async () => {
+      const tpls = await listProjectTemplates();
+      setTemplates(tpls);
+      setTemplateDialogOpen(true);
+    });
+  }
+
+  function submitFromTemplate() {
+    if (!selectedTemplateId || !templateTitle.trim()) {
+      toast.error("Pilih template dan isi judul.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await createProjectFromTemplate(selectedTemplateId, {
+        title: templateTitle.trim(),
+        startDate: templateStartDate || undefined,
+        endDate: templateEndDate || undefined,
+      });
+      if (result.ok) {
+        toast.success("Project dibuat dari template.");
+        setTemplateDialogOpen(false);
+        fetchProjects();
+      } else {
+        toast.error(result.error);
+      }
+    });
   }
 
   function openEdit(project: ProjectListRow) {
@@ -264,6 +309,19 @@ export function ProjectManager({
     });
   }
 
+  function dup(project: ProjectListRow) {
+    if (!window.confirm(`Duplikat project "${project.title}"?`)) return;
+    startTransition(async () => {
+      const result = await duplicateProject(project.id);
+      if (result.ok) {
+        toast.success("Project diduplikat.");
+        fetchProjects();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   const hasProjects = data.rows.length > 0;
   const selectedLabels = useMemo(
     () => new Set(labelIds ?? []),
@@ -273,7 +331,7 @@ export function ProjectManager({
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[1.4fr_repeat(3,minmax(0,220px))_auto]">
+        <div className="grid gap-3 sm:grid-cols-[1.4fr_repeat(3,minmax(0,220px))_auto] lg:grid-cols-[1.4fr_repeat(3,minmax(0,220px))_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -340,10 +398,16 @@ export function ProjectManager({
             <Plus className="h-4 w-4" />
             New Project
           </Button>
+          {templates.length > 0 || true ? (
+            <Button type="button" variant="outline" onClick={openFromTemplate}>
+              <Copy className="h-4 w-4" />
+              From Template
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -420,6 +484,15 @@ export function ProjectManager({
                       onClick={() => openEdit(project)}
                     >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={() => dup(project)}
+                      title="Duplikat project"
+                    >
+                      <Copy className="h-4 w-4" />
                     </Button>
                     <Button
                       type="button"
@@ -698,6 +771,9 @@ export function ProjectManager({
                         style={{ backgroundColor: label.color }}
                       />
                       {label.name}
+                      {label.group ? (
+                        <span className="text-[10px] text-muted-foreground">({label.group})</span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -707,6 +783,7 @@ export function ProjectManager({
                   </span>
                 ) : null}
               </div>
+              <LabelManager labels={labels} onRefresh={fetchProjects} />
             </div>
             <DialogFooter>
               <Button
@@ -722,6 +799,79 @@ export function ProjectManager({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Buat dari Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Template</Label>
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((tpl) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {templates.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Belum ada template. Jadikan project sebagai template dari halaman detail project.
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <Label>Judul Project Baru</Label>
+              <Input
+                value={templateTitle}
+                onChange={(e) => setTemplateTitle(e.target.value)}
+                placeholder="Judul project baru"
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Mulai</Label>
+                <Input
+                  type="date"
+                  value={templateStartDate}
+                  onChange={(e) => setTemplateStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Selesai</Label>
+                <Input
+                  type="date"
+                  value={templateEndDate}
+                  onChange={(e) => setTemplateEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setTemplateDialogOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              disabled={isPending || !selectedTemplateId || !templateTitle.trim()}
+              onClick={submitFromTemplate}
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Buat Project
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

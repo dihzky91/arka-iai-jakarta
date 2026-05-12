@@ -818,6 +818,10 @@ export const projects = pgTable(
       onDelete: "set null",
     }),
     progress: integer("progress").notNull().default(0),
+    isTemplate: boolean("is_template").notNull().default(false),
+    templateSourceId: uuid("template_source_id").references((): AnyPgColumn => projects.id, {
+      onDelete: "set null",
+    }),
     createdBy: text("created_by")
       .notNull()
       .references(() => users.id),
@@ -839,6 +843,7 @@ export const projectLabels = pgTable("project_labels", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   color: varchar("color", { length: 7 }).notNull().default("#6B7280"),
+  group: varchar("group", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1039,6 +1044,109 @@ export const projectTasks = pgTable(
     assigneeIdx: index("project_tasks_assignee_idx").on(t.assigneeId),
     statusIdx: index("project_tasks_status_idx").on(t.status),
     milestoneIdx: index("project_tasks_milestone_idx").on(t.milestoneId),
+  }),
+);
+
+export const projectSpeakers = pgTable(
+  "project_speakers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    nama: varchar("nama", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }),
+    topik: varchar("topik", { length: 255 }),
+    durasiMenit: integer("durasi_menit"),
+    skp: numeric("skp", { precision: 5, scale: 2 }),
+    isExternal: boolean("is_external").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_speakers_project_idx").on(t.projectId),
+    userIdx: index("project_speakers_user_idx").on(t.userId),
+  }),
+);
+
+export const projectBudgetItems = pgTable(
+  "project_budget_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kategori: varchar("kategori", { length: 100 }).notNull(),
+    deskripsi: text(),
+    jumlahRencana: numeric("jumlah_rencana", {
+      precision: 15,
+      scale: 2,
+    }).notNull(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_budget_items_project_idx").on(t.projectId),
+    kategoriIdx: index("project_budget_items_kategori_idx").on(t.kategori),
+  }),
+);
+
+export const projectExpenses = pgTable(
+  "project_expenses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kategori: varchar("kategori", { length: 100 }).notNull(),
+    jumlah: numeric("jumlah", { precision: 15, scale: 2 }).notNull(),
+    tanggal: date("tanggal").notNull(),
+    keterangan: text(),
+    buktiUrl: varchar("bukti_url", { length: 1000 }),
+    uploadedBy: text("uploaded_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_expenses_project_idx").on(t.projectId),
+    kategoriIdx: index("project_expenses_kategori_idx").on(t.kategori),
+    tanggalIdx: index("project_expenses_tanggal_idx").on(t.tanggal),
+  }),
+);
+
+export const projectTimesheets = pgTable(
+  "project_timesheets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    startTime: timestamp("start_time").notNull(),
+    endTime: timestamp("end_time"),
+    durationMinutes: integer("duration_minutes"),
+    description: text(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    projectIdx: index("project_timesheets_project_idx").on(t.projectId),
+    userIdx: index("project_timesheets_user_idx").on(t.userId),
+    activeTimerIdx: index("project_timesheets_active_timer_idx").on(
+      t.projectId,
+      t.userId,
+      t.endTime,
+    ),
   }),
 );
 
@@ -1456,6 +1564,14 @@ export type ProjectMilestone = typeof projectMilestones.$inferSelect;
 export type NewProjectMilestone = typeof projectMilestones.$inferInsert;
 export type ProjectNote = typeof projectNotes.$inferSelect;
 export type NewProjectNote = typeof projectNotes.$inferInsert;
+export type ProjectSpeaker = typeof projectSpeakers.$inferSelect;
+export type NewProjectSpeaker = typeof projectSpeakers.$inferInsert;
+export type ProjectBudgetItem = typeof projectBudgetItems.$inferSelect;
+export type NewProjectBudgetItem = typeof projectBudgetItems.$inferInsert;
+export type ProjectExpense = typeof projectExpenses.$inferSelect;
+export type NewProjectExpense = typeof projectExpenses.$inferInsert;
+export type ProjectTimesheet = typeof projectTimesheets.$inferSelect;
+export type NewProjectTimesheet = typeof projectTimesheets.$inferInsert;
 export type NewSignatory = typeof signatories.$inferInsert;
 export type EventSignatory = typeof eventSignatories.$inferSelect;
 export type NewEventSignatory = typeof eventSignatories.$inferInsert;

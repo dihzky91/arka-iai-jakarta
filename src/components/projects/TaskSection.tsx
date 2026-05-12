@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Columns3,
+  List,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -52,6 +54,7 @@ import {
   type ProjectMemberRow,
   type ProjectMilestoneRow,
 } from "@/server/actions/projects";
+import { KanbanBoard } from "@/components/projects/KanbanBoard";
 
 const taskFormSchema = z.object({
   title: z.string().trim().min(1, "Judul task wajib diisi.").max(255),
@@ -107,6 +110,7 @@ export function TaskSection({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ProjectTaskRow | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [view, setView] = useState<"list" | "kanban">("list");
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -120,13 +124,13 @@ export function TaskSection({
     },
   });
 
-  function openCreate() {
+  function openCreate(defaultStatus: ProjectTaskStatus = "todo") {
     setEditingTask(null);
     form.reset({
       title: "",
       description: "",
       assigneeId: "",
-      status: "todo",
+      status: defaultStatus,
       dueDate: "",
       milestoneId: "",
     });
@@ -224,115 +228,154 @@ export function TaskSection({
             </Badge>
           </div>
         </div>
-        {canManage ? (
-          <Button type="button" size="sm" onClick={openCreate} disabled={isPending || pending}>
-            <Plus className="h-4 w-4" />
-            Tambah Task
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border">
+            <Button
+              type="button"
+              variant={view === "list" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setView("list")}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant={view === "kanban" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setView("kanban")}
+              title="Kanban board"
+            >
+              <Columns3 className="h-4 w-4" />
+            </Button>
+          </div>
+          {canManage ? (
+            <Button type="button" size="sm" onClick={() => openCreate("todo")} disabled={isPending || pending}>
+              <Plus className="h-4 w-4" />
+              Tambah Task
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {tasks.map((task) => {
-          const canEdit =
-            canManage ||
-            task.assigneeId === currentUserId ||
-            task.createdBy === currentUserId;
-          return (
-            <div
-              key={task.id}
-              className={`flex items-start gap-3 rounded-lg border border-border p-3 transition-colors ${
-                task.status === "done" ? "bg-muted/50" : ""
-              }`}
-            >
-              <button
-                type="button"
-                className="mt-0.5 flex-shrink-0"
-                onClick={() => toggleStatus(task)}
-                disabled={isPending || pending}
+      {view === "kanban" ? (
+        <KanbanBoard
+          projectId={projectId}
+          tasks={tasks}
+          members={members}
+          milestones={milestones}
+          canManage={canManage}
+          currentUserId={currentUserId}
+          onRefresh={onRefresh}
+          pending={isPending || pending}
+          onEditTask={openEdit}
+          onDeleteTask={remove}
+          onToggleStatus={toggleStatus}
+          onAddTask={openCreate}
+        />
+      ) : (
+        <div className="space-y-2">
+          {tasks.map((task) => {
+            const canEdit =
+              canManage ||
+              task.assigneeId === currentUserId ||
+              task.createdBy === currentUserId;
+            return (
+              <div
+                key={task.id}
+                className={`flex items-start gap-3 rounded-lg border border-border p-3 transition-colors ${
+                  task.status === "done" ? "bg-muted/50" : ""
+                }`}
               >
-                {taskStatusIcon(task.status)}
-              </button>
-              <div className="min-w-0 flex-1">
-                <p
-                  className={`font-medium ${
-                    task.status === "done" ? "text-muted-foreground line-through" : ""
-                  }`}
+                <button
+                  type="button"
+                  className="mt-0.5 flex-shrink-0"
+                  onClick={() => toggleStatus(task)}
+                  disabled={isPending || pending}
                 >
-                  {task.title}
-                </p>
-                {task.description ? (
-                  <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
-                ) : null}
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {task.assigneeName ? (
-                    <Badge variant="secondary" className="text-xs">
-                      {task.assigneeName}
-                    </Badge>
+                  {taskStatusIcon(task.status)}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`font-medium ${
+                      task.status === "done" ? "text-muted-foreground line-through" : ""
+                    }`}
+                  >
+                    {task.title}
+                  </p>
+                  {task.description ? (
+                    <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
                   ) : null}
-                  {task.dueDate ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {task.assigneeName ? (
+                      <Badge variant="secondary" className="text-xs">
+                        {task.assigneeName}
+                      </Badge>
+                    ) : null}
+                    {task.dueDate ? (
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          isOverdue(task.dueDate) && task.status !== "done"
+                            ? "border-red-300 bg-red-50 text-red-700"
+                            : ""
+                        }`}
+                      >
+                        <CalendarDays className="mr-1 h-3 w-3" />
+                        {formatTanggal(task.dueDate)}
+                      </Badge>
+                    ) : null}
+                    {task.milestoneId ? (
+                      <Badge variant="outline" className="text-xs">
+                        {milestones.find((m) => m.id === task.milestoneId)?.title ?? "Milestone"}
+                      </Badge>
+                    ) : null}
                     <Badge
                       variant="outline"
                       className={`text-xs ${
-                        isOverdue(task.dueDate) && task.status !== "done"
-                          ? "border-red-300 bg-red-50 text-red-700"
-                          : ""
+                        task.status === "done"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : task.status === "in_progress"
+                            ? "border-blue-200 bg-blue-50 text-blue-700"
+                            : ""
                       }`}
                     >
-                      <CalendarDays className="mr-1 h-3 w-3" />
-                      {formatTanggal(task.dueDate)}
+                      {taskStatusLabel(task.status)}
                     </Badge>
-                  ) : null}
-                  {task.milestoneId ? (
-                    <Badge variant="outline" className="text-xs">
-                      {milestones.find((m) => m.id === task.milestoneId)?.title ?? "Milestone"}
-                    </Badge>
-                  ) : null}
-                  <Badge
-                    variant="outline"
-                    className={`text-xs ${
-                      task.status === "done"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : task.status === "in_progress"
-                          ? "border-blue-200 bg-blue-50 text-blue-700"
-                          : ""
-                    }`}
-                  >
-                    {taskStatusLabel(task.status)}
-                  </Badge>
+                  </div>
                 </div>
+                {canEdit ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" size="icon-sm" disabled={isPending || pending}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(task)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => remove(task)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Hapus
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
               </div>
-              {canEdit ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon-sm" disabled={isPending || pending}>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEdit(task)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => remove(task)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Hapus
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null}
-            </div>
-          );
-        })}
-        {tasks.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Belum ada task.
-          </p>
-        ) : null}
-      </div>
+            );
+          })}
+          {tasks.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              Belum ada task.
+            </p>
+          ) : null}
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

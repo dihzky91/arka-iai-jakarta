@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Copy,
   Download,
   File,
   FileImage,
@@ -25,6 +26,7 @@ import {
   Paperclip,
   Pencil,
   Plus,
+  Save,
   Trash2,
   UserPlus,
   Users,
@@ -62,6 +64,7 @@ import {
   addProjectMembers,
   createComment,
   deleteProjectFile,
+  duplicateProject,
   getBrevetSummaryByProject,
   getProjectMembers,
   listComments,
@@ -71,25 +74,39 @@ import {
   listProjectTasks,
   listProjectMilestones,
   searchUsersForInvite,
+  toggleProjectTemplate,
   updateMemberRole,
   removeProjectMember,
   updateProjectStatus,
   uploadProjectFile,
   type BrevetSummary,
   type InviteUserRow,
+  getProjectFinancialSummary,
+  getProjectTimesheetSummary,
+  listProjectBudgetItems,
+  listProjectExpenses,
+  listProjectSpeakers,
+  listProjectTimesheets,
   type ProjectActivityRow,
+  type ProjectBudgetItemRow,
   type ProjectCommentRow,
   type ProjectDetailRow,
+  type ProjectExpenseRow,
   type ProjectFileRow,
+  type ProjectFinancialSummary,
   type ProjectMemberRow,
-  type ProjectNoteRow,
-  type ProjectTaskRow,
   type ProjectMilestoneRow,
+  type ProjectNoteRow,
+  type ProjectSpeakerRow,
+  type ProjectTaskRow,
+  type ProjectTimesheetRow,
+  type ProjectTimesheetSummary,
 } from "@/server/actions/projects";
 import { TaskSection } from "@/components/projects/TaskSection";
 import { MilestoneSection } from "@/components/projects/MilestoneSection";
 import { BrevetInfoCard } from "@/components/projects/BrevetInfoCard";
 import { NoteSection } from "@/components/projects/NoteSection";
+import { ProjectPhase5Section } from "@/components/projects/ProjectPhase5Section";
 
 function statusLabel(status: ProjectStatus) {
   const labels: Record<ProjectStatus, string> = {
@@ -165,6 +182,12 @@ export function ProjectDetail({
   initialTasks,
   initialMilestones,
   initialNotes = [],
+  initialSpeakers = [],
+  initialBudgetItems = [],
+  initialExpenses = [],
+  initialFinancialSummary,
+  initialTimesheets = [],
+  initialTimesheetSummary,
   initialBrevetSummary,
   defaultTab = "overview",
 }: {
@@ -177,10 +200,17 @@ export function ProjectDetail({
   initialTasks: ProjectTaskRow[];
   initialMilestones: ProjectMilestoneRow[];
   initialNotes?: ProjectNoteRow[];
+  initialSpeakers?: ProjectSpeakerRow[];
+  initialBudgetItems?: ProjectBudgetItemRow[];
+  initialExpenses?: ProjectExpenseRow[];
+  initialFinancialSummary: ProjectFinancialSummary;
+  initialTimesheets?: ProjectTimesheetRow[];
+  initialTimesheetSummary: ProjectTimesheetSummary;
   initialBrevetSummary?: BrevetSummary | null;
   defaultTab?: string;
 }) {
   const [status, setStatus] = useState(project.status);
+  const [isTemplate, setIsTemplate] = useState(project.isTemplate);
   const [members, setMembers] = useState(initialMembers);
   const [comments, setComments] = useState(initialComments);
   const [files, setFiles] = useState(initialFiles);
@@ -188,13 +218,34 @@ export function ProjectDetail({
   const [tasks, setTasks] = useState(initialTasks);
   const [milestones, setMilestones] = useState(initialMilestones);
   const [notes, setNotes] = useState(initialNotes);
+  const [speakers, setSpeakers] = useState(initialSpeakers);
+  const [budgetItems, setBudgetItems] = useState(initialBudgetItems);
+  const [expenses, setExpenses] = useState(initialExpenses);
+  const [financialSummary, setFinancialSummary] = useState(initialFinancialSummary);
+  const [timesheets, setTimesheets] = useState(initialTimesheets);
+  const [timesheetSummary, setTimesheetSummary] = useState(initialTimesheetSummary);
   const [brevetSummary, setBrevetSummary] = useState<BrevetSummary | null | undefined>(initialBrevetSummary);
   const [isPending, startTransition] = useTransition();
   const role = project.currentUserProjectRole;
 
   function refreshAll() {
     startTransition(async () => {
-      const [nextMembers, nextComments, nextFiles, nextActivity, nextTasks, nextMilestones, nextNotes, nextBrevet] =
+      const [
+        nextMembers,
+        nextComments,
+        nextFiles,
+        nextActivity,
+        nextTasks,
+        nextMilestones,
+        nextNotes,
+        nextSpeakers,
+        nextBudgetItems,
+        nextExpenses,
+        nextFinancialSummary,
+        nextTimesheets,
+        nextTimesheetSummary,
+        nextBrevet,
+      ] =
         await Promise.all([
           getProjectMembers(project.id),
           listComments(project.id),
@@ -203,6 +254,12 @@ export function ProjectDetail({
           listProjectTasks(project.id),
           listProjectMilestones(project.id),
           listProjectNotes(project.id),
+          listProjectSpeakers(project.id),
+          listProjectBudgetItems(project.id),
+          listProjectExpenses(project.id),
+          getProjectFinancialSummary(project.id),
+          listProjectTimesheets(project.id),
+          getProjectTimesheetSummary(project.id),
           project.kelasUjianId ? getBrevetSummaryByProject(project.id) : Promise.resolve(null),
         ]);
       setMembers(nextMembers);
@@ -212,6 +269,12 @@ export function ProjectDetail({
       setTasks(nextTasks);
       setMilestones(nextMilestones);
       setNotes(nextNotes);
+      setSpeakers(nextSpeakers);
+      setBudgetItems(nextBudgetItems);
+      setExpenses(nextExpenses);
+      setFinancialSummary(nextFinancialSummary);
+      setTimesheets(nextTimesheets);
+      setTimesheetSummary(nextTimesheetSummary);
       setBrevetSummary(nextBrevet);
     });
   }
@@ -233,6 +296,7 @@ export function ProjectDetail({
     { value: "overview", icon: null, label: "Overview", count: null },
     { value: "tasks", icon: CheckCircle2, label: "Tasks", count: tasks.length },
     { value: "notes", icon: null, label: "Notes", count: notes.length },
+    { value: "admin", icon: null, label: "Admin", count: speakers.length + budgetItems.length + expenses.length + timesheets.length },
     { value: "comments", icon: MessageSquare, label: "Comments", count: comments.length },
     { value: "files", icon: Paperclip, label: "Files", count: files.length },
     { value: "members", icon: Users, label: "Members", count: members.length },
@@ -283,7 +347,7 @@ export function ProjectDetail({
           <div className="flex flex-wrap gap-2">
             {canManage(role) ? (
               <Select value={status} onValueChange={(value) => changeStatus(value as ProjectStatus)}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -295,6 +359,58 @@ export function ProjectDetail({
                 </SelectContent>
               </Select>
             ) : null}
+            {canManage(role) ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!window.confirm(`Duplikat project "${project.title}"?`)) return;
+                  startTransition(async () => {
+                    const result = await duplicateProject(project.id);
+                    if (result.ok) {
+                      toast.success("Project diduplikat.");
+                      window.location.href = `/projects/${result.data.id}`;
+                    } else {
+                      toast.error(result.error);
+                    }
+                  });
+                }}
+                disabled={isPending}
+              >
+                <Copy className="h-4 w-4" />
+                Duplikat
+              </Button>
+            ) : null}
+            {canManage(role) ? (
+              <Button
+                type="button"
+                variant={isTemplate ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => {
+                  startTransition(async () => {
+                    const result = await toggleProjectTemplate(project.id);
+                    if (result.ok) {
+                      toast.success(isTemplate ? "Template dinonaktifkan." : "Project dijadikan template.");
+                      setIsTemplate(!isTemplate);
+                      refreshAll();
+                    } else {
+                      toast.error(result.error);
+                    }
+                  });
+                }}
+                disabled={isPending}
+              >
+                <Save className="h-4 w-4" />
+                {isTemplate ? "Template ✓" : "Jadikan Template"}
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link href={`/api/projects/${project.id}/export`} target="_blank">
+                <Download className="h-4 w-4" />
+                Export PDF
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link href="/projects">Kembali</Link>
             </Button>
@@ -359,6 +475,23 @@ export function ProjectDetail({
             projectId={project.id}
             notes={notes}
             canManage={canManage(role)}
+            onRefresh={refreshAll}
+            pending={isPending}
+          />
+        </TabsContent>
+        <TabsContent value="admin">
+          <ProjectPhase5Section
+            projectId={project.id}
+            members={members}
+            speakers={speakers}
+            budgetItems={budgetItems}
+            expenses={expenses}
+            financialSummary={financialSummary}
+            timesheets={timesheets}
+            timesheetSummary={timesheetSummary}
+            canManage={canManage(role)}
+            canContribute={canContribute(role)}
+            currentUserId={currentUserId}
             onRefresh={refreshAll}
             pending={isPending}
           />

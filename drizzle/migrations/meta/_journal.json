@@ -309,6 +309,20 @@
       "when": 1778572686159,
       "tag": "0049_lonely_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1778602675763,
+      "tag": "0050_material_veda",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1778607553020,
+      "tag": "0051_shiny_nick_fury",
+      "breakpoints": true
     }
   ]
 }
