@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   deleteHonorariumBatch, generateHonorariumBatch, getHonorariumReport,
   getSuggestedHonorariumBatchPeriod, listHonorariumBatchesPage, previewHonorariumBatchGeneration,
@@ -193,7 +194,7 @@ export function HonorariumReport({ instructors, programs, initialReport, initial
     <div className="space-y-6">
       {/* Filter Laporan */}
       <Card>
-        <CardHeader className="border-b border-border"><CardTitle>Filter Laporan</CardTitle><CardDescription>Filter berdasarkan periode, instruktur, dan program.</CardDescription></CardHeader>
+        <CardHeader className="border-b border-border/60"><CardTitle>Filter Laporan</CardTitle><CardDescription>Filter berdasarkan periode, instruktur, dan program.</CardDescription></CardHeader>
         <CardContent className="pt-6 space-y-4">
           <div className="grid gap-3 md:grid-cols-5">
             <div><p className="text-xs text-muted-foreground mb-1">Tanggal Mulai</p><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
@@ -207,7 +208,7 @@ export function HonorariumReport({ instructors, programs, initialReport, initial
 
       {/* Batch Queue */}
       <Card>
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div><CardTitle>Batch Honorarium Internal</CardTitle><CardDescription>Generate draft dari periode terpilih.</CardDescription><p className="mt-2 text-xs text-muted-foreground">Saran periode: {activeSuggestion.startDate} s.d. {activeSuggestion.endDate}{activeSuggestion.hasExistingBatch && activeSuggestion.sourceDocumentNumber ? ` (setelah ${activeSuggestion.sourceDocumentNumber})` : ""}</p></div>
             <div className="flex items-center gap-2"><Button variant="outline" onClick={handleApplySuggestedPeriod} disabled={pending}>Gunakan Saran</Button><Button variant="outline" onClick={handleCheckGeneration} disabled={pending}>Cek Kelayakan</Button><Button onClick={handleGenerateDraftBatch} disabled={pending}><FilePlus2 className="h-4 w-4 mr-1" />Generate Draft</Button></div>
@@ -235,10 +236,10 @@ export function HonorariumReport({ instructors, programs, initialReport, initial
               <TabsTrigger value="kanban"><Kanban className="h-4 w-4" />Kanban</TabsTrigger>
             </TabsList>
             <TabsContent value="table" className="mt-4 space-y-3">
-              <div className="overflow-hidden rounded-md border bg-card">
+              <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
                 <Table className="min-w-[58rem]">
                   <TableHeader>{table.getHeaderGroups().map((hg) => <TableRow key={hg.id}>{hg.headers.map((h) => <TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>)}</TableRow>)}</TableHeader>
-                  <TableBody>{table.getRowModel().rows.length > 0 ? table.getRowModel().rows.map((r) => <TableRow key={r.id}>{r.getVisibleCells().map((c) => <TableCell key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</TableCell>)}</TableRow>) : <TableRow><TableCell colSpan={columns.length} className="h-24 text-center text-sm text-muted-foreground">Belum ada batch.</TableCell></TableRow>}</TableBody>
+                  <TableBody>{table.getRowModel().rows.length > 0 ? table.getRowModel().rows.map((r) => <TableRow key={r.id} className="transition-colors hover:bg-muted/40">{r.getVisibleCells().map((c) => <TableCell key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</TableCell>)}</TableRow>) : <TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState icon={FilePlus2} title="Belum ada batch" description="Batch honorarium akan muncul setelah periode dipilih dan draft berhasil dibuat." className="min-h-40" /></TableCell></TableRow>}</TableBody>
                 </Table>
               </div>
               <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -264,24 +265,24 @@ export function HonorariumReport({ instructors, programs, initialReport, initial
 
       {/* Summary by Instructor */}
       <Card>
-        <CardHeader className="border-b border-border"><CardTitle>Ringkasan per Instruktur</CardTitle></CardHeader>
-        <CardContent className="pt-6">{report.summaryByInstructor.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada data.</p> : <div className="flex flex-wrap gap-2">{report.summaryByInstructor.map((r) => <Badge key={r.key} variant="secondary" className="px-3 py-1 text-sm">{r.label}: {r.sessionCount} sesi · {fmtCurrency(r.totalAmount)}</Badge>)}</div>}</CardContent>
+        <CardHeader className="border-b border-border/60"><CardTitle>Ringkasan per Instruktur</CardTitle></CardHeader>
+        <CardContent className="pt-6">{report.summaryByInstructor.length === 0 ? <EmptyState icon={ListChecks} title="Belum ada data instruktur" description="Ringkasan per instruktur akan muncul setelah ada sesi honorarium pada filter yang dipilih." /> : <div className="flex flex-wrap gap-2">{report.summaryByInstructor.map((r) => <Badge key={r.key} variant="secondary" className="px-3 py-1 text-sm">{r.label}: {r.sessionCount} sesi · {fmtCurrency(r.totalAmount)}</Badge>)}</div>}</CardContent>
       </Card>
 
       {/* Summary by Program */}
       <Card>
-        <CardHeader className="border-b border-border"><CardTitle>Ringkasan per Program</CardTitle></CardHeader>
-        <CardContent className="pt-6">{report.summaryByProgram.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada data.</p> : <div className="flex flex-wrap gap-2">{report.summaryByProgram.map((r) => <Badge key={r.key} variant="outline" className="px-3 py-1 text-sm">{r.label}: {r.sessionCount} sesi · {fmtCurrency(r.totalAmount)}</Badge>)}</div>}</CardContent>
+        <CardHeader className="border-b border-border/60"><CardTitle>Ringkasan per Program</CardTitle></CardHeader>
+        <CardContent className="pt-6">{report.summaryByProgram.length === 0 ? <EmptyState icon={ListChecks} title="Belum ada data program" description="Ringkasan per program akan muncul setelah ada sesi honorarium pada filter yang dipilih." /> : <div className="flex flex-wrap gap-2">{report.summaryByProgram.map((r) => <Badge key={r.key} variant="outline" className="px-3 py-1 text-sm">{r.label}: {r.sessionCount} sesi · {fmtCurrency(r.totalAmount)}</Badge>)}</div>}</CardContent>
       </Card>
 
       {/* Detail Session Table */}
       <Card>
-        <CardHeader className="border-b border-border"><CardTitle>Detail Honorarium Sesi</CardTitle></CardHeader>
+        <CardHeader className="border-b border-border/60"><CardTitle>Detail Honorarium Sesi</CardTitle></CardHeader>
         <CardContent className="pt-6 p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-border"><th className="text-left px-6 py-3 font-medium text-muted-foreground">Tanggal</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Kelas</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Program</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Materi</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Instruktur</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Sumber</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Sumber Rate</th><th className="text-right px-6 py-3 font-medium text-muted-foreground">Honor</th><th className="text-right px-6 py-3 font-medium text-muted-foreground">Transport</th><th className="text-right px-6 py-3 font-medium text-muted-foreground">Total</th></tr></thead>
-              <tbody>{rows.length === 0 ? <tr><td colSpan={10} className="px-6 py-8 text-center text-muted-foreground">Tidak ada data.</td></tr> : rows.map((r) => <tr key={r.assignmentId} className="border-b border-border hover:bg-muted/50"><td className="px-6 py-3">{r.scheduledDate}</td><td className="px-6 py-3 font-medium">{r.namaKelas}</td><td className="px-6 py-3">{r.programName}</td><td className="px-6 py-3">{r.materiBlock}</td><td className="px-6 py-3">{r.paidInstructorName}</td><td className="px-6 py-3"><Badge variant={r.source === "actual" ? "outline" : "secondary"}>{r.source === "actual" ? "Substitusi" : "Planned"}</Badge></td><td className="px-6 py-3"><Badge variant={rateSourceVariant(r.rateSource)}>{rateSourceLabel(r.rateSource)}</Badge></td><td className="px-6 py-3 text-right tabular-nums">{fmtCurrency(r.honorAmount)}</td><td className="px-6 py-3 text-right tabular-nums">{fmtCurrency(r.transportAmount)}</td><td className="px-6 py-3 text-right font-medium tabular-nums">{fmtCurrency(r.totalAmount)}</td></tr>)}</tbody>
+              <thead><tr className="border-b border-border/60"><th className="text-left px-6 py-3 font-medium text-muted-foreground">Tanggal</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Kelas</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Program</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Materi</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Instruktur</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Sumber</th><th className="text-left px-6 py-3 font-medium text-muted-foreground">Sumber Rate</th><th className="text-right px-6 py-3 font-medium text-muted-foreground">Honor</th><th className="text-right px-6 py-3 font-medium text-muted-foreground">Transport</th><th className="text-right px-6 py-3 font-medium text-muted-foreground">Total</th></tr></thead>
+              <tbody>{rows.length === 0 ? <tr><td colSpan={10} className="px-6 py-8"><EmptyState icon={ListChecks} title="Tidak ada data sesi" description="Detail honorarium sesi akan muncul setelah filter periode, instruktur, atau program memiliki data eligible." /></td></tr> : rows.map((r) => <tr key={r.assignmentId} className="border-b border-border/60 transition-colors hover:bg-muted/40"><td className="px-6 py-3">{r.scheduledDate}</td><td className="px-6 py-3 font-medium">{r.namaKelas}</td><td className="px-6 py-3">{r.programName}</td><td className="px-6 py-3">{r.materiBlock}</td><td className="px-6 py-3">{r.paidInstructorName}</td><td className="px-6 py-3"><Badge variant={r.source === "actual" ? "outline" : "secondary"}>{r.source === "actual" ? "Substitusi" : "Planned"}</Badge></td><td className="px-6 py-3"><Badge variant={rateSourceVariant(r.rateSource)}>{rateSourceLabel(r.rateSource)}</Badge></td><td className="px-6 py-3 text-right tabular-nums">{fmtCurrency(r.honorAmount)}</td><td className="px-6 py-3 text-right tabular-nums">{fmtCurrency(r.transportAmount)}</td><td className="px-6 py-3 text-right font-medium tabular-nums">{fmtCurrency(r.totalAmount)}</td></tr>)}</tbody>
             </table>
           </div>
         </CardContent>
@@ -295,7 +296,7 @@ function SortBtn({ label, column, onSort }: { label: string; column: HonorariumB
 }
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg border border-border bg-muted/20 p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
+  return <div className="rounded-xl border border-border/60 bg-muted/20 p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
 }
 
 function PelatihanKanban({ batches }: { batches: HonorariumBatchRow[] }) {
@@ -304,9 +305,9 @@ function PelatihanKanban({ batches }: { batches: HonorariumBatchRow[] }) {
       {KANBAN_STATUSES.map((status) => {
         const rows = batches.filter((b) => b.status === status);
         return (
-          <section key={status} className="min-h-44 rounded-lg border border-border bg-muted/20 p-3">
+          <section key={status} className="min-h-44 rounded-xl border border-border/60 bg-muted/20 p-3">
             <div className="mb-3 flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">{statusLabel(status)}</h3><Badge variant="outline">{rows.length}</Badge></div>
-            <div className="space-y-2">{rows.length > 0 ? rows.map((b) => <Link key={b.id} href={`/jadwal-otomatis/honorarium/${b.id}`} className="block rounded-lg border border-border bg-card p-3 text-sm transition-colors hover:bg-muted/50"><div className="flex items-start justify-between gap-2"><p className="line-clamp-1 font-medium">{b.documentNumber}</p>{status === "dikirim_ke_keuangan" ? <Badge variant={slaVariant(b.waitingDays)}>{b.waitingDays}h</Badge> : null}</div><p className="mt-2 text-xs text-muted-foreground">{formatTanggalPendek(b.periodStart)} s.d. {formatTanggalPendek(b.periodEnd)}</p><p className="mt-2 font-medium">{fmtCurrency(b.netAmount)}</p></Link>) : <div className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">Kosong</div>}</div>
+            <div className="space-y-2">{rows.length > 0 ? rows.map((b) => <Link key={b.id} href={`/jadwal-otomatis/honorarium/${b.id}`} className="block rounded-lg border border-border/60 bg-card p-3 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/40 hover:shadow-md"><div className="flex items-start justify-between gap-2"><p className="line-clamp-1 font-medium">{b.documentNumber}</p>{status === "dikirim_ke_keuangan" ? <Badge variant={slaVariant(b.waitingDays)}>{b.waitingDays}h</Badge> : null}</div><p className="mt-2 text-xs text-muted-foreground">{formatTanggalPendek(b.periodStart)} s.d. {formatTanggalPendek(b.periodEnd)}</p><p className="mt-2 font-medium">{fmtCurrency(b.netAmount)}</p></Link>) : <EmptyState icon={Kanban} description={`Belum ada batch ${statusLabel(status).toLowerCase()}.`} className="min-h-28 rounded-lg px-3 py-5 text-xs" />}</div>
           </section>
         );
       })}

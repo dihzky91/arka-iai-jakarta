@@ -25,6 +25,7 @@ import { KeuanganWidget } from "@/components/dashboard/KeuanganWidget";
 import { UjianDashboardWidget } from "@/components/jadwal-ujian/UjianDashboardWidget";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardActivityList } from "@/components/dashboard/DashboardActivityList";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
 import type { RoleDashboardData, RecentSuratMasukItem } from "@/server/actions/statistics";
@@ -203,63 +204,50 @@ function statusInfo(status: string | null): { label: string; className: string }
 
 function AntreanPersuratanCard({ items }: { items: RecentSuratMasukItem[] }) {
   return (
-    <section className="rounded-3xl border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Antrean Persuratan</h2>
-          <p className="text-xs text-muted-foreground">
-            Daftar surat masuk, disposisi, dan surat keluar.
-          </p>
-        </div>
-        <Link
-          href="/surat-masuk"
-          className="shrink-0 text-sm font-medium text-primary hover:underline"
-        >
-          Lihat detail →
-        </Link>
-      </div>
+    <DashboardActivityList
+      title="Antrean Persuratan"
+      description="Daftar surat masuk, disposisi, dan surat keluar."
+      detailHref="/surat-masuk"
+      detailLabel="Lihat detail"
+      hasItems={items.length > 0}
+      emptyIcon={FileText}
+      emptyTitle="Tidak ada surat masuk terbaru"
+      emptyDescription="Surat masuk terbaru akan muncul di sini setelah ada aktivitas persuratan."
+    >
+      {items.slice(0, 5).map((item) => {
+        const info = statusInfo(item.status);
+        const timeAgo = item.createdAt
+          ? formatDistanceToNow(new Date(item.createdAt), {
+              addSuffix: true,
+              locale: id,
+            })
+          : "-";
 
-      {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border/60 bg-muted/25 py-10 text-center text-sm text-muted-foreground">
-          Tidak ada surat masuk terbaru.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {items.slice(0, 5).map((item) => {
-            const info = statusInfo(item.status);
-            const timeAgo = item.createdAt
-              ? formatDistanceToNow(new Date(item.createdAt), {
-                  addSuffix: true,
-                  locale: id,
-                })
-              : "—";
-            return (
-              <div
-                key={item.id}
-                className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5 transition-colors hover:bg-muted/40"
-              >
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {item.perihal}
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${info.className}`}
-                    >
-                      {info.label}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{timeAgo}</span>
-                  </div>
-                </div>
+        return (
+          <div
+            key={item.id}
+            className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5 transition-colors hover:bg-muted/40"
+          >
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {item.perihal}
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${info.className}`}
+                >
+                  {info.label}
+                </span>
+                <span className="text-xs text-muted-foreground">{timeAgo}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
+            </div>
+          </div>
+        );
+      })}
+    </DashboardActivityList>
   );
 }
 

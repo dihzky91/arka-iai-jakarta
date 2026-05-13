@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Ban, CheckCircle, Download, Eye, FileSpreadsheet, FileText, FileUp, Loader2, Mail, Pencil, Plus, QrCode, RefreshCw, Trash2 } from "lucide-react";
+import { Ban, CheckCircle, Download, Eye, FileSpreadsheet, FileText, FileUp, Loader2, Mail, Pencil, Plus, QrCode, RefreshCw, Trash2, Users } from "lucide-react";
 import QRCode from "qrcode";
 import { useCallback, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -37,6 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatTanggal } from "@/lib/utils";
 import { getEventQuickStats, type EventRow, type EventQuickStats } from "@/server/actions/sertifikat/events";
 import {
@@ -866,9 +867,23 @@ export function ParticipantManager({
           </Table>
 
           {data.rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {statusFilter === "dicabut" ? "Tidak ada sertifikat yang dicabut." : "Belum ada peserta."}
-            </div>
+            <EmptyState
+              icon={Users}
+              title={statusFilter === "dicabut" ? "Tidak ada sertifikat dicabut" : "Belum ada peserta"}
+              description={
+                statusFilter === "dicabut"
+                  ? "Sertifikat yang dicabut akan muncul di daftar ini."
+                  : "Tambahkan peserta untuk mulai menerbitkan, mengirim, dan memverifikasi sertifikat."
+              }
+              action={
+                statusFilter === "dicabut" ? null : (
+                  <Button type="button" size="sm" onClick={openCreateDialog}>
+                    <Plus className="h-4 w-4" />
+                    Tambah Peserta
+                  </Button>
+                )
+              }
+            />
           ) : null}
 
           {data.totalPages > 1 ? (

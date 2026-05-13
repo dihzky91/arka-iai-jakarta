@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -372,7 +373,7 @@ export function AnnouncementManager({
     <div className="space-y-6">
       {/* Inbox */}
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -424,11 +425,11 @@ export function AnnouncementManager({
         {isInboxOpen ? (
           <CardContent className="pt-5">
             {filteredInbox.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                {onlyUnread
-                  ? "Tidak ada pengumuman yang butuh aksi."
-                  : "Belum ada pengumuman aktif untuk Anda."}
-              </div>
+              <EmptyState
+                icon={BookOpen}
+                title={onlyUnread ? "Tidak ada pengumuman yang butuh aksi" : "Belum ada pengumuman aktif"}
+                description={onlyUnread ? "Semua pengumuman sudah terbaca atau tidak membutuhkan konfirmasi." : "Pengumuman yang ditujukan untuk peran atau divisi Anda akan tampil di sini."}
+              />
             ) : (
               <div className="space-y-3">
                 {filteredInbox.map((row) => (
@@ -436,7 +437,7 @@ export function AnnouncementManager({
                     key={row.id}
                     type="button"
                     onClick={() => openReadDialog(row)}
-                    className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/35"
+                    className="w-full rounded-2xl border border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/35 hover:shadow-md"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
@@ -483,7 +484,7 @@ export function AnnouncementManager({
       {/* Kelola */}
       {canManage ? (
         <Card className="rounded-[28px]">
-          <CardHeader className="border-b border-border">
+          <CardHeader className="border-b border-border/60">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <CardTitle>Kelola</CardTitle>
@@ -572,13 +573,13 @@ export function AnnouncementManager({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-2xl border border-border bg-muted/25 p-4">
+            <div className="rounded-2xl border border-border/60 bg-muted/25 p-4">
               <AnnouncementDisplay
                 html={sanitizeAnnouncementHtml(activeReadRow?.description ?? "")}
               />
             </div>
             {activeReadRow?.requiresAck ? (
-              <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/25 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">Konfirmasi Baca</p>
                   <p className="text-xs text-muted-foreground">
@@ -602,7 +603,7 @@ export function AnnouncementManager({
               </div>
             ) : null}
             {activeReadRow?.attachments.length ? (
-              <div className="space-y-2 rounded-2xl border border-border bg-background p-3">
+              <div className="space-y-2 rounded-2xl border border-border/60 bg-background p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Lampiran
                 </p>
@@ -612,7 +613,7 @@ export function AnnouncementManager({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-card px-3 py-2 text-sm shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
                   >
                     <span className="inline-flex min-w-0 items-center gap-2">
                       <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />

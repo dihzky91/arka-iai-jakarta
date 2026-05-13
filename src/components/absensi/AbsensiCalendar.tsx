@@ -12,6 +12,7 @@ import { id } from "date-fns/locale";
 import { CalendarDays, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -140,8 +141,8 @@ export function AbsensiCalendar({
             return (
               <div
                 key={day.toISOString()}
-                className={`p-2 border rounded-lg min-h-[60px] ${
-                  isToday ? "border-primary" : "border-border"
+                className={`p-2 border rounded-lg min-h-[60px] transition-colors hover:bg-muted/35 ${
+                  isToday ? "border-primary bg-primary/5" : "border-border/60"
                 }`}
               >
                 <div className="text-xs font-medium mb-1">
@@ -188,6 +189,7 @@ export function AbsensiCalendar({
         </div>
       </div>
 
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -203,13 +205,17 @@ export function AbsensiCalendar({
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center text-muted-foreground">
-                Belum ada data absensi.
+              <TableCell colSpan={7} className="p-6">
+                <EmptyState
+                  icon={CalendarDays}
+                  title="Belum ada data absensi"
+                  description="Data absensi bulan ini akan tampil setelah tersinkron dari DingTalk atau input manual tersedia."
+                />
               </TableCell>
             </TableRow>
           ) : (
             data.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={row.id} className="transition-colors hover:bg-muted/40">
                 <TableCell>{row.tanggal}</TableCell>
                 <TableCell>
                   {row.namaUser ?? row.dingtalkNama ?? "-"}
@@ -243,6 +249,7 @@ export function AbsensiCalendar({
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

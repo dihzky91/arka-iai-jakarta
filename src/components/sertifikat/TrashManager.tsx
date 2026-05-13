@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { ArchiveRestore, Loader2 } from "lucide-react";
+import { ArchiveRestore, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
   restoreParticipant,
   type DeletedParticipantRow,
 } from "@/server/actions/sertifikat/participants";
+import { EmptyState } from "@/components/ui/empty-state";
 
 function formatDateTime(value: Date | null) {
   if (!value) return "-";
@@ -83,7 +84,7 @@ export function TrashManager({
       </TabsList>
 
       <TabsContent value="events">
-        <div className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="rounded-xl border border-border/60 bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -98,13 +99,18 @@ export function TrashManager({
             <TableBody>
               {events.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    Tidak ada kegiatan di sampah.
+                  <TableCell colSpan={6} className="p-4">
+                    <EmptyState
+                      icon={Trash2}
+                      title="Sampah kegiatan kosong"
+                      description="Kegiatan yang dihapus akan muncul di sini dan bisa dipulihkan."
+                      className="min-h-40"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
                 events.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className="transition-colors hover:bg-muted/30">
                     <TableCell className="font-mono text-xs">{row.kodeEvent}</TableCell>
                     <TableCell className="font-medium">{row.namaKegiatan}</TableCell>
                     <TableCell>{row.kategori}</TableCell>
@@ -132,7 +138,7 @@ export function TrashManager({
       </TabsContent>
 
       <TabsContent value="participants">
-        <div className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="rounded-xl border border-border/60 bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -147,13 +153,18 @@ export function TrashManager({
             <TableBody>
               {participants.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    Tidak ada peserta di sampah.
+                  <TableCell colSpan={6} className="p-4">
+                    <EmptyState
+                      icon={Trash2}
+                      title="Sampah peserta kosong"
+                      description="Peserta yang dihapus akan muncul di sini dan bisa dipulihkan."
+                      className="min-h-40"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
                 participants.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className="transition-colors hover:bg-muted/30">
                     <TableCell className="font-mono text-xs">{row.noSertifikat}</TableCell>
                     <TableCell className="font-medium">{row.nama}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

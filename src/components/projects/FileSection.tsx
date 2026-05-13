@@ -2,7 +2,7 @@
 import { useRef, useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
-import { Download, ExternalLink, FileUp, ImageIcon, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Download, FileUp, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   type ProjectFileRow,
 } from "@/server/actions/projects";
 import { fileTypeIcon, fileSize } from "@/lib/project-display-utils";
+import { EmptyText } from "./shared-ui";
 
 export function FileSection({
   projectId,
@@ -92,7 +93,7 @@ export function FileSection({
           className={`relative rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
             dragOver
               ? "border-primary bg-primary/5"
-              : "border-border hover:border-muted-foreground/30"
+              : "border-border/60 hover:border-muted-foreground/30"
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -150,11 +151,11 @@ export function FileSection({
                   <img
                     src={file.fileUrl}
                     alt={file.fileName}
-                    className="h-10 w-10 rounded-md border border-border object-cover"
+                    className="h-10 w-10 rounded-md border border-border/60 object-cover"
                   />
                 </button>
               ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/50">
                   <Icon className="h-5 w-5 text-muted-foreground" />
                 </div>
               )}
@@ -181,9 +182,11 @@ export function FileSection({
           );
         })}
         {files.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Belum ada file.
-          </p>
+          <EmptyText
+            icon={FileUp}
+            title="Belum ada file"
+            text="Dokumen project, bukti pembayaran, materi, dan lampiran pendukung akan tampil di sini."
+          />
         ) : null}
       </div>
     </section>

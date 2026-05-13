@@ -58,7 +58,7 @@ export function Header({ userName, userId, onOpenSidebar }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold text-foreground">
+            <h1 className="truncate text-lg font-medium text-foreground">
             {currentItem?.label ?? "Workspace"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{todayLabel}</p>

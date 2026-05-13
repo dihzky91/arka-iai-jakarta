@@ -6,7 +6,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DeductionRow } from "@/server/actions/jadwal-otomatis/honorarium";
+import { ReceiptText } from "lucide-react";
 
 function formatCurrency(value: number) {
   return `Rp ${Math.round(value).toLocaleString("id-ID")}`;
@@ -39,15 +41,18 @@ export function BatchDeductions({
       </CardHeader>
       <CardContent>
         {deductions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            Tidak ada potongan yang dicatat untuk batch ini.
-          </div>
+          <EmptyState
+            icon={ReceiptText}
+            title="Tidak ada potongan"
+            description="Potongan batch honorarium akan tampil di sini jika sudah dicatat."
+            className="min-h-36"
+          />
         ) : (
           <div className="space-y-3">
             {deductions.map((deduction) => (
               <div
                 key={deduction.id}
-                className="rounded-lg border border-border p-4"
+                className="rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/30"
               >
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>

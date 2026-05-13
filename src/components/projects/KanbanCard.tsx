@@ -75,7 +75,7 @@ export function KanbanCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-lg border border-border bg-card p-3 shadow-sm transition-shadow ${
+      className={`rounded-lg border border-border/60 bg-card p-3 shadow-sm transition-all hover:border-primary/20 hover:shadow-md ${
         isDragging ? "shadow-lg ring-2 ring-primary/30" : ""
       } ${task.status === "done" ? "bg-muted/40" : ""}`}
     >
@@ -112,7 +112,7 @@ export function KanbanCard({
                 variant="outline"
                 className={`text-[10px] px-1.5 py-0 ${
                   isOverdue(task.dueDate) && task.status !== "done"
-                    ? "border-red-300 bg-red-50 text-red-700"
+                    ? "border-red-300 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
                     : ""
                 }`}
               >

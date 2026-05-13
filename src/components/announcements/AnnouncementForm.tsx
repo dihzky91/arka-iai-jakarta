@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -276,7 +277,7 @@ export function AnnouncementForm({
             </p>
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-border bg-muted/25 p-4">
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/25 p-4">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-foreground">Lampiran</p>
               <span className="text-xs text-muted-foreground">
@@ -299,7 +300,7 @@ export function AnnouncementForm({
                 {selectedFiles.map((file, index) => (
                   <div
                     key={`${file.name}-${file.lastModified}-${file.size}`}
-                    className="flex items-center justify-between rounded-lg border border-dashed border-border bg-background px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-lg border border-dashed border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/30"
                   >
                     <span className="truncate text-foreground">{file.name}</span>
                     <Button
@@ -324,7 +325,7 @@ export function AnnouncementForm({
                 {form.attachments.map((item) => (
                   <div
                     key={item.url}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/30"
                   >
                     <a
                       href={item.url}
@@ -347,10 +348,12 @@ export function AnnouncementForm({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                Belum ada lampiran. File yang dipilih akan otomatis di-upload saat
-                tombol simpan ditekan.
-              </p>
+              <EmptyState
+                icon={Paperclip}
+                title="Belum ada lampiran"
+                description="File yang dipilih akan otomatis di-upload saat tombol simpan ditekan."
+                className="min-h-28 rounded-xl px-4 py-5"
+              />
             )}
           </div>
 
@@ -379,7 +382,7 @@ export function AnnouncementForm({
             </div>
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-border bg-muted/25 p-4">
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/25 p-4">
             <p className="text-sm font-medium text-foreground">Target Audiens</p>
 
             <label className="flex items-center gap-2 text-sm text-foreground">
@@ -436,7 +439,7 @@ export function AnnouncementForm({
           </div>
         </div>
 
-          <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-muted/25 p-4">
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border/60 bg-muted/25 p-4">
             <label className="flex items-center gap-2 text-sm text-foreground">
               <Checkbox
                 checked={form.isPinned}

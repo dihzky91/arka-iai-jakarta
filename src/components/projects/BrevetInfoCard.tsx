@@ -11,6 +11,7 @@ import {
   type BrevetSummary,
 } from "@/server/actions/projects";
 import { autoGenerateBrevetTasks } from "@/server/actions/projects";
+import { EmptyText } from "./shared-ui";
 
 function statusBadge(ok: boolean) {
   return ok ? (
@@ -22,7 +23,14 @@ function statusBadge(ok: boolean) {
 
 function JadwalUjianSummary({ jadwal }: { jadwal: BrevetJadwalSummary[] }) {
   if (jadwal.length === 0) {
-    return <p className="text-sm text-muted-foreground">Belum ada jadwal ujian.</p>;
+    return (
+      <EmptyText
+        icon={Clock}
+        title="Belum ada jadwal ujian"
+        text="Jadwal ujian brevet akan tampil setelah sinkron dengan modul jadwal ujian."
+        className="min-h-28 px-4 py-6"
+      />
+    );
   }
 
   return (

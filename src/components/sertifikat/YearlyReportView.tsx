@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BarChart2, RefreshCw } from "lucide-react";
+import { BarChart2, FileBarChart, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   getYearlyStats,
   getYearlyProgramStats,
@@ -29,7 +30,7 @@ import {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
+    <div className="rounded-xl border border-border/60 bg-card px-5 py-4 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-bold">{value}</p>
       {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
@@ -141,14 +142,19 @@ export function YearlyReportView({
               <TableBody>
                 {detailStats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                      Tidak ada data untuk tahun {selectedYear}.
+                    <TableCell colSpan={5} className="p-4">
+                      <EmptyState
+                        icon={FileBarChart}
+                        title="Tidak ada data tahunan"
+                        description={`Belum ada rekap sertifikat untuk tahun ${selectedYear}.`}
+                        className="min-h-40"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   <>
                     {detailStats.map((row, idx) => (
-                      <TableRow key={idx}>
+                      <TableRow key={idx} className="transition-colors hover:bg-muted/30">
                         <TableCell className="font-medium">{row.programName}</TableCell>
                         <TableCell>
                           {row.classTypeName}{" "}
@@ -156,10 +162,10 @@ export function YearlyReportView({
                             ({row.classTypeCode})
                           </span>
                         </TableCell>
-                        <TableCell className="text-center text-green-700 font-medium">
+                        <TableCell className="text-center text-emerald-700 font-medium dark:text-emerald-300">
                           {row.activeCount}
                         </TableCell>
-                        <TableCell className="text-center text-red-600">
+                        <TableCell className="text-center text-red-600 dark:text-red-300">
                           {row.cancelledCount}
                         </TableCell>
                         <TableCell className="text-center font-semibold">
@@ -173,10 +179,10 @@ export function YearlyReportView({
                       <TableCell colSpan={2} className="font-semibold">
                         TOTAL
                       </TableCell>
-                      <TableCell className="text-center text-green-700 font-bold">
+                      <TableCell className="text-center text-emerald-700 font-bold dark:text-emerald-300">
                         {totalActive}
                       </TableCell>
-                      <TableCell className="text-center text-red-600 font-bold">
+                      <TableCell className="text-center text-red-600 font-bold dark:text-red-300">
                         {totalCancelled}
                       </TableCell>
                       <TableCell className="text-center font-bold">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CalendarDays,
+  CalendarPlus,
   Eye,
   Grid2X2,
   List,
@@ -53,6 +54,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatTanggal } from "@/lib/utils";
 import {
   createEvent,
@@ -259,7 +261,7 @@ export function EventManager({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
         <div className="grid gap-3 lg:grid-cols-[1.2fr_repeat(7,minmax(0,1fr))_auto]">
           <Input
             placeholder="Cari kegiatan"
@@ -360,7 +362,7 @@ export function EventManager({
       {viewMode === "grid" ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {filteredEvents.map((event) => (
-            <Card key={event.id} className="rounded-xl">
+            <Card key={event.id} className="rounded-xl transition-all hover:border-primary/20 hover:shadow-md">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -442,7 +444,7 @@ export function EventManager({
               </TableHeader>
               <TableBody>
                 {filteredEvents.map((event) => (
-                  <TableRow key={event.id}>
+                  <TableRow key={event.id} className="transition-colors hover:bg-muted/30">
                     <TableCell className="font-mono">{event.kodeEvent}</TableCell>
                     <TableCell className="font-medium">{event.namaKegiatan}</TableCell>
                     <TableCell>{event.kategori}</TableCell>
@@ -494,9 +496,28 @@ export function EventManager({
       )}
 
       {filteredEvents.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          Belum ada kegiatan yang sesuai filter.
-        </div>
+        <EmptyState
+          icon={CalendarPlus}
+          title="Belum ada kegiatan"
+          description={
+            filters.search ||
+            filters.kategori !== "all" ||
+            filters.status !== "all" ||
+            filters.location ||
+            filters.skpMin ||
+            filters.skpMax ||
+            filters.dateFrom ||
+            filters.dateTo
+              ? "Tidak ada kegiatan yang sesuai dengan filter saat ini."
+              : "Tambahkan kegiatan untuk mulai mengelola peserta dan penerbitan sertifikat."
+          }
+          action={
+            <Button type="button" size="sm" onClick={openCreateDialog}>
+              <Plus className="h-4 w-4" />
+              Tambah Kegiatan
+            </Button>
+          }
+        />
       ) : null}
 
       {data.totalPages > 1 ? (
@@ -619,7 +640,7 @@ export function EventManager({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-3 rounded-xl border border-border p-4">
+            <div className="space-y-3 rounded-xl border border-border/60 p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <Label>Penandatangan</Label>
                 <Select onValueChange={addSignatory}>
@@ -663,7 +684,11 @@ export function EventManager({
                   );
                 })}
                 {signatoryFields.fields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Belum ada penandatangan dipilih.</p>
+                  <EmptyState
+                    title="Belum ada penandatangan dipilih"
+                    description="Tambahkan penandatangan agar sertifikat kegiatan siap diterbitkan."
+                    className="min-h-28 px-4 py-6"
+                  />
                 ) : null}
               </div>
             </div>
@@ -685,7 +710,7 @@ export function EventManager({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/25 px-3 py-2">
+    <div className="rounded-lg border border-border/60 bg-muted/25 px-3 py-2">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 truncate font-medium">{value}</p>
     </div>

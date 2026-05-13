@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -186,7 +187,7 @@ export function PegawaiManager({
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="gap-0 overflow-hidden rounded-[28px]">
-          <CardHeader className="border-b border-border">
+          <CardHeader className="border-b border-border/60">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Direktori Pegawai</CardTitle>
@@ -211,7 +212,7 @@ export function PegawaiManager({
             </div>
           </CardHeader>
           <CardContent className="px-0">
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/60">
               {filteredData.length ? (
                 filteredData.map((row) => {
                   const isSelected = selected?.id === row.id;
@@ -270,8 +271,12 @@ export function PegawaiManager({
                   );
                 })
               ) : (
-                <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                  Tidak ada pegawai yang sesuai dengan pencarian.
+                <div className="px-6 py-8">
+                  <EmptyState
+                    icon={UsersRound}
+                    title="Tidak ada pegawai yang cocok"
+                    description="Coba ubah kata kunci pencarian atau tambah pegawai baru jika datanya belum tersedia."
+                  />
                 </div>
               )}
             </div>
@@ -280,7 +285,7 @@ export function PegawaiManager({
 
         {selected ? (
           <Card className="rounded-[28px]">
-            <CardHeader className="border-b border-border">
+            <CardHeader className="border-b border-border/60">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -303,7 +308,7 @@ export function PegawaiManager({
                 <div className="-mx-6 overflow-x-auto px-6 pb-px">
                   <TabsList variant="line" className="h-auto w-max min-w-full flex-nowrap justify-start gap-2 rounded-none p-0">
                     {DETAIL_TABS.map((tab) => (
-                      <TabsTrigger key={tab.value} value={tab.value} className="shrink-0 rounded-full border border-border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary/5">
+                      <TabsTrigger key={tab.value} value={tab.value} className="shrink-0 rounded-full border border-border/60 bg-background px-4 py-2 transition-colors hover:bg-muted/40 data-[state=active]:border-primary data-[state=active]:bg-primary/5">
                         <tab.icon className="h-4 w-4" />
                         {tab.label}
                       </TabsTrigger>
@@ -313,7 +318,7 @@ export function PegawaiManager({
 
                 <TabsContent value="biodata">
                   <div className="space-y-4">
-                    <Card className="rounded-[24px] border border-border bg-muted/20 shadow-none">
+                    <Card className="rounded-[24px] border border-border/60 bg-muted/20 shadow-none">
                       <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
                         <div className="max-w-xl">
                           <div className="flex items-center gap-2">

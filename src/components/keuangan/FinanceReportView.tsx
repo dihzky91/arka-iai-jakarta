@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Download, Eye, Filter } from "lucide-react";
+import { Download, Eye, FileBarChart, Filter, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   exportFinanceHonorariumRecapExcel,
   getFinanceHonorariumRecap,
@@ -281,7 +282,7 @@ export function FinanceReportView({
           <CardTitle>Rekap Per Instruktur</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
             <Table className="min-w-[48rem]">
               <TableHeader>
                 <TableRow>
@@ -296,16 +297,18 @@ export function FinanceReportView({
               <TableBody>
                 {recap.instructorRecaps.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Tidak ada rekap instruktur pada filter ini.
+                    <TableCell colSpan={6} className="p-4">
+                      <EmptyState
+                        icon={UserRound}
+                        title="Tidak ada rekap instruktur"
+                        description="Tidak ada data instruktur pada filter laporan saat ini."
+                        className="min-h-40"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   recap.instructorRecaps.map((row) => (
-                    <TableRow key={row.instructorId}>
+                    <TableRow key={row.instructorId} className="transition-colors hover:bg-muted/30">
                       <TableCell className="font-medium">
                         {row.instructorName}
                       </TableCell>
@@ -338,7 +341,7 @@ export function FinanceReportView({
           <CardTitle>Detail Batch</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
             <Table className="min-w-[60rem]">
               <TableHeader>
                 <TableRow>
@@ -355,16 +358,18 @@ export function FinanceReportView({
               <TableBody>
                 {recap.rows.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Tidak ada batch pada filter ini.
+                    <TableCell colSpan={8} className="p-4">
+                      <EmptyState
+                        icon={FileBarChart}
+                        title="Tidak ada batch"
+                        description="Tidak ada batch honorarium pada filter laporan saat ini."
+                        className="min-h-40"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   recap.rows.map((row) => (
-                    <TableRow key={row.batchId}>
+                    <TableRow key={row.batchId} className="transition-colors hover:bg-muted/30">
                       <TableCell className="font-medium">
                         {row.documentNumber}
                       </TableCell>

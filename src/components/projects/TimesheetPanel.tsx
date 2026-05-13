@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
-import { Clock, Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
+import { Clock, Play, Plus, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   type ProjectTimesheetRow,
   type ProjectTimesheetSummary,
 } from "@/server/actions/projects";
-import { minutesLabel, dateTimeLocalValue, rupiah } from "@/lib/project-display-utils";
+import { minutesLabel, dateTimeLocalValue } from "@/lib/project-display-utils";
 import { RowActions, EmptyText } from "./shared-ui";
 import { SummaryCard } from "./FinancePanel";
 
@@ -167,11 +167,15 @@ export function TimesheetPanel({
           {timesheets.map((row) => {
             const canEditRow = canManageProp || row.userId === currentUserId;
             return (
-              <div key={row.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 p-3">
+              <div key={row.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/30">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{row.userName ?? "User"}</p>
-                    {!row.endTime ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">Aktif</Badge> : null}
+                    {!row.endTime ? (
+                      <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-300">
+                        Aktif
+                      </Badge>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{row.description ?? "-"}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -186,7 +190,21 @@ export function TimesheetPanel({
               </div>
             );
           })}
-          {timesheets.length === 0 ? <EmptyText text="Belum ada timesheet." /> : null}
+          {timesheets.length === 0 ? (
+            <EmptyText
+              icon={Clock}
+              title="Belum ada timesheet"
+              text="Mulai timer atau tambah timesheet manual untuk mencatat waktu kerja project."
+              action={
+                canContributeProp ? (
+                  <Button onClick={openCreate} disabled={isPending || pending} size="sm">
+                    <Plus className="h-4 w-4" />
+                    Tambah Manual
+                  </Button>
+                ) : null
+              }
+            />
+          ) : null}
         </div>
         <div className="rounded-xl border border-border/60 p-4">
           <h3 className="text-sm font-semibold">Total per User</h3>

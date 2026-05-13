@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CutiForm } from "./CutiForm";
 import { CutiApproval } from "./CutiApproval";
@@ -110,6 +111,7 @@ export function CutiManager({
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -125,13 +127,17 @@ export function CutiManager({
                 <TableBody>
                   {data?.rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground">
-                        Belum ada pengajuan cuti.
+                      <TableCell colSpan={7} className="p-6">
+                        <EmptyState
+                          icon={ListChecks}
+                          title="Belum ada pengajuan cuti"
+                          description="Pengajuan cuti Anda akan tampil di sini setelah dibuat."
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (
                     data?.rows.map((row) => (
-                      <TableRow key={row.id}>
+                      <TableRow key={row.id} className="transition-colors hover:bg-muted/40">
                         <TableCell>
                           {row.createdAt
                             ? new Date(row.createdAt).toLocaleDateString("id-ID", {
@@ -168,6 +174,7 @@ export function CutiManager({
                   )}
                 </TableBody>
               </Table>
+              </div>
 
               {data && data.totalPages > 1 && (
                 <div className="flex justify-center gap-2">

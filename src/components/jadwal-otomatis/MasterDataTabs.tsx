@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Tabs,
   TabsContent,
@@ -368,7 +369,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
         {/* Programs Tab */}
         <TabsContent value="programs" className="space-y-4">
           <Card className="rounded-[28px]">
-            <CardHeader className="border-b border-border">
+            <CardHeader className="border-b border-border/60">
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle>Program Pelatihan</CardTitle>
@@ -386,13 +387,13 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
             </CardHeader>
             <CardContent className="pt-6">
               {programs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Belum ada program.</p>
+                <EmptyState icon={Plus} title="Belum ada program" description="Program pelatihan akan tampil di sini setelah dibuat." />
               ) : (
                 <div className="space-y-3">
                   {programs.map((program) => (
                     <div
                       key={program.id}
-                      className="flex items-center justify-between rounded-2xl border border-border bg-muted/20 p-4"
+                      className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/35"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -440,7 +441,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
         {/* Class Types Tab */}
         <TabsContent value="class-types" className="space-y-4">
           <Card className="rounded-[28px]">
-            <CardHeader className="border-b border-border">
+            <CardHeader className="border-b border-border/60">
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle>Tipe Kelas</CardTitle>
@@ -458,13 +459,13 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
             </CardHeader>
             <CardContent className="pt-6">
               {classTypes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Belum ada tipe kelas.</p>
+                <EmptyState icon={Plus} title="Belum ada tipe kelas" description="Konfigurasi tipe kelas akan tampil di sini setelah dibuat." />
               ) : (
                 <div className="space-y-3">
                   {classTypes.map((ct) => (
                     <div
                       key={ct.id}
-                      className="flex items-center justify-between rounded-2xl border border-border bg-muted/20 p-4"
+                      className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/35"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -496,7 +497,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
         {/* Curriculum Tab */}
         <TabsContent value="curriculum" className="space-y-4">
           <Card className="rounded-[28px]">
-            <CardHeader className="border-b border-border">
+            <CardHeader className="border-b border-border/60">
               <CardTitle>Kurikulum per Program</CardTitle>
               <CardDescription className="mt-1">
                 Pilih program untuk melihat dan mengedit template kurikulum serta titik ujian.
@@ -541,7 +542,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
                         )}
                       </div>
                       {templateItems.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Belum ada template.</p>
+                        <EmptyState icon={Plus} title="Belum ada template sesi" description="Template sesi akan tampil setelah baris kurikulum ditambahkan untuk program ini." />
                       ) : (
                         <div className="space-y-2">
                           <div className="grid grid-cols-[60px_1fr_1fr_60px_40px] gap-2 text-xs font-medium text-muted-foreground">
@@ -616,11 +617,11 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
                         )}
                       </div>
                       {examPointItems.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Belum ada titik ujian.</p>
+                        <EmptyState icon={Plus} title="Belum ada titik ujian" description="Titik ujian akan tampil setelah aturan ujian ditambahkan untuk kurikulum program ini." />
                       ) : (
                         <div className="space-y-2">
                           {examPointItems.map((item, index) => (
-                            <div key={item.id} className="rounded-xl border border-border p-3 space-y-2">
+                            <div key={item.id} className="rounded-xl border border-border/60 p-3 space-y-2 transition-colors hover:bg-muted/25">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium text-muted-foreground w-24">
                                   Setelah Sesi

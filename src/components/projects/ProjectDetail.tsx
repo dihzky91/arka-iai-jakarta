@@ -256,7 +256,7 @@ export function ProjectDetail({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -370,12 +370,15 @@ export function ProjectDetail({
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-4">
-        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
+        <TabsList
+          variant="line"
+          className="flex h-auto w-full justify-start gap-1 overflow-x-auto border-b border-border/60 bg-transparent pb-px"
+        >
           {tabItems.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-sm data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-accent/30 data-[state=active]:font-semibold"
+              className="flex-none items-center gap-1.5 whitespace-nowrap rounded-t-xl px-3 py-2 text-sm data-[state=active]:bg-primary/5 data-[state=active]:font-semibold data-[state=active]:text-primary"
             >
               {tab.icon ? <tab.icon className="h-4 w-4" /> : null}
               {tab.label}
@@ -435,7 +438,10 @@ export function ProjectDetail({
         </TabsContent>
         <TabsContent value="admin">
           <Tabs defaultValue="speakers" className="space-y-4">
-            <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
+            <TabsList
+              variant="line"
+              className="flex h-auto w-full justify-start gap-1 overflow-x-auto border-b border-border/60 bg-transparent pb-px"
+            >
               <TabsTrigger value="speakers">Narasumber</TabsTrigger>
               <TabsTrigger value="expenses">Expenses</TabsTrigger>
               <TabsTrigger value="timesheets">Timesheets</TabsTrigger>

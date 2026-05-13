@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Eye, Plus, X } from "lucide-react";
+import { ClipboardList, Eye, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -37,9 +38,18 @@ function formatTanggal(d: Date | string) {
 
 function StatusBadge({ status }: { status: BatchRow["status"] }) {
   const map: Record<BatchRow["status"], { label: string; className: string }> = {
-    active:    { label: "Aktif",      className: "border-green-200 bg-green-50 text-green-700" },
-    revised:   { label: "Direvisi",   className: "border-amber-200 bg-amber-50 text-amber-700" },
-    cancelled: { label: "Dibatalkan", className: "border-red-200 bg-red-50 text-red-700" },
+    active: {
+      label: "Aktif",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300",
+    },
+    revised: {
+      label: "Direvisi",
+      className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-300",
+    },
+    cancelled: {
+      label: "Dibatalkan",
+      className: "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300",
+    },
   };
   const { label, className } = map[status];
   return (
@@ -100,7 +110,7 @@ export function BatchTable({ initialBatches, programs, classTypes }: BatchTableP
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
           {/* Program */}
           <Select
@@ -192,7 +202,7 @@ export function BatchTable({ initialBatches, programs, classTypes }: BatchTableP
       </div>
 
       {/* Tabel */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -218,8 +228,25 @@ export function BatchTable({ initialBatches, programs, classTypes }: BatchTableP
                 </TableRow>
               ) : batches.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
-                    Belum ada batch yang sesuai filter.
+                  <TableCell colSpan={10} className="p-4">
+                    <EmptyState
+                      icon={ClipboardList}
+                      title="Belum ada batch sertifikat"
+                      description={
+                        hasFilters
+                          ? "Tidak ada batch sertifikat yang sesuai dengan filter saat ini."
+                          : "Generate batch sertifikat untuk mulai mengelola nomor, program, dan angkatan."
+                      }
+                      action={
+                        <Button asChild size="sm">
+                          <Link href="/sertifikat/nomor/generate">
+                            <Plus className="h-4 w-4" />
+                            Generate Batch
+                          </Link>
+                        </Button>
+                      }
+                      className="min-h-44"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

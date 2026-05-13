@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, Plus, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   type ProjectMemberRow,
 } from "@/server/actions/projects";
 import { Avatar } from "./ProjectAvatar";
+import { EmptyText } from "./shared-ui";
 
 export function MemberSection({
   projectId,
@@ -104,7 +105,7 @@ export function MemberSection({
   return (
     <section className="space-y-5 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       {canManage ? (
-        <div className="space-y-3 rounded-xl border border-border p-4">
+        <div className="space-y-3 rounded-xl border border-border/60 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
             <Input
               value={query}
@@ -139,7 +140,7 @@ export function MemberSection({
                   key={user.id}
                   type="button"
                   onClick={() => toggleUser(user.id)}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted"
+                  className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
                 >
                   <span>
                     <span className="block font-medium">{user.namaLengkap ?? user.email}</span>
@@ -155,7 +156,7 @@ export function MemberSection({
 
       <div className="space-y-3">
         {members.map((member) => (
-          <div key={member.userId} className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between">
+          <div key={member.userId} className="flex flex-col gap-3 rounded-xl border border-border/60 p-4 transition-colors hover:bg-muted/30 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <Avatar name={member.namaLengkap} avatarUrl={member.avatarUrl} />
               <div>
@@ -191,6 +192,13 @@ export function MemberSection({
             </div>
           </div>
         ))}
+        {members.length === 0 ? (
+          <EmptyText
+            icon={Users}
+            title="Belum ada anggota"
+            text="Tambahkan anggota agar role, assignee task, dan kolaborasi project bisa dikelola."
+          />
+        ) : null}
       </div>
     </section>
   );

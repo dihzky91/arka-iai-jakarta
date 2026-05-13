@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Signature, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ import {
   updateSignatory,
   type SignatoryRow,
 } from "@/server/actions/sertifikat/signatories";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const signatorySchema = z.object({
   nama: z.string().trim().min(1, "Nama wajib diisi."),
@@ -123,7 +124,7 @@ export function SignatoryManager({ initialData }: { initialData: SignatoryRow[] 
             </TableHeader>
             <TableBody>
               {initialData.map((signatory) => (
-                <TableRow key={signatory.id}>
+                <TableRow key={signatory.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="font-medium">{signatory.nama}</TableCell>
                   <TableCell>{signatory.jabatan ?? "-"}</TableCell>
                   <TableCell>{signatory.pejabatJabatan ?? "-"}</TableCell>
@@ -142,9 +143,18 @@ export function SignatoryManager({ initialData }: { initialData: SignatoryRow[] 
             </TableBody>
           </Table>
           {initialData.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Belum ada penandatangan.
-            </div>
+            <EmptyState
+              icon={Signature}
+              title="Belum ada penandatangan"
+              description="Tambahkan penandatangan agar template sertifikat bisa memakai data pejabat yang konsisten."
+              action={
+                <Button type="button" size="sm" onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4" />
+                  Tambah Penandatangan
+                </Button>
+              }
+              className="mt-4"
+            />
           ) : null}
         </CardContent>
       </Card>

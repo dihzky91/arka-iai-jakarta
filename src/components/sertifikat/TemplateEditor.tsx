@@ -109,7 +109,7 @@ export function TemplateEditor({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_260px]">
-      <div className="space-y-2 rounded-lg border border-border p-3">
+      <div className="space-y-2 rounded-lg border border-border/60 bg-card p-3 shadow-sm">
         <Label>Field</Label>
         <div className="grid gap-2">
           {fields.map((field) => (
@@ -126,7 +126,7 @@ export function TemplateEditor({
         </div>
       </div>
 
-      <div className="overflow-auto rounded-lg border border-border bg-muted/30 p-3">
+      <div className="overflow-auto rounded-lg border border-border/60 bg-muted/25 p-3 shadow-sm">
         <div
           className="relative mx-auto bg-white shadow-sm"
           style={{ width: canvasWidth, height: canvasHeight }}
@@ -170,11 +170,11 @@ export function TemplateEditor({
                 }}
                 onClick={() => setActiveKey(key)}
                 className={`flex items-center justify-center border bg-white/70 text-center text-xs shadow-sm ${
-                  activeKey === key ? "border-primary" : "border-dashed border-slate-400"
+                  activeKey === key ? "border-primary" : "border-dashed border-muted-foreground/50"
                 }`}
               >
                 {key === "qrCode" ? (
-                  <div className="grid h-full w-full place-items-center border border-slate-500 text-[10px]">
+                  <div className="grid h-full w-full place-items-center border border-muted-foreground/70 text-[10px]">
                     QR
                   </div>
                 ) : (
@@ -196,7 +196,7 @@ export function TemplateEditor({
         </div>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-border p-3">
+      <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3 shadow-sm">
         <div className="flex items-center justify-between">
           <Label>Properti</Label>
           <Button type="button" onClick={save} disabled={isPending}>
@@ -294,7 +294,9 @@ export function TemplateEditor({
             </Button>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Pilih field pada canvas untuk mengubah properti.</p>
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/25 p-4 text-sm text-muted-foreground">
+            Pilih field pada canvas untuk mengubah properti.
+          </div>
         )}
       </div>
     </div>

@@ -48,6 +48,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Tabs,
   TabsContent,
@@ -480,7 +481,7 @@ export function KelasOtomatisTable({
   return (
     <>
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <div>
             <CardTitle>Daftar Kelas Pelatihan</CardTitle>
             <CardDescription className="mt-1">
@@ -832,9 +833,7 @@ export function KelasOtomatisTable({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Belum ada tanggal eksklusi.
-                </p>
+                <EmptyState icon={Calendar} title="Belum ada tanggal eksklusi" description="Tanggal libur atau pengecualian kelas akan tampil setelah ditambahkan." className="min-h-32" />
               )}
               <DialogFooter>
                 <Button

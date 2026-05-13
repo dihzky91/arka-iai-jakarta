@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { Loader2, MoreHorizontal, Plus, Trash2, Pencil } from "lucide-react";
+import { Loader2, Mic2, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   createProjectSpeaker,
   deleteProjectSpeaker,
@@ -16,9 +15,7 @@ import {
   type ProjectMemberRow,
   type ProjectSpeakerRow,
 } from "@/server/actions/projects";
-import { RowActions } from "./shared-ui";
 import { EmptyText } from "./shared-ui";
-import { minutesLabel } from "@/lib/project-display-utils";
 
 export function SpeakerPanel({
   projectId,
@@ -158,9 +155,19 @@ export function SpeakerPanel({
         ))}
       </div>
       {speakers.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Belum ada narasumber.
-        </p>
+        <EmptyText
+          icon={Mic2}
+          title="Belum ada narasumber"
+          text="Tambahkan narasumber internal atau eksternal agar sesi, durasi, dan SKP project terdokumentasi."
+          action={
+            canManageProp ? (
+              <Button size="sm" onClick={openCreate} disabled={isPending || pending}>
+                <Plus className="h-4 w-4" />
+                Tambah Narasumber
+              </Button>
+            ) : null
+          }
+        />
       ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-xl">

@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -37,25 +38,25 @@ export function NilaiUjianSection({
 }: NilaiUjianSectionProps) {
   return (
     <Card>
-      <CardHeader className="border-b">
+      <CardHeader className="border-b border-border/60">
         <CardTitle>Absensi &amp; Nilai Ujian</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {!nilaiData || !absensiUjianData ? (
-          <div className="p-4 text-center text-muted-foreground">
-            {isPending ? "Memuat..." : "Klik tab untuk memuat data."}
-          </div>
+          <EmptyState title={isPending ? "Memuat data ujian" : "Data ujian belum dimuat"} description={isPending ? "Mohon tunggu sebentar." : "Klik tab ini untuk memuat absensi dan nilai ujian."} className="m-4" />
         ) : (
-          absensiUjianData.ujianList.map((ujian) => {
+          absensiUjianData.ujianList.length === 0 ? (
+            <EmptyState title="Belum ada ujian" description="Absensi dan nilai ujian akan tampil setelah jadwal ujian tersedia." className="m-4" />
+          ) : absensiUjianData.ujianList.map((ujian) => {
             const mapel = ujian.mataPelajaran ?? [];
             return (
-              <div key={ujian.id} className="border-b last:border-b-0">
+              <div key={ujian.id} className="border-b border-border/60 last:border-b-0">
                 <div className="px-4 py-2 bg-muted/20 font-medium text-sm">
                   Ujian — {ujian.tanggalUjian} ({mapel.join(", ")})
                 </div>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b">
+                    <tr className="border-b border-border/60">
                       <th className="text-left px-3 py-2 font-medium text-muted-foreground">Peserta</th>
                       <th className="text-center px-3 py-2 font-medium text-muted-foreground">Hadir</th>
                       {mapel.map((m) => (
@@ -65,12 +66,18 @@ export function NilaiUjianSection({
                     </tr>
                   </thead>
                   <tbody>
-                    {absensiUjianData.pesertaList.map((p) => {
+                    {absensiUjianData.pesertaList.length === 0 ? (
+                      <tr>
+                        <td colSpan={mapel.length + 3} className="px-3 py-6">
+                          <EmptyState title="Belum ada peserta" description="Nilai ujian akan tampil setelah peserta tersedia di kelas ini." />
+                        </td>
+                      </tr>
+                    ) : absensiUjianData.pesertaList.map((p) => {
                       const absen = absensiUjianData.absensiList.find(
                         (a) => a.pesertaId === p.id && a.jadwalUjianId === ujian.id
                       );
                       return (
-                        <tr key={p.id} className="border-b hover:bg-muted/50">
+                        <tr key={p.id} className="border-b border-border/60 transition-colors hover:bg-muted/40">
                           <td className="px-3 py-1.5 font-medium">{p.nama}</td>
                           <td className="text-center px-3 py-1.5">
                             <Badge variant={absen?.status === "hadir" ? "default" : "secondary"}>

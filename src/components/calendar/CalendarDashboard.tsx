@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -218,7 +219,7 @@ export function CalendarDashboard({
   return (
     <div className="grid gap-6 lg:grid-cols-3 xl:grid-cols-4">
       {/* Calendar Grid */}
-      <Card className="lg:col-span-2 xl:col-span-3 rounded-[24px] shadow-sm border-slate-100 border">
+      <Card className="lg:col-span-2 xl:col-span-3 rounded-[24px] border border-border/60 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg">
             {format(currentDate, "MMMM yyyy", { locale: id })}
@@ -256,7 +257,7 @@ export function CalendarDashboard({
             {weekDays.map((day) => (
               <div
                 key={day}
-                className="py-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400"
+                className="py-1 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
                 {day}
               </div>
@@ -278,11 +279,11 @@ export function CalendarDashboard({
                   onClick={() => setSelectedDate(date)}
                   className={`group relative min-h-[5.5rem] rounded-2xl p-2.5 text-left transition-all duration-300 ${
                     isCurrentMonth
-                      ? "bg-white hover:bg-slate-50 hover:shadow-sm"
-                      : "bg-transparent text-slate-300"
+                      ? "bg-card hover:bg-muted/35 hover:shadow-sm"
+                      : "bg-transparent text-muted-foreground/50"
                   } ${
                     isSelected
-                      ? "ring-2 ring-primary ring-offset-2 bg-slate-50"
+                      ? "ring-2 ring-primary ring-offset-2 bg-muted/40"
                       : "border border-transparent"
                   }`}
                 >
@@ -290,8 +291,8 @@ export function CalendarDashboard({
                     <span
                       className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
                         isTodayDate 
-                          ? "bg-primary text-white shadow-md shadow-primary/30" 
-                          : isCurrentMonth ? "text-slate-700" : "text-slate-400"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                          : isCurrentMonth ? "text-foreground" : "text-muted-foreground/60"
                       } ${isSelected && !isTodayDate ? "text-primary bg-primary/10" : ""}`}
                     >
                       {format(date, "d")}
@@ -310,7 +311,7 @@ export function CalendarDashboard({
                         />
                       ))}
                       {dateEvents.length > 4 && (
-                        <span className="text-[10px] font-medium text-slate-400">
+                        <span className="text-[10px] font-medium text-muted-foreground">
                           +{dateEvents.length - 4}
                         </span>
                       )}
@@ -324,8 +325,8 @@ export function CalendarDashboard({
       </Card>
 
       {/* Events List */}
-      <Card className="rounded-[24px] shadow-sm border-slate-100 border">
-        <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-4">
+      <Card className="rounded-[24px] border border-border/60 shadow-sm">
+        <CardHeader className="border-b border-border/60 bg-muted/25 pb-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <CalendarIcon className="h-4 w-4" />
             {selectedDate
@@ -341,7 +342,7 @@ export function CalendarDashboard({
                   {selectedDateEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5"
+                      className="group rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/35 hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -353,11 +354,11 @@ export function CalendarDashboard({
                             {eventTypeLabels[event.eventType] ||
                               event.eventType}
                           </Badge>
-                          <h4 className="font-outfit text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">
+                          <h4 className="font-outfit text-base font-semibold text-foreground transition-colors group-hover:text-primary">
                             {event.title}
                           </h4>
                           {event.description && (
-                            <p className="mt-1.5 line-clamp-2 text-sm text-slate-500 leading-relaxed">
+                            <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                               {event.description}
                             </p>
                           )}
@@ -387,24 +388,28 @@ export function CalendarDashboard({
                   ))}
                 </div>
               ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  <CalendarIcon className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  <p className="text-sm">Tidak ada event</p>
-                </div>
+                <EmptyState
+                  icon={CalendarIcon}
+                  title="Tidak ada event"
+                  description="Tidak ada agenda pada tanggal yang dipilih."
+                  className="mx-2 my-4 min-h-40"
+                />
               )
             ) : (
-              <div className="py-8 text-center text-muted-foreground">
-                <CalendarIcon className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                <p className="text-sm">Klik tanggal untuk melihat event</p>
-              </div>
+              <EmptyState
+                icon={CalendarIcon}
+                title="Pilih tanggal"
+                description="Klik tanggal di kalender untuk melihat agenda."
+                className="mx-2 my-4 min-h-40"
+              />
             )}
           </ScrollArea>
         </CardContent>
       </Card>
 
       {/* Legend */}
-      <Card className="lg:col-span-3 xl:col-span-4 rounded-[24px] border-slate-100 shadow-sm overflow-hidden">
-        <CardContent className="p-4 bg-slate-50/50">
+      <Card className="lg:col-span-3 xl:col-span-4 rounded-[24px] border border-border/60 shadow-sm overflow-hidden">
+        <CardContent className="p-4 bg-muted/25">
           <div className="flex flex-wrap gap-4">
             {indicators.map(([type, label]) => (
               <div key={type} className="flex items-center gap-2">

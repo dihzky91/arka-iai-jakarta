@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
   deleteProjectNote,
   type ProjectNoteRow,
 } from "@/server/actions/projects";
+import { EmptyText } from "./shared-ui";
 
 export function NoteSection({
   projectId,
@@ -99,9 +100,19 @@ export function NoteSection({
       </div>
 
       {notes.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Belum ada catatan internal.
-        </p>
+        <EmptyText
+          icon={FileText}
+          title="Belum ada catatan internal"
+          text="Catatan keputusan, risiko, dan konteks koordinasi project akan tampil di sini."
+          action={
+            canManage ? (
+              <Button size="sm" onClick={openCreate} disabled={isPending || pending}>
+                <Plus className="h-4 w-4" />
+                Tambah Catatan
+              </Button>
+            ) : null
+          }
+        />
       ) : (
         <div className="space-y-3">
           {notes.map((note) => (

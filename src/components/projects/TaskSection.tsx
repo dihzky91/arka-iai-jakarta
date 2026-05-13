@@ -55,6 +55,7 @@ import {
   type ProjectMilestoneRow,
 } from "@/server/actions/projects";
 import { KanbanBoard } from "@/components/projects/KanbanBoard";
+import { EmptyText } from "./shared-ui";
 
 const taskFormSchema = z.object({
   title: z.string().trim().min(1, "Judul task wajib diisi.").max(255),
@@ -214,22 +215,22 @@ export function TaskSection({
   const doneTasks = tasks.filter((t) => t.status === "done");
 
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+    <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-base font-semibold">Tasks</h2>
           <div className="flex gap-1.5">
             <Badge variant="outline">{todoTasks.length} To Do</Badge>
-            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-300">
               {inProgressTasks.length} In Progress
             </Badge>
-            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300">
               {doneTasks.length} Done
             </Badge>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-border">
+          <div className="flex rounded-lg border border-border/60">
             <Button
               type="button"
               variant={view === "list" ? "secondary" : "ghost"}
@@ -283,7 +284,7 @@ export function TaskSection({
             return (
               <div
                 key={task.id}
-                className={`flex items-start gap-3 rounded-lg border border-border p-3 transition-colors ${
+                className={`flex items-start gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/30 ${
                   task.status === "done" ? "bg-muted/50" : ""
                 }`}
               >
@@ -317,7 +318,7 @@ export function TaskSection({
                         variant="outline"
                         className={`text-xs ${
                           isOverdue(task.dueDate) && task.status !== "done"
-                            ? "border-red-300 bg-red-50 text-red-700"
+                            ? "border-red-300 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
                             : ""
                         }`}
                       >
@@ -334,9 +335,9 @@ export function TaskSection({
                       variant="outline"
                       className={`text-xs ${
                         task.status === "done"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
                           : task.status === "in_progress"
-                            ? "border-blue-200 bg-blue-50 text-blue-700"
+                            ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-300"
                             : ""
                       }`}
                     >
@@ -370,9 +371,19 @@ export function TaskSection({
             );
           })}
           {tasks.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Belum ada task.
-            </p>
+            <EmptyText
+              icon={CheckCircle2}
+              title="Belum ada task"
+              text="Tambahkan task untuk membagi pekerjaan, memberi assignee, dan memantau progres harian."
+              action={
+                canManage ? (
+                  <Button type="button" size="sm" onClick={() => openCreate("todo")} disabled={isPending || pending}>
+                    <Plus className="h-4 w-4" />
+                    Tambah Task
+                  </Button>
+                ) : null
+              }
+            />
           ) : null}
         </div>
       )}

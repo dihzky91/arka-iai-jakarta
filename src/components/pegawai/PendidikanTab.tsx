@@ -6,6 +6,7 @@ import { useForm, type FieldValues, type UseFormReturn } from "react-hook-form";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -105,20 +106,20 @@ export function PendidikanTab({
       ) : null}
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-          <p className="text-sm font-medium text-foreground">Belum ada riwayat pendidikan</p>
-          <p className="mt-1 text-sm text-muted-foreground">Tambahkan riwayat pendidikan pegawai ini.</p>
-          {canEdit ? (
-            <Button size="sm" className="mt-4" onClick={() => setFormState({ open: true, mode: "create" })}>
+        <EmptyState
+          title="Belum ada riwayat pendidikan"
+          description="Tambahkan riwayat pendidikan pegawai ini."
+          action={canEdit ? (
+            <Button size="sm" onClick={() => setFormState({ open: true, mode: "create" })}>
               <Plus className="h-4 w-4" />
               Tambah Riwayat
             </Button>
           ) : null}
-        </div>
+        />
       ) : (
-        <div className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
+        <div className="divide-y divide-border/60 rounded-2xl border border-border/60 overflow-hidden">
           {rows.map((row) => (
-            <div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/35">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium text-foreground">{row.namaInstitusi ?? "—"}</p>

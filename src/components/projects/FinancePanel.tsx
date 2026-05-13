@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { ExternalLink, MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
+import { Banknote, ExternalLink, Plus, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,12 @@ import { rupiah } from "@/lib/project-display-utils";
 import { RowActions, EmptyText } from "./shared-ui";
 
 export function SummaryCard({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
-  const color = tone === "good" ? "text-emerald-700" : tone === "bad" ? "text-red-700" : "text-foreground";
+  const color =
+    tone === "good"
+      ? "text-emerald-700 dark:text-emerald-300"
+      : tone === "bad"
+        ? "text-red-700 dark:text-red-300"
+        : "text-foreground";
   return (
     <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -96,7 +101,21 @@ function BudgetList({ projectId, rows, canManage: canManageProp, onRefresh, pend
           {canManageProp ? <RowActions onEdit={() => openEdit(row)} onDelete={() => removeBudget(row)} /> : null}
         </div>
       ))}
-      {rows.length === 0 ? <EmptyText text="Belum ada budget." /> : null}
+      {rows.length === 0 ? (
+        <EmptyText
+          icon={Banknote}
+          title="Belum ada budget"
+          text="Tambahkan rencana anggaran untuk membandingkan budget dengan realisasi biaya."
+          action={
+            canManageProp ? (
+              <Button size="sm" onClick={openCreate} disabled={isPending || pending}>
+                <Plus className="h-4 w-4" />
+                Tambah Budget
+              </Button>
+            ) : null
+          }
+        />
+      ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Edit Budget" : "Tambah Budget"}</DialogTitle></DialogHeader>
@@ -204,7 +223,21 @@ function ExpenseList({ projectId, rows, canManage: canManageProp, onRefresh, pen
           {canManageProp ? <RowActions onEdit={() => openEdit(row)} onDelete={() => removeExpense(row)} /> : null}
         </div>
       ))}
-      {rows.length === 0 ? <EmptyText text="Belum ada expense." /> : null}
+      {rows.length === 0 ? (
+        <EmptyText
+          icon={ReceiptText}
+          title="Belum ada expense"
+          text="Catat pengeluaran aktual agar selisih budget dan realisasi tetap terlihat."
+          action={
+            canManageProp ? (
+              <Button size="sm" onClick={openCreate} disabled={isPending || pending}>
+                <Plus className="h-4 w-4" />
+                Tambah Expense
+              </Button>
+            ) : null
+          }
+        />
+      ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Edit Expense" : "Tambah Expense"}</DialogTitle></DialogHeader>
@@ -316,7 +349,14 @@ export function ExpensePanel({
                   <td className="py-2">{rupiah(row.budget)}</td>
                   <td className="py-2">{rupiah(row.actual)}</td>
                   <td className="py-2">
-                    <Badge variant="outline" className={row.delta >= 0 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}>
+                    <Badge
+                      variant="outline"
+                      className={
+                        row.delta >= 0
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
+                          : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
+                      }
+                    >
                       {rupiah(row.delta)}
                     </Badge>
                   </td>
@@ -325,9 +365,12 @@ export function ExpensePanel({
             </tbody>
           </table>
           {summary.byCategory.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Belum ada data budget atau expense.
-            </p>
+            <EmptyText
+              icon={Banknote}
+              title="Belum ada data keuangan"
+              text="Budget dan expense yang ditambahkan akan dirangkum di tabel per kategori."
+              className="mt-4"
+            />
           ) : null}
         </div>
       </div>

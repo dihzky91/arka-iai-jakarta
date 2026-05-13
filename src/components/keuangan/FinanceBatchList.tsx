@@ -16,6 +16,7 @@ import {
   Filter,
   Kanban,
   ListChecks,
+  WalletCards,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   bulkMarkHonorariumBatchesInProcess,
   exportFinanceHonorariumRecapExcel,
@@ -609,7 +611,7 @@ export function FinanceBatchList({
           </div>
 
           <TabsContent value="table" className="mt-4 space-y-3">
-            <div className="overflow-hidden rounded-md border bg-card">
+            <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
               <Table className="min-w-[58rem]">
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
@@ -632,6 +634,7 @@ export function FinanceBatchList({
                     table.getRowModel().rows.map((row) => (
                       <TableRow
                         key={row.id}
+                        className="transition-colors hover:bg-muted/30"
                         data-state={
                           row.getIsSelected() ? "selected" : undefined
                         }
@@ -648,11 +651,13 @@ export function FinanceBatchList({
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center text-sm text-muted-foreground"
-                      >
-                        Belum ada batch masuk ke antrian keuangan.
+                      <TableCell colSpan={columns.length} className="p-4">
+                        <EmptyState
+                          icon={WalletCards}
+                          title="Belum ada batch honorarium"
+                          description="Batch yang dikirim ke keuangan akan muncul di antrian ini."
+                          className="min-h-44"
+                        />
                       </TableCell>
                     </TableRow>
                   )}
@@ -737,7 +742,7 @@ function SortButton({
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
@@ -752,7 +757,7 @@ function FinanceKanban({ batches }: { batches: HonorariumBatchRow[] }) {
         return (
           <section
             key={status}
-            className="min-h-44 rounded-lg border border-border bg-muted/20 p-3"
+            className="min-h-44 rounded-lg border border-border/60 bg-muted/20 p-3"
           >
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">{statusLabel(status)}</h3>
@@ -764,7 +769,7 @@ function FinanceKanban({ batches }: { batches: HonorariumBatchRow[] }) {
                   <Link
                     key={batch.id}
                     href={`/keuangan/honorarium/${batch.id}`}
-                    className="block rounded-lg border border-border bg-card p-3 text-sm transition-colors hover:bg-muted/50"
+                    className="block rounded-lg border border-border/60 bg-card p-3 text-sm transition-all hover:border-primary/20 hover:bg-muted/35 hover:shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="line-clamp-1 font-medium">
@@ -786,9 +791,11 @@ function FinanceKanban({ batches }: { batches: HonorariumBatchRow[] }) {
                   </Link>
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                  Kosong
-                </div>
+                <EmptyState
+                  icon={WalletCards}
+                  description="Tidak ada batch pada status ini."
+                  className="min-h-28 px-3 py-5"
+                />
               )}
             </div>
           </section>

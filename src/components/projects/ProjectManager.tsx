@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Copy,
   Eye,
+  FolderOpen,
   Loader2,
   Pencil,
   Plus,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { HtmlEditor } from "@/components/ui/html-editor";
 import { LabelManager } from "@/components/projects/LabelManager";
+import { EmptyText } from "@/components/projects/shared-ui";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -130,11 +132,11 @@ function statusLabel(status: ProjectStatus) {
 
 function statusClass(status: ProjectStatus) {
   const classes: Record<ProjectStatus, string> = {
-    not_started: "border-slate-200 bg-slate-50 text-slate-700",
-    in_progress: "border-blue-200 bg-blue-50 text-blue-700",
-    on_hold: "border-amber-200 bg-amber-50 text-amber-700",
-    completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    cancelled: "border-red-200 bg-red-50 text-red-700",
+    not_started: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
+    in_progress: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/30 dark:text-blue-300",
+    on_hold: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-300",
+    completed: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:text-emerald-300",
+    cancelled: "border-red-200 bg-red-50 text-red-700 dark:border-red-800/70 dark:bg-red-950/30 dark:text-red-300",
   };
   return classes[status];
 }
@@ -330,7 +332,7 @@ export function ProjectManager({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
         <div className="grid gap-3 sm:grid-cols-[1.4fr_repeat(3,minmax(0,220px))_auto] lg:grid-cols-[1.4fr_repeat(3,minmax(0,220px))_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -407,7 +409,7 @@ export function ProjectManager({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border/60 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -423,7 +425,7 @@ export function ProjectManager({
           </TableHeader>
           <TableBody>
             {data.rows.map((project) => (
-              <TableRow key={project.id}>
+              <TableRow key={project.id} className="transition-colors hover:bg-muted/30">
                 <TableCell className="min-w-[260px]">
                   <div>
                     <Link
@@ -509,8 +511,18 @@ export function ProjectManager({
           </TableBody>
         </Table>
         {!hasProjects ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Belum ada project yang sesuai filter.
+          <div className="p-4">
+            <EmptyText
+              icon={FolderOpen}
+              title="Tidak ada project"
+              text="Belum ada project yang cocok dengan filter saat ini. Ubah filter atau buat project baru untuk mulai mengelola pekerjaan."
+              action={
+                <Button type="button" size="sm" onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </Button>
+              }
+            />
           </div>
         ) : null}
       </div>

@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, CalendarX, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -258,7 +259,7 @@ export function UjianTable({
               />
             </div>
 
-            <div className="overflow-hidden rounded-md border bg-card">
+            <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
               <Table className="min-w-[56rem]">
                 <TableHeader>
                   <TableRow>
@@ -287,7 +288,7 @@ export function UjianTable({
                         {rows.map((row) => {
                           const d = parseIsoDateInJakarta(row.tanggalUjian);
                           return (
-                            <TableRow key={row.id}>
+                            <TableRow key={row.id} className="transition-colors hover:bg-muted/30">
                               <TableCell className="whitespace-nowrap text-sm">
                                 {d.toLocaleDateString("id-ID", {
                                   day: "2-digit",
@@ -363,8 +364,28 @@ export function UjianTable({
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
-                        Belum ada jadwal ujian. Klik &quot;Tambah Ujian&quot; untuk memulai.
+                      <TableCell colSpan={7} className="p-4">
+                        <EmptyState
+                          icon={CalendarX}
+                          title="Belum ada jadwal ujian"
+                          description={
+                            searchQuery || filterProgram !== "__all__" || filterTanggalMulai || filterTanggalSelesai
+                              ? "Tidak ada jadwal ujian yang cocok dengan filter saat ini."
+                              : "Tambahkan jadwal ujian untuk mulai mengatur kelas, mata ujian, dan pengawas."
+                          }
+                          action={
+                            canManage ? (
+                              <Button
+                                onClick={() => setFormState({ open: true, mode: "create" })}
+                                size="sm"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Tambah Ujian
+                              </Button>
+                            ) : null
+                          }
+                          className="min-h-44"
+                        />
                       </TableCell>
                     </TableRow>
                   )}

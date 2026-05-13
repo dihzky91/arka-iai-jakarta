@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, TableProperties } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -75,7 +76,7 @@ export function DataTable<TData, TValue>({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-md border bg-card">
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
         <Table className="min-w-[42rem]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -96,7 +97,7 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="transition-colors hover:bg-muted/30">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -109,11 +110,13 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-sm text-muted-foreground"
-                >
-                  {emptyMessage}
+                <TableCell colSpan={columns.length} className="p-4">
+                  <EmptyState
+                    icon={TableProperties}
+                    title="Tidak ada data"
+                    description={emptyMessage}
+                    className="min-h-44"
+                  />
                 </TableCell>
               </TableRow>
             )}

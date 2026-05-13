@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogClose,
@@ -810,7 +811,7 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b border-border/60">
                   {canManage && (
                     <th className="w-10 px-4 py-2">
                       <Checkbox
@@ -831,13 +832,17 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
               <tbody>
                 {filteredPesertaList.length === 0 ? (
                   <tr>
-                    <td colSpan={canManage ? 7 : 5} className="px-4 py-8 text-center text-muted-foreground">
-                      {isPending ? "Memuat..." : searchTerm ? "Tidak ada peserta yang cocok." : `Belum ada peserta.${canManage ? " Klik Tambah atau Import untuk menambahkan." : ""}`}
+                    <td colSpan={canManage ? 7 : 5} className="px-4 py-8">
+                      <EmptyState
+                        icon={UserRoundX}
+                        title={isPending ? "Memuat peserta" : searchTerm ? "Tidak ada peserta yang cocok" : "Belum ada peserta"}
+                        description={isPending ? "Mohon tunggu sebentar." : searchTerm ? "Coba ubah kata kunci pencarian atau reset filter peserta." : canManage ? "Klik Tambah atau Import untuk menambahkan peserta ke kelas ini." : "Peserta kelas akan tampil setelah data tersedia."}
+                      />
                     </td>
                   </tr>
                 ) : (
                   paginatedPesertaList.map((p, i) => (
-                    <tr key={p.id} className="border-b hover:bg-muted/50">
+                    <tr key={p.id} className="border-b border-border/60 transition-colors hover:bg-muted/40">
                       {canManage && (
                         <td className="px-4 py-2">
                           <Checkbox

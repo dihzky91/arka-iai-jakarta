@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -430,14 +431,14 @@ export function WhatsAppClassActions({
   return (
     <>
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <CardTitle>Aksi WhatsApp</CardTitle>
           <CardDescription>
             Template pesan diambil dari pengaturan dan otomatis diisi data kelas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
-          <div className="rounded-2xl border border-border bg-muted/20 p-4">
+          <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
             <p className="text-sm font-medium">Target Instruktur</p>
             <div className="mt-2 flex gap-2">
               <Select value={selectedInstructorId} onValueChange={setSelectedInstructorId}>
@@ -474,7 +475,7 @@ export function WhatsAppClassActions({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-muted/20 p-4">
+          <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-sm font-medium">Target Keuangan</p>
@@ -520,18 +521,16 @@ export function WhatsAppClassActions({
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-border p-4">
+          <div className="rounded-2xl border border-border/60 p-4">
             <p className="text-sm font-medium">Riwayat Pesan WA</p>
             <div className="mt-3 space-y-2">
               {logs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Belum ada riwayat pengiriman WhatsApp untuk kelas ini.
-                </p>
+                <EmptyState icon={MessageCircle} title="Belum ada riwayat WhatsApp" description="Riwayat pengiriman pesan untuk kelas ini akan tampil setelah pesan dibuat atau dikirim." className="min-h-32" />
               ) : (
                 logs.slice(0, 10).map((log) => (
                   <div
                     key={log.id}
-                    className="rounded-xl border border-border bg-muted/20 px-3 py-2 text-xs"
+                    className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs transition-colors hover:bg-muted/35"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{log.templateKey}</Badge>

@@ -3,11 +3,12 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2, CalendarX, Banknote, Pencil } from "lucide-react";
+import { Plus, Trash2, CalendarX, Banknote, Pencil, BookOpen } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -283,7 +284,7 @@ export function InstrukturDetail({
   return (
     <div className="space-y-6">
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle>Data Instruktur</CardTitle>
@@ -348,7 +349,7 @@ export function InstrukturDetail({
       </Card>
 
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <CardTitle>Kelas Aktif & Beban Kerja</CardTitle>
           <CardDescription>Konteks alokasi instruktur untuk penjadwalan terbaru.</CardDescription>
         </CardHeader>
@@ -379,13 +380,13 @@ export function InstrukturDetail({
           </div>
 
           {allocationSummary.activeClasses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada kelas aktif terjadwal.</p>
+            <EmptyState icon={BookOpen} title="Belum ada kelas aktif" description="Kelas aktif instruktur akan tampil di sini setelah ada jadwal mendatang." />
           ) : (
             <div className="space-y-2">
               {allocationSummary.activeClasses.map((activeClass) => (
                 <div
                   key={activeClass.kelasId}
-                  className="rounded-lg bg-muted/50 px-3 py-2 flex items-center justify-between"
+                  className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 flex items-center justify-between transition-colors hover:bg-muted/45"
                 >
                   <div>
                     <p className="text-sm font-medium">{activeClass.namaKelas}</p>
@@ -405,7 +406,7 @@ export function InstrukturDetail({
       </Card>
 
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <CardTitle>Keahlian (Expertise)</CardTitle>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
@@ -455,7 +456,7 @@ export function InstrukturDetail({
           </div>
 
           {expertise.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada keahlian.</p>
+            <EmptyState icon={BookOpen} title="Belum ada keahlian" description="Tambahkan program, blok materi, dan level untuk membantu rekomendasi instruktur." />
           ) : (
             <div className="space-y-2">
               {expertise.map((item: any) => {
@@ -463,7 +464,7 @@ export function InstrukturDetail({
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50"
+                    className="flex items-center justify-between py-2 px-3 rounded-lg border border-border/60 bg-muted/30 transition-colors hover:bg-muted/45"
                   >
                     <div className="space-x-2">
                       <Badge variant="secondary">{program?.name ?? item.programId}</Badge>
@@ -487,7 +488,7 @@ export function InstrukturDetail({
       </Card>
 
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <CardTitle>Rate Honorarium</CardTitle>
@@ -590,13 +591,13 @@ export function InstrukturDetail({
           )}
 
           {rates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada override rate honorarium.</p>
+            <EmptyState icon={Banknote} title="Belum ada override rate" description="Rate honorarium masih mengikuti matriks standar sampai ada override manual." />
           ) : (
             <div className="space-y-2">
               {rates.map((rate: any) => (
                 <div
                   key={rate.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg border border-border/60 bg-muted/30 transition-colors hover:bg-muted/45"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -624,7 +625,7 @@ export function InstrukturDetail({
       </Card>
 
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <CardTitle>Ketidaktersediaan</CardTitle>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
@@ -645,13 +646,13 @@ export function InstrukturDetail({
           </div>
 
           {unavailability.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Tidak ada ketidaktersediaan.</p>
+            <EmptyState icon={CalendarX} title="Tidak ada ketidaktersediaan" description="Tanggal tidak tersedia akan tampil di sini setelah ditambahkan." />
           ) : (
             <div className="space-y-2">
               {unavailability.map((item: any) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg border border-border/60 bg-muted/30 transition-colors hover:bg-muted/45"
                 >
                   <div className="flex items-center gap-2">
                     <CalendarX className="h-4 w-4 text-muted-foreground" />
@@ -674,14 +675,14 @@ export function InstrukturDetail({
       </Card>
 
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <CardTitle>Histori Mengajar</CardTitle>
         </CardHeader>
         <CardContent className="pt-6 p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-border/60">
                   <th className="text-left px-6 py-3 font-medium text-muted-foreground">Tanggal</th>
                   <th className="text-left px-6 py-3 font-medium text-muted-foreground">Kelas</th>
                   <th className="text-left px-6 py-3 font-medium text-muted-foreground">Program</th>
@@ -693,13 +694,13 @@ export function InstrukturDetail({
               <tbody>
                 {history.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                      Belum ada histori mengajar.
+                    <td colSpan={6} className="px-6 py-8">
+                      <EmptyState icon={BookOpen} title="Belum ada histori mengajar" description="Riwayat sesi instruktur akan tampil setelah jadwal selesai atau tercatat." />
                     </td>
                   </tr>
                 ) : (
                   history.map((item: any) => (
-                    <tr key={item.assignmentId} className="border-b border-border hover:bg-muted/50">
+                    <tr key={item.assignmentId} className="border-b border-border/60 transition-colors hover:bg-muted/40">
                       <td className="px-6 py-3">{item.scheduledDate}</td>
                       <td className="px-6 py-3 font-medium">{item.namaKelas}</td>
                       <td className="px-6 py-3">{item.programName}</td>

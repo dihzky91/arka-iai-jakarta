@@ -14,6 +14,7 @@ import {
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -190,7 +191,7 @@ export default async function Page() {
             {metrics.oldestPending ? (
               <Link
                 href={`/keuangan/honorarium/${metrics.oldestPending.id}`}
-                className="block rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
+                className="block rounded-lg border border-border/60 p-4 transition-all hover:border-primary/20 hover:bg-muted/35 hover:shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -218,9 +219,12 @@ export default async function Page() {
                 </p>
               </Link>
             ) : (
-              <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                Tidak ada batch baru yang menunggu.
-              </div>
+              <EmptyState
+                icon={WalletCards}
+                title="Tidak ada batch menunggu"
+                description="Batch baru yang dikirim ke keuangan akan muncul di prioritas antrian."
+                className="min-h-36"
+              />
             )}
 
             {metrics.agingAlerts.length > 0 ? (
@@ -229,7 +233,7 @@ export default async function Page() {
                   <Link
                     key={item.id}
                     href={`/keuangan/honorarium/${item.id}`}
-                    className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950 hover:bg-amber-100"
+                    className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950 transition-colors hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/45"
                   >
                     <span className="min-w-0 truncate">
                       {item.documentNumber}

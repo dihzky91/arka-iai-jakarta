@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_BRAND_DESCRIPTION } from "@/lib/branding";
 import { getSystemSettings } from "@/server/actions/systemSettings";
 import "@/styles/globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const inter = localFont({
+  src: "../assets/fonts/inter-latin-variable.woff2",
+  variable: "--font-inter",
+  weight: "100 900",
+  display: "swap",
+});
+
+const outfit = localFont({
+  src: "../assets/fonts/outfit-latin-variable.woff2",
+  variable: "--font-outfit",
+  weight: "100 900",
+  display: "swap",
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();

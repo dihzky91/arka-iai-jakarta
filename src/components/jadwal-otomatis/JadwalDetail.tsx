@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import {
   type InstructorRecommendation,
 } from "@/server/actions/jadwal-otomatis/assignments";
 import { WhatsAppClassActions } from "@/components/jadwal-otomatis/WhatsAppClassActions";
+import { cn } from "@/lib/utils";
 import type {
   KelasDetail,
   Session,
@@ -38,12 +40,36 @@ import type {
 import {
   STATUS_COLORS,
   availabilityStatusLabels,
-  availabilityStatusBadgeVariant,
   formatDate,
   getDayName,
   toAvailabilityStatus,
   toExpertiseLabel,
 } from "./jadwal-detail/types";
+
+const availabilityStatusClass: Record<AvailabilityStatus, string> = {
+  pending_wa_confirmation:
+    "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus:ring-amber-200",
+  accepted:
+    "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 focus:ring-emerald-200",
+  rejected:
+    "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100 focus:ring-rose-200",
+  no_response:
+    "border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-200",
+};
+
+const sessionStatusLabels: Record<string, string> = {
+  scheduled: "Terjadwal",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
+  makeup: "Pengganti",
+};
+
+const sessionStatusClass: Record<string, string> = {
+  scheduled: "border-blue-200 bg-blue-50 text-blue-800",
+  completed: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  cancelled: "border-rose-200 bg-rose-50 text-rose-800",
+  makeup: "border-violet-200 bg-violet-50 text-violet-800",
+};
 
 export function JadwalDetail({
   kelas,
@@ -413,7 +439,7 @@ export function JadwalDetail({
       {(mode === "full" || mode === "informasi") && (
         <>
           <Card className="rounded-[28px]">
-            <CardHeader className="border-b border-border">
+            <CardHeader className="border-b border-border/60">
               <CardTitle>Informasi Kelas</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
@@ -476,7 +502,7 @@ export function JadwalDetail({
 
       {(mode === "full" || mode === "instruktur") && canManage ? (
         <Card className="rounded-[28px]">
-          <CardHeader className="border-b border-border">
+          <CardHeader className="border-b border-border/60">
             <CardTitle>Assign Instruktur</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
@@ -530,8 +556,8 @@ export function JadwalDetail({
             </div>
 
             {assignBlock ? (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <div className="border-b border-border px-4 py-2 bg-muted/30">
+              <div className="rounded-xl border border-border/60 overflow-hidden">
+                <div className="border-b border-border/60 px-4 py-2 bg-muted/30">
                   <p className="text-sm font-medium">Rekomendasi Sistem</p>
                   <p className="text-xs text-muted-foreground">
                     Bobot: keahlian 50%, beban mingguan 25%, histori 15%, rotasi 10%.
@@ -540,7 +566,7 @@ export function JadwalDetail({
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border">
+                      <tr className="border-b border-border/60">
                         <th className="px-4 py-2 text-left font-medium text-muted-foreground">Instruktur</th>
                         <th className="px-4 py-2 text-left font-medium text-muted-foreground">Skor</th>
                         <th className="px-4 py-2 text-left font-medium text-muted-foreground">Beban 7 Hari</th>
@@ -559,15 +585,15 @@ export function JadwalDetail({
                         </tr>
                       ) : recommendations.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-4 text-center text-muted-foreground">
-                            Tidak ada rekomendasi yang cocok untuk blok ini.
+                          <td colSpan={7} className="px-4 py-4">
+                            <EmptyState icon={UserCheck} title="Tidak ada rekomendasi" description="Belum ada instruktur yang cocok untuk blok materi ini berdasarkan bobot rekomendasi saat ini." className="min-h-32" />
                           </td>
                         </tr>
                       ) : (
                         recommendations.map((recommendation) => (
                           <tr
                             key={recommendation.instructorId}
-                            className="border-b border-border hover:bg-muted/50"
+                            className="border-b border-border/60 transition-colors hover:bg-muted/40"
                           >
                             <td className="px-4 py-2">
                               <p className="font-medium">{recommendation.instructorName}</p>
@@ -612,7 +638,7 @@ export function JadwalDetail({
 
       {(mode === "full" || mode === "jadwal") && (
         <Card className="rounded-[28px]">
-          <CardHeader className="border-b border-border">
+          <CardHeader className="border-b border-border/60">
             <div className="flex items-center justify-between">
               <CardTitle>Jadwal Kelas</CardTitle>
               <Button variant="outline" onClick={handleExportPdf} disabled={exportPending} size="sm">
@@ -623,7 +649,7 @@ export function JadwalDetail({
           </CardHeader>
         <CardContent className="pt-6 p-0">
           <div className="overflow-x-auto">
-              <div className="flex items-center gap-2 px-6 py-2 border-b border-border">
+              <div className="flex items-center gap-2 px-6 py-2 border-b border-border/60">
                 {allSelectableIds.length > 0 && canManage ? (
                   <>
                     <Checkbox
@@ -697,7 +723,7 @@ export function JadwalDetail({
               </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-border/60">
                     <th className="text-left px-6 py-3 font-medium text-muted-foreground w-10">
                       {allSelectableIds.length > 0 && canManage ? (
                         <Checkbox
@@ -722,8 +748,8 @@ export function JadwalDetail({
               <tbody>
                 {sortedSessions.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-6 py-8 text-center text-muted-foreground">
-                      Belum ada jadwal.
+                    <td colSpan={11} className="px-6 py-8">
+                      <EmptyState icon={BookOpen} title="Belum ada jadwal" description="Sesi kelas akan tampil di sini setelah jadwal dibuat untuk kelas ini." />
                     </td>
                   </tr>
                 ) : (
@@ -737,7 +763,7 @@ export function JadwalDetail({
                     return (
                       <tr
                         key={session.id}
-                        className="border-b border-border hover:bg-muted/50 transition-colors"
+                        className="border-b border-border/60 transition-colors hover:bg-muted/40"
                       >
                         <td className="px-6 py-3">
                           {assignment && canManage ? (
@@ -749,7 +775,7 @@ export function JadwalDetail({
                           ) : null}
                         </td>
                         <td className="px-6 py-3 text-muted-foreground tabular-nums">{index + 1}</td>
-                        <td className="px-6 py-3 font-medium">{session.scheduledDate}</td>
+                        <td className="px-6 py-3 tabular-nums">{session.scheduledDate}</td>
                         <td className="px-6 py-3 text-muted-foreground">{getDayName(session.scheduledDate)}</td>
                         <td className="px-6 py-3 tabular-nums">
                           {session.timeSlotStart} - {session.timeSlotEnd}
@@ -791,7 +817,14 @@ export function JadwalDetail({
                                   )
                                 }
                               >
-                                <SelectTrigger className="h-8 w-[170px]">
+                                <SelectTrigger
+                                  className={cn(
+                                    "h-8 w-[170px] font-medium shadow-none [&>span]:truncate",
+                                    availabilityStatusClass[
+                                      toAvailabilityStatus(assignment.availabilityStatus)
+                                    ],
+                                  )}
+                                >
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -803,11 +836,13 @@ export function JadwalDetail({
                               </Select>
                             ) : (
                               <Badge
-                                variant={
-                                  availabilityStatusBadgeVariant[
+                                variant="outline"
+                                className={cn(
+                                  "font-medium",
+                                  availabilityStatusClass[
                                     toAvailabilityStatus(assignment.availabilityStatus)
-                                  ]
-                                }
+                                  ],
+                                )}
                               >
                                 {
                                   availabilityStatusLabels[
@@ -821,8 +856,15 @@ export function JadwalDetail({
                           )}
                         </td>
                         <td className="px-6 py-3">
-                          <Badge variant={STATUS_COLORS[session.status] ?? "outline"}>
-                            {session.status}
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-medium",
+                              sessionStatusClass[session.status] ??
+                                "border-slate-200 bg-slate-100 text-slate-700",
+                            )}
+                          >
+                            {sessionStatusLabels[session.status] ?? session.status}
                           </Badge>
                         </td>
                         <td className="px-6 py-3">

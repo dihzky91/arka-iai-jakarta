@@ -20,9 +20,21 @@ import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
 
 const COLUMNS: { status: ProjectTaskStatus; label: string; color: string }[] = [
-  { status: "todo", label: "To Do", color: "border-slate-300 bg-slate-50" },
-  { status: "in_progress", label: "In Progress", color: "border-blue-300 bg-blue-50" },
-  { status: "done", label: "Done", color: "border-emerald-300 bg-emerald-50" },
+  {
+    status: "todo",
+    label: "To Do",
+    color: "border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/30",
+  },
+  {
+    status: "in_progress",
+    label: "In Progress",
+    color: "border-blue-200 bg-blue-50 dark:border-blue-900/70 dark:bg-blue-950/25",
+  },
+  {
+    status: "done",
+    label: "Done",
+    color: "border-emerald-200 bg-emerald-50 dark:border-emerald-900/70 dark:bg-emerald-950/25",
+  },
 ];
 
 export function KanbanBoard({
@@ -161,7 +173,7 @@ export function KanbanBoard({
                   />
                 ))}
                 {columnTasks.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-dashed border-border/60 bg-background/40 p-4 text-center text-sm text-muted-foreground">
                     Tarik task ke sini
                   </div>
                 ) : null}

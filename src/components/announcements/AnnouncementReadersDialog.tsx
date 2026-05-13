@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   getAnnouncementReaders,
   type AnnouncementReaderRow,
@@ -45,17 +46,15 @@ export function AnnouncementReadersDialog({
           <DialogDescription className="line-clamp-1">{announcementTitle}</DialogDescription>
         </DialogHeader>
         {isPending ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Memuat...</p>
+          <EmptyState title="Memuat pembaca" description="Mohon tunggu sebentar." className="min-h-32" />
         ) : readers.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Belum ada yang membaca pengumuman ini.
-          </p>
+          <EmptyState title="Belum ada pembaca" description="Daftar pembaca akan tampil setelah pengumuman dibuka oleh pengguna." className="min-h-32" />
         ) : (
           <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
             {readers.map((reader, i) => (
               <div
                 key={reader.userId}
-                className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm transition-colors hover:bg-muted/35"
               >
                 <span className="flex items-center gap-2 text-foreground">
                   <Badge variant="outline" className="tabular-nums">

@@ -195,8 +195,8 @@ export function GenerateBatchForm({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <Card className="rounded-xl shadow-sm">
-        <CardHeader>
+      <Card className="rounded-xl border border-border/60 shadow-sm">
+        <CardHeader className="border-b border-border/60">
           <CardTitle className="flex items-center gap-2">
             <Hash className="h-5 w-5 text-primary" />
             Generate Batch Nomor Sertifikat
@@ -204,7 +204,7 @@ export function GenerateBatchForm({
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
-            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-1">
               <button
                 type="button"
                 onClick={() => setMode("existing")}
@@ -212,7 +212,7 @@ export function GenerateBatchForm({
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   sourceMode === "existing"
                     ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
+                    : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
                 )}
               >
                 Kelas Existing
@@ -224,14 +224,14 @@ export function GenerateBatchForm({
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   sourceMode === "manual"
                     ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
+                    : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
                 )}
               >
                 Override Manual
               </button>
             </div>
 
-            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-4">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-4">
               <div className="flex items-start gap-3">
                 <Checkbox
                   id="useCustomAngkatanFormat"
@@ -277,7 +277,7 @@ export function GenerateBatchForm({
                 </div>
 
                 {selectedClass ? (
-                  <div className="grid gap-3 rounded-xl border border-border bg-muted/30 p-4 text-sm sm:grid-cols-2">
+                  <div className="grid gap-3 rounded-xl border border-border/60 bg-muted/25 p-4 text-sm sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Program</p>
                       <p className="font-medium">{selectedClass.programName}</p>
@@ -308,7 +308,7 @@ export function GenerateBatchForm({
                 ) : null}
 
                 {needsExistingOverride ? (
-                  <div className="grid gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:grid-cols-2">
+                  <div className="grid gap-4 rounded-xl border border-amber-200/70 bg-amber-50/80 p-4 sm:grid-cols-2 dark:border-amber-900/50 dark:bg-amber-950/25">
                     <div className="space-y-1.5">
                       <Label>Override Angkatan</Label>
                       <Input
@@ -355,7 +355,7 @@ export function GenerateBatchForm({
                 ) : null}
               </>
             ) : (
-              <div className="space-y-5 rounded-xl border border-border bg-muted/20 p-4">
+              <div className="space-y-5 rounded-xl border border-border/60 bg-muted/20 p-4">
                 <div className="space-y-1.5">
                   <Label>Nama Kelas Real</Label>
                   <Input
@@ -511,12 +511,12 @@ export function GenerateBatchForm({
               <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
                 <p className="text-sm font-semibold text-primary">Preview Nomor Sertifikat</p>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-lg border bg-card p-3">
+                  <div className="rounded-lg border border-border/60 bg-card p-3">
                     <p className="mb-1 text-xs text-muted-foreground">Nomor Pertama</p>
                     <p className="font-mono text-base font-semibold">{preview.first}</p>
                     <p className="mt-1 text-xs text-muted-foreground">Serial #{preview.start}</p>
                   </div>
-                  <div className="rounded-lg border bg-card p-3">
+                  <div className="rounded-lg border border-border/60 bg-card p-3">
                     <p className="mb-1 text-xs text-muted-foreground">Nomor Terakhir</p>
                     <p className="font-mono text-base font-semibold">{preview.last}</p>
                     <p className="mt-1 text-xs text-muted-foreground">Serial #{preview.end}</p>
@@ -530,7 +530,7 @@ export function GenerateBatchForm({
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-border/60 bg-muted/25 p-4 text-center text-sm text-muted-foreground">
                 Lengkapi kelas, angkatan/kode sertifikat, dan jumlah untuk melihat preview nomor.
               </div>
             )}

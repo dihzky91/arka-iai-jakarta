@@ -19,6 +19,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -246,7 +247,7 @@ export function ManajemenUserCard({
 
       {/* Main card */}
       <Card className="rounded-[28px]">
-        <CardHeader className="border-b border-border">
+        <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Manajemen User</CardTitle>
@@ -271,7 +272,7 @@ export function ManajemenUserCard({
         </CardHeader>
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="border-b border-border px-6">
+            <div className="border-b border-border/60 px-6">
               <TabsList variant="line" className="h-auto w-max gap-4 rounded-none p-0">
                 <TabsTrigger value="users" className="rounded-none border-b-2 border-transparent px-1 py-3 data-[state=active]:border-primary">
                   User ({filteredUsers.length})
@@ -284,12 +285,12 @@ export function ManajemenUserCard({
 
             {/* Users tab */}
             <TabsContent value="users" className="m-0">
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border/60">
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center gap-4 px-6 py-4"
+                      className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/35"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-semibold text-primary">
                         {getInitials(user.namaLengkap)}
@@ -354,8 +355,12 @@ export function ManajemenUserCard({
                     </div>
                   ))
                 ) : (
-                  <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                    Tidak ada user yang sesuai dengan pencarian.
+                  <div className="px-6 py-8">
+                    <EmptyState
+                      icon={Search}
+                      title="Tidak ada user yang cocok"
+                      description="Coba ubah kata kunci pencarian atau undang user baru jika datanya belum tersedia."
+                    />
                   </div>
                 )}
               </div>
@@ -363,7 +368,7 @@ export function ManajemenUserCard({
 
             {/* Invitations tab */}
             <TabsContent value="invitations" className="m-0">
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border/60">
                 {filteredInvitations.length > 0 ? (
                   filteredInvitations.map((inv) => {
                     const isExpired =
@@ -376,7 +381,7 @@ export function ManajemenUserCard({
                     return (
                       <div
                         key={inv.id}
-                        className="flex items-center gap-4 px-6 py-4"
+                        className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/35"
                       >
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-sm font-semibold text-muted-foreground">
                           <MailPlus className="h-4 w-4" />
@@ -443,8 +448,12 @@ export function ManajemenUserCard({
                     );
                   })
                 ) : (
-                  <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                    Belum ada undangan.
+                  <div className="px-6 py-8">
+                    <EmptyState
+                      icon={MailPlus}
+                      title="Belum ada undangan"
+                      description="Undangan aktivasi user akan tampil setelah dikirim."
+                    />
                   </div>
                 )}
               </div>

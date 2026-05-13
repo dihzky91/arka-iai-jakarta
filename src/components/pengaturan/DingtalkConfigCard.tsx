@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
@@ -388,9 +389,12 @@ export function DingtalkConfigCard({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Belum ada konfigurasi disimpan.
-            </p>
+            <EmptyState
+              icon={MessageCircle}
+              title="Belum ada konfigurasi"
+              description="Status sinkronisasi DingTalk akan tampil setelah konfigurasi disimpan."
+              className="min-h-32"
+            />
           )}
         </CardContent>
       </Card>
@@ -457,13 +461,18 @@ export function DingtalkConfigCard({
             <TableBody>
               {mappings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    Tidak ada pegawai.
+                  <TableCell colSpan={4} className="p-6">
+                    <EmptyState
+                      icon={Users}
+                      title="Tidak ada pegawai"
+                      description="Mapping DingTalk akan tersedia setelah data pegawai tersinkron ke sistem."
+                      className="min-h-32"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
                 mappings.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className="transition-colors hover:bg-muted/40">
                     <TableCell>{user.namaLengkap ?? "-"}</TableCell>
                     <TableCell>{user.email ?? "-"}</TableCell>
                     <TableCell>

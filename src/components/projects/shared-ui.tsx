@@ -1,6 +1,8 @@
 "use client";
-import { Pencil, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { Pencil, Trash2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
@@ -15,10 +17,26 @@ export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete:
   );
 }
 
-export function EmptyText({ text }: { text: string }) {
+export function EmptyText({
+  text,
+  title,
+  icon,
+  action,
+  className,
+}: {
+  text: string;
+  title?: string;
+  icon?: LucideIcon;
+  action?: ReactNode;
+  className?: string;
+}) {
   return (
-    <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-      {text}
-    </p>
+    <EmptyState
+      icon={icon}
+      title={title}
+      description={text}
+      action={action}
+      className={className}
+    />
   );
 }

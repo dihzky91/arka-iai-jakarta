@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import {
   setDefaultTemplate,
   type TemplateRow,
 } from "@/server/actions/sertifikat/templates";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TemplateEditor } from "./TemplateEditor";
 
 const categories = ["Workshop", "Brevet AB", "Brevet C", "BFA", "Lainnya"] as const;
@@ -105,7 +106,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
           <SelectTrigger className="w-full md:w-64">
             <SelectValue placeholder="Filter kategori" />
@@ -127,7 +128,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visibleTemplates.map((template) => (
-          <Card key={template.id} className="rounded-xl">
+          <Card key={template.id} className="rounded-xl transition-all hover:border-primary/20 hover:shadow-md">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -145,7 +146,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="aspect-[10/7] overflow-hidden rounded-md border border-border bg-muted">
+              <div className="aspect-[10/7] overflow-hidden rounded-md border border-border/60 bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={template.imageUrl} alt={template.nama} className="h-full w-full object-contain" />
               </div>
@@ -175,13 +176,25 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
       </div>
 
       {visibleTemplates.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          Belum ada template sertifikat.
-        </div>
+        <EmptyState
+          icon={ImagePlus}
+          title="Belum ada template sertifikat"
+          description={
+            filter === "all"
+              ? "Tambahkan template gambar untuk mulai mengatur layout sertifikat."
+              : "Tidak ada template aktif pada kategori ini."
+          }
+          action={
+            <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Tambah Template
+            </Button>
+          }
+        />
       ) : null}
 
       {editorTemplate ? (
-        <div className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="space-y-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Editor Template</h2>

@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, ReceiptText, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { DeductionRow } from "@/server/actions/jadwal-otomatis/honorarium";
 
 function formatCurrency(value: number) {
@@ -88,15 +89,17 @@ export function PelatihanBatchDeductions({
       </CardHeader>
       <CardContent>
         {deductions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            Belum ada potongan.
-          </div>
+          <EmptyState
+            icon={ReceiptText}
+            title="Belum ada potongan"
+            description="Potongan PPh atau potongan lain per instruktur akan tampil di sini setelah ditambahkan."
+          />
         ) : (
           <div className="space-y-3">
             {deductions.map((d) => (
               <div
                 key={d.id}
-                className="rounded-lg border border-border p-4"
+                className="rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/30"
               >
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -138,7 +141,7 @@ export function PelatihanBatchDeductions({
         )}
       </CardContent>
       {canManage && isDraft ? (
-        <CardFooter className="border-t border-border px-6 py-4">
+        <CardFooter className="border-t border-border/60 px-6 py-4">
           <div className="grid gap-3 w-full md:grid-cols-[200px_130px_1fr_130px_auto] md:items-end">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Instruktur</p>

@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HonorariumBatchDetail } from "@/server/actions/jadwal-otomatis/honorarium";
 import { formatTanggalWaktuJakarta } from "@/lib/utils";
+import { History } from "lucide-react";
 
 function actionLabel(action: string) {
   const map: Record<string, string> = {
@@ -33,13 +35,16 @@ export function BatchAuditTrail({
       </CardHeader>
       <CardContent className="space-y-4">
         {auditLogs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            Belum ada log audit untuk batch ini.
-          </div>
+          <EmptyState
+            icon={History}
+            title="Belum ada log audit"
+            description="Aktivitas keuangan pada batch ini akan tercatat di sini."
+            className="min-h-36"
+          />
         ) : (
           <div className="space-y-3">
             {auditLogs.map((log) => (
-              <div key={log.id} className="rounded-lg border border-border p-4">
+              <div key={log.id} className="rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/30">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">

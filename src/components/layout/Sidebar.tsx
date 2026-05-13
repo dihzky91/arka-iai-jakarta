@@ -201,7 +201,7 @@ export function Sidebar({
               >
                 <div className="w-[220px] flex h-full flex-col">
                   <div className="px-6 py-8">
-                    <h2 className="font-outfit text-xl font-bold text-slate-900 tracking-tight">
+                    <h2 className="font-outfit text-xl font-medium text-slate-900 tracking-tight">
                       {activeSection?.title}
                     </h2>
                   </div>
@@ -232,7 +232,7 @@ export function Sidebar({
                               className={cn(
                                 "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200",
                                 isActive
-                                  ? "bg-slate-100/80 font-semibold text-primary"
+                                  ? "bg-slate-100/80 font-medium text-primary"
                                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                               )}
                             >
@@ -265,11 +265,11 @@ export function Sidebar({
                   {/* ID Card Profil Minimalis */}
                   <div className="p-4 mt-auto border-t border-slate-100">
                     <div className="bg-primary/5 rounded-2xl p-3 flex items-center gap-3 border border-primary/10">
-                       <div className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                       <div className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
                           {userRole?.charAt(0).toUpperCase() || "A"}
                        </div>
                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-900 truncate uppercase">{userRole || "Administrator"}</p>
+                          <p className="text-xs font-semibold text-slate-900 truncate uppercase">{userRole || "Administrator"}</p>
                           <p className="text-[10px] text-slate-500 truncate">Status: Aktif</p>
                        </div>
                     </div>
@@ -296,7 +296,7 @@ export function Sidebar({
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <Landmark className="h-5 w-5" />
                 </div>
-                <span className="font-outfit font-bold text-slate-900">{appName}</span>
+                <span className="font-outfit font-semibold text-slate-900">{appName}</span>
               </div>
               <button
                 type="button"
@@ -309,7 +309,7 @@ export function Sidebar({
             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
               {visibleSections.map((section) => (
                 <div key={section.title} className="space-y-3">
-                  <h3 className="font-outfit text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <h3 className="font-outfit text-sm font-semibold text-slate-900 flex items-center gap-2">
                      <section.icon className="h-4 w-4 text-primary" />
                      {section.title}
                   </h3>

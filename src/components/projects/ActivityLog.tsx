@@ -1,7 +1,9 @@
 "use client";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
+import { Clock } from "lucide-react";
 import { type ProjectActivityRow } from "@/server/actions/projects";
+import { EmptyText } from "./shared-ui";
 
 export function ActivityLog({ rows }: { rows: ProjectActivityRow[] }) {
   return (
@@ -20,9 +22,11 @@ export function ActivityLog({ rows }: { rows: ProjectActivityRow[] }) {
           </div>
         ))}
         {rows.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Belum ada aktivitas.
-          </p>
+          <EmptyText
+            icon={Clock}
+            title="Belum ada aktivitas"
+            text="Perubahan status, komentar, file, dan pembaruan project akan muncul di sini."
+          />
         ) : null}
       </div>
     </section>

@@ -17,6 +17,7 @@ import {
   type ProjectFileRow,
 } from "@/server/actions/projects";
 import { Avatar } from "./ProjectAvatar";
+import { EmptyText } from "./shared-ui";
 import { getCaretPixelPos, getMentionContext, fileTypeIcon, fileSize } from "@/lib/project-display-utils";
 
 function CommentItem({
@@ -441,9 +442,11 @@ export function CommentSection({
           />
         ))}
         {comments.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Belum ada komentar.
-          </p>
+          <EmptyText
+            icon={MessageSquare}
+            title="Belum ada komentar"
+            text="Diskusi project, mention anggota, dan lampiran komentar akan muncul di sini."
+          />
         ) : null}
       </div>
     </section>

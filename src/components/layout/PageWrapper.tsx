@@ -15,7 +15,7 @@ export function PageWrapper({
     <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+          <h1 className="text-2xl font-medium text-foreground">{title}</h1>
           {description ? (
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           ) : null}

@@ -8,6 +8,7 @@ import {
   getInvoicesByProject,
   type InvoiceKuitansiSummary,
 } from "@/server/actions/projects";
+import { EmptyText } from "./shared-ui";
 
 
 function rupiah(value: string | null | undefined) {
@@ -77,8 +78,8 @@ export function InvoiceKuitansiSection({
                     variant="outline"
                     className={`text-[10px] ${
                       inv.status === "terbit"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-gray-200 bg-gray-50 text-gray-600"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
+                        : "border-gray-200 bg-gray-50 text-gray-600 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300"
                     }`}
                   >
                     {inv.status === "terbit" ? "Lunas" : inv.status ?? "Draft"}
@@ -114,8 +115,8 @@ export function InvoiceKuitansiSection({
                     variant="outline"
                     className={`text-[10px] ${
                       kt.status === "terbit"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-gray-200 bg-gray-50 text-gray-600"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
+                        : "border-gray-200 bg-gray-50 text-gray-600 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300"
                     }`}
                   >
                     {kt.status === "terbit"
@@ -130,9 +131,12 @@ export function InvoiceKuitansiSection({
       ) : null}
 
       {summary.invoices.length === 0 && summary.kuitansi.length === 0 ? (
-        <p className="mt-3 text-xs text-muted-foreground">
-          Belum ada invoice atau kuitansi.
-        </p>
+        <EmptyText
+          icon={Receipt}
+          title="Belum ada dokumen tagihan"
+          text="Invoice dan kuitansi project akan diringkas di sini setelah dibuat dari modul keuangan."
+          className="mt-3 min-h-28 px-4 py-6"
+        />
       ) : null}
 
       <div className="mt-3 flex gap-2">

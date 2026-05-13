@@ -40,6 +40,7 @@ import {
   deleteProjectMilestone,
   type ProjectMilestoneRow,
 } from "@/server/actions/projects";
+import { EmptyText } from "./shared-ui";
 
 const milestoneFormSchema = z.object({
   title: z.string().trim().min(1, "Judul milestone wajib diisi.").max(255),
@@ -139,7 +140,7 @@ export function MilestoneSection({
   const completedCount = milestones.filter((m) => m.isCompleted).length;
 
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+    <section className="space-y-4 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-base font-semibold">Milestones</h2>
@@ -160,7 +161,7 @@ export function MilestoneSection({
           return (
             <div
               key={milestone.id}
-              className={`flex items-center gap-3 rounded-lg border border-border p-3 transition-colors ${
+              className={`flex items-center gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/30 ${
                 milestone.isCompleted ? "bg-muted/50" : ""
               }`}
             >
@@ -217,9 +218,19 @@ export function MilestoneSection({
           );
         })}
         {milestones.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Belum ada milestone.
-          </p>
+          <EmptyText
+            icon={CalendarDays}
+            title="Belum ada milestone"
+            text="Buat milestone untuk menandai target penting dan memantau progres project."
+            action={
+              canManage ? (
+                <Button type="button" size="sm" onClick={openCreate} disabled={isPending || pending}>
+                  <Plus className="h-4 w-4" />
+                  Tambah Milestone
+                </Button>
+              ) : null
+            }
+          />
         ) : null}
       </div>
 

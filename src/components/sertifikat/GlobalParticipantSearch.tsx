@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   searchAllParticipants,
   type GlobalSearchResult,
@@ -66,7 +67,7 @@ export function GlobalParticipantSearch({ initialData }: { initialData: GlobalSe
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm">
         <div className="relative flex-1 min-w-[260px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -100,7 +101,7 @@ export function GlobalParticipantSearch({ initialData }: { initialData: GlobalSe
         </Button>
       </form>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -117,13 +118,22 @@ export function GlobalParticipantSearch({ initialData }: { initialData: GlobalSe
           <TableBody>
             {data.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                  {search ? "Tidak ada peserta yang cocok dengan pencarian." : "Mulai cari peserta dengan kata kunci di atas."}
+                <TableCell colSpan={8} className="p-4">
+                  <EmptyState
+                    icon={Users}
+                    title={search ? "Peserta tidak ditemukan" : "Mulai cari peserta"}
+                    description={
+                      search
+                        ? "Tidak ada peserta yang cocok dengan pencarian saat ini."
+                        : "Cari berdasarkan nama, nomor sertifikat, atau email peserta."
+                    }
+                    className="min-h-40"
+                  />
                 </TableCell>
               </TableRow>
             ) : (
               data.rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="font-mono text-xs">{row.noSertifikat}</TableCell>
                   <TableCell className="font-medium">{row.nama}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{row.email ?? "-"}</TableCell>
@@ -133,7 +143,14 @@ export function GlobalParticipantSearch({ initialData }: { initialData: GlobalSe
                     {row.eventNamaKegiatan}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={row.statusPeserta === "dicabut" ? "destructive" : "outline"} className={row.statusPeserta === "aktif" ? "border-green-200 bg-green-50 text-green-700" : ""}>
+                    <Badge
+                      variant={row.statusPeserta === "dicabut" ? "destructive" : "outline"}
+                      className={
+                        row.statusPeserta === "aktif"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
+                          : ""
+                      }
+                    >
                       {row.statusPeserta === "dicabut" ? "Dicabut" : "Aktif"}
                     </Badge>
                   </TableCell>

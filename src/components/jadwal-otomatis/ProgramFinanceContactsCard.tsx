@@ -2,10 +2,11 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Wallet } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { updateProgramFinanceContact } from "@/server/actions/jadwal-otomatis/programs";
 
 type ProgramRow = {
@@ -76,7 +77,7 @@ export function ProgramFinanceContactsCard({
 
   return (
     <Card className="rounded-[28px]">
-      <CardHeader className="border-b border-border">
+      <CardHeader className="border-b border-border/60">
         <CardTitle>Default Kontak Keuangan per Program</CardTitle>
         <CardDescription>
           Dipakai sebagai fallback kedua setelah override kelas.
@@ -84,7 +85,7 @@ export function ProgramFinanceContactsCard({
       </CardHeader>
       <CardContent className="pt-6">
         {!hasData ? (
-          <p className="text-sm text-muted-foreground">Belum ada program aktif.</p>
+          <EmptyState icon={Wallet} title="Belum ada program aktif" description="Kontak keuangan per program akan tampil setelah ada program aktif." />
         ) : (
           <div className="space-y-4">
             {programs.map((program) => {
@@ -95,7 +96,7 @@ export function ProgramFinanceContactsCard({
               return (
                 <div
                   key={program.id}
-                  className="rounded-2xl border border-border bg-muted/20 p-4"
+                  className="rounded-2xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/35"
                 >
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div>

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HonorariumPaymentProofRow } from "@/server/actions/jadwal-otomatis/honorarium";
 import { formatTanggalWaktuJakarta } from "@/lib/utils";
 
@@ -61,7 +62,7 @@ export function BatchPaymentProofs({
           className={`rounded-lg border border-dashed p-6 text-center text-sm transition-colors ${
             dragActive
               ? "border-primary bg-primary/5"
-              : "border-border bg-muted/25"
+              : "border-border/60 bg-muted/25"
           }`}
         >
           <input
@@ -91,9 +92,12 @@ export function BatchPaymentProofs({
         </div>
 
         {proofs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            Belum ada bukti pembayaran yang diunggah.
-          </div>
+          <EmptyState
+            icon={UploadCloud}
+            title="Belum ada bukti pembayaran"
+            description="Bukti pembayaran yang diunggah akan tampil di daftar ini."
+            className="min-h-36"
+          />
         ) : (
           <div className="space-y-3">
             {proofs.map((proof) => (
@@ -102,7 +106,7 @@ export function BatchPaymentProofs({
                 href={proof.fileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-lg border border-border p-4 transition-colors hover:bg-muted/40"
+                className="block rounded-lg border border-border/60 p-4 transition-all hover:border-primary/20 hover:bg-muted/35 hover:shadow-sm"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>

@@ -10,6 +10,7 @@ import {
 } from "@/server/actions/auditLog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -265,7 +266,7 @@ export default function AuditLogManager({
       </p>
 
       {/* ─── Tabel ─── */}
-      <div className="rounded-lg border overflow-x-auto">
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -280,14 +281,17 @@ export default function AuditLogManager({
           <TableBody>
             {data.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p>Tidak ada log yang sesuai filter</p>
+                <TableCell colSpan={6} className="p-6">
+                  <EmptyState
+                    icon={FileText}
+                    title="Tidak ada log yang sesuai filter"
+                    description="Coba ubah kata kunci, entitas, tanggal, atau reset filter audit log."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
               data.rows.map((row) => (
-                <TableRow key={row.id} className="text-sm">
+                <TableRow key={row.id} className="text-sm transition-colors hover:bg-muted/40">
                   <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                     {formatTanggal(row.createdAt)}
                   </TableCell>
