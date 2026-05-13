@@ -4,6 +4,7 @@ export * from "./project-core";
 export * from "./project-content";
 export * from "./project-tasks";
 export * from "./project-resources";
+export * from "./project-integrations";
 
 // Re-export shared types directly so they are resolvable without going
 // through a "use server" boundary (safe for client component type imports).

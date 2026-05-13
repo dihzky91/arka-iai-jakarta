@@ -1446,12 +1446,14 @@ export const invoices = pgTable(
     fileUrl: text("file_url"),
     dibuatOleh: text("dibuat_oleh").references(() => users.id),
     pejabatId: integer("pejabat_id").references(() => pejabatPenandatangan.id),
+    projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (t) => [
     index("inv_status_idx").on(t.status),
     index("inv_tanggal_idx").on(t.tanggalInvoice),
+    index("inv_project_idx").on(t.projectId),
   ],
 );
 
@@ -1500,12 +1502,14 @@ export const kuitansi = pgTable(
     fileUrl: text("file_url"),
     dibuatOleh: text("dibuat_oleh").references(() => users.id),
     pejabatId: integer("pejabat_id").references(() => pejabatPenandatangan.id),
+    projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (t) => [
     index("kwt_status_idx").on(t.status),
     index("kwt_tanggal_idx").on(t.tanggalKuitansi),
+    index("kwt_project_idx").on(t.projectId),
   ],
 );
 

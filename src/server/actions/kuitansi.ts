@@ -21,6 +21,7 @@ const createKuitansiSchema = z.object({
   untukPembayaran: z.string().min(1, "Untuk pembayaran wajib diisi.").max(300),
   catatan: z.string().optional(),
   pejabatId: z.number().int().positive().optional(),
+  projectId: z.string().uuid().optional().nullable(),
 });
 
 const updateKuitansiSchema = createKuitansiSchema.extend({
@@ -123,6 +124,7 @@ export async function createKuitansi(input: unknown) {
       untukPembayaran: parsed.data.untukPembayaran,
       catatan: parsed.data.catatan,
       pejabatId: parsed.data.pejabatId,
+      projectId: parsed.data.projectId ?? null,
       dibuatOleh: session.user.id,
       status: "draft",
     })

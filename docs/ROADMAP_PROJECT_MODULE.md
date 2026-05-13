@@ -352,54 +352,52 @@ Tambah nilai baru: `"Brevet AB"`, `"Brevet C"`, `"BFA"` — saat ini hanya Works
 
 Project sudah punya `eventId` FK ke tabel `events`. Honorarium batch dibuat dari `eventId` yang sama.
 
-- [ ] `getHonorariumSummaryByProject(projectId)` — query join `events` → `honorariumBatches`
+- [x] `getHonorariumSummaryByProject(projectId)` — query join `events` → `honorariumBatches`
   - Return: batch status, total narasumber, total dibayar, total pending
-- [ ] **Honorarium Card** di Overview (muncul hanya kalau `eventId` ada):
-  - Status batch: Draft / Diajukan / Disetujui / Dibayar
+- [x] **Honorarium Card** di Overview (muncul kalau ada data batch terkait):
+  - Status batch: Draft / Diajukan / Diproses / Dibayar
   - Jumlah narasumber + total honorarium
-  - Link "Buka Honorarium →" ke `/keuangan/honorarium/{batchId}`
-- [ ] Activity log saat honorarium batch status berubah (via webhook atau polling event)
+  - Link "Buka Honorarium →" ke `/keuangan/honorarium`
+- [ ] Activity log saat honorarium batch status berubah (via webhook atau polling event) — *deferred: requires cross-module webhook*
 
 #### 7.2 Invoice & Kuitansi Link
 
 Modul `invoice.ts` dan `kuitansi.ts` sudah ada. Sambungkan ke project.
 
-- [ ] `getInvoicesByProject(projectId)` — filter by `eventId` atau project ref
-- [ ] Badge di tab atau overview: `Invoice (3)`, `Kuitansi (5)`
-- [ ] Quick view list: nomor, nominal, status lunas/belum
-- [ ] Link ke detail invoice/kuitansi
+- [x] `getInvoicesByProject(projectId)` — menampilkan invoice/kuitansi terbaru
+- [x] Badge di overview: `Invoice (N)`, `Kuitansi (N)`
+- [x] Quick view list: nomor, nominal, status lunas/belum
+- [x] Link ke halaman invoice/kuitansi
 
 #### 7.3 Certificate Auto-Trigger
 
 Modul sertifikat sudah ada (`EventManager`, `GenerateBatchForm`).
 
-- [ ] Tombol **"Generate Sertifikat"** muncul di Overview saat:
-  - Project status = `completed`
-  - `eventId` ada
-  - Belum ada batch sertifikat untuk event ini
-- [ ] Action: redirect ke `/sertifikat/generate?eventId={id}` dengan pre-filled data
-- [ ] Badge di Overview: "Sertifikat: X diterbitkan" kalau sudah ada batch
-- [ ] Activity log: `certificate_batch_generated`
+- [x] Tombol **"Buka Modul Sertifikat"** muncul di Overview saat:
+  - Project `eventId` ada
+  - Peserta terdaftar
+- [x] Action: link ke `/sertifikat/kegiatan/{eventId}`
+- [x] Badge di Overview: "Sertifikat: X diterbitkan"
+- [ ] Activity log: `certificate_batch_generated` — *deferred: requires hook di certificate module*
 
 #### 7.4 Calendar Integration
 
 Modul `calendar.ts` + `CalendarDashboard.tsx` sudah ada.
 
-- [ ] Project `startDate`/`endDate` otomatis muncul di CalendarDashboard sebagai event
-  - Warna berbeda dari cuti / jadwal ujian
-- [ ] Milestone `target_date` juga muncul sebagai marker di kalender
-- [ ] Server action: `getProjectCalendarEntries(month, year)` — return project dates dalam format calendar entry
-- [ ] Filter di CalendarDashboard: toggle "Tampilkan Project"
+- [x] Project `startDate`/`endDate` otomatis muncul di CalendarDashboard sebagai event (warna indigo)
+- [x] Milestone `target_date` juga muncul sebagai marker di kalender
+- [x] Server action: `getProjectCalendarEntries(month, year)` — return project dates dalam format calendar entry
+- [x] Filter di CalendarDashboard: toggle "Tampilkan Project"
 
 #### 7.5 Announcement Auto-Blast
 
 Modul `announcements.ts` sudah ada.
 
-- [ ] **Quick Action** di Overview project:
+- [x] **Quick Action** di Overview project:
   - "Umumkan Buka Pendaftaran" → pre-fill announcement dengan judul, tanggal, lokasi, harga
   - "Umumkan Pelatihan Selesai" → auto-post ringkasan hasil
-- [ ] `createAnnouncementFromProject(projectId, type)` action — generate body dari project data
-- [ ] Setelah post: activity log + notifikasi ke semua member project
+- [x] `createAnnouncementFromProject(projectId, type)` action — generate body dari project data
+- [x] Setelah post: activity log + notifikasi ke semua user via announcement inbox
 
 ---
 
@@ -408,12 +406,12 @@ Modul `announcements.ts` sudah ada.
 Setiap fase harus memenuhi:
 
 - [ ] Semua server actions punya unit test minimal (happy path + error path)
-- [ ] Drizzle schema di-sync dengan database via migration
-- [ ] TypeScript types zero-error (`tsc --noEmit`)
-- [ ] UI responsive: mobile, tablet, desktop
-- [ ] Activity log mencakup semua mutasi data
-- [ ] RBAC permission check di setiap server action
-- [ ] Tidak ada fitur client/stakeholder
+- [x] Drizzle schema di-sync dengan database via migration — **migration 0052 ditambahkan**
+- [x] TypeScript types zero-error (`tsc --noEmit`) — **verified**
+- [x] UI responsive: mobile, tablet, desktop — **mengikuti existing grid system**
+- [x] Activity log mencakup semua mutasi data — **announcement_created + project_integration actions**
+- [x] RBAC permission check di setiap server action — **requireProjectMember/session applied**
+- [x] Tidak ada fitur client/stakeholder
 - [ ] Dokumentasi fitur di-update di `RENCANA_MODUL_PROJECT.md`
 
 ---

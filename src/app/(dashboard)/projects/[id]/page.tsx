@@ -5,7 +5,10 @@ import { ProjectDetail } from "@/components/projects/ProjectDetail";
 import { requireSession } from "@/server/actions/auth";
 import {
   getBrevetSummaryByProject,
+  getHonorariumSummaryByProject,
+  getInvoicesByProject,
   getProjectById,
+  getProjectCertificateInfo,
   getProjectFinancialSummary,
   getProjectMembers,
   getProjectTimesheetSummary,
@@ -52,6 +55,9 @@ export default async function Page({
     timesheets,
     timesheetSummary,
     brevetSummary,
+    honorariumSummary,
+    invoiceKuitansiSummary,
+    certificateInfo,
   ] = await Promise.all([
     getProjectMembers(id),
     listComments(id),
@@ -67,6 +73,9 @@ export default async function Page({
     listProjectTimesheets(id),
     getProjectTimesheetSummary(id),
     project.kelasUjianId ? getBrevetSummaryByProject(id) : Promise.resolve(null),
+    getHonorariumSummaryByProject(id).catch(() => null),
+    getInvoicesByProject(id),
+    getProjectCertificateInfo(id).catch(() => null),
   ]);
 
   return (
@@ -88,6 +97,9 @@ export default async function Page({
         initialTimesheets={timesheets}
         initialTimesheetSummary={timesheetSummary}
         initialBrevetSummary={brevetSummary}
+        initialHonorariumSummary={honorariumSummary}
+        initialInvoiceKuitansiSummary={invoiceKuitansiSummary}
+        initialCertificateInfo={certificateInfo}
         defaultTab={tab ?? "overview"}
       />
     </PageWrapper>

@@ -32,6 +32,7 @@ const createInvoiceSchema = z.object({
   total: z.string().min(1, "Total wajib diisi."),
   catatan: z.string().optional(),
   pejabatId: z.number().int().positive().optional(),
+  projectId: z.string().uuid().optional().nullable(),
 });
 
 const updateInvoiceSchema = createInvoiceSchema.extend({
@@ -111,6 +112,7 @@ export async function createInvoice(input: unknown) {
       total: parsed.data.total,
       catatan: parsed.data.catatan,
       pejabatId: parsed.data.pejabatId,
+      projectId: parsed.data.projectId ?? null,
       dibuatOleh: session.user.id,
       status: "draft",
     })

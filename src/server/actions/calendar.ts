@@ -570,3 +570,55 @@ export async function getUpcomingDeadlines(
     )
     .orderBy(calendarEvents.startDate);
 }
+
+// ─── PROJECT SYNC ─────────────────────────────────────────────────────────────
+
+export async function syncProjectToCalendar(
+  projectId: string,
+  projectTitle: string,
+  startDate: Date,
+  endDate: Date,
+): Promise<void> {
+  const existing = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.entitasType, "project"),
+        eq(calendarEvents.entitasId, projectId),
+        eq(calendarEvents.eventType, "other"),
+      ),
+    );
+
+  if (existing[0]) {
+    await db
+      .update(calendarEvents)
+      .set({
+        title: `Project: ${projectTitle}`,
+        startDate,
+        endDate,
+        updatedAt: new Date(),
+      })
+      .where(eq(calendarEvents.id, existing[0].id));
+  } else {
+    await createCalendarEvent({
+      title: `Project: ${projectTitle}`,
+      description: `Project: ${projectTitle}`,
+      eventType: "other",
+      entitasType: "project",
+      entitasId: projectId,
+      startDate,
+      endDate,
+      allDay: true,
+      isPublic: true,
+    });
+  }
+}
+
+export async function removeProjectCalendarEvent(projectId: string): Promise<void> {
+  await db
+    .delete(calendarEvents)
+    .where(
+      and(eq(calendarEvents.entitasType, "project"), eq(calendarEvents.entitasId, projectId)),
+    );
+}
