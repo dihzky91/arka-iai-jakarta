@@ -64,7 +64,7 @@ export function KepegawaianWidget({
         />
       </section>
 
-      <section className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
+      <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground sm:text-lg">
@@ -91,7 +91,7 @@ export function KepegawaianWidget({
               <Link
                 key={item.id}
                 href="/cuti"
-                className="grid gap-2 rounded-2xl border border-border bg-muted/25 p-4 transition-colors hover:bg-muted/45 sm:grid-cols-[1fr_auto] sm:items-center"
+                className="grid gap-2 rounded-2xl border border-border/60 bg-muted/25 p-4 transition-colors hover:bg-muted/45 sm:grid-cols-[1fr_auto] sm:items-center"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -122,7 +122,7 @@ export function KepegawaianWidget({
             ))}
           </div>
         ) : (
-          <div className="mt-4 rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground sm:mt-5">
+          <div className="mt-4 rounded-2xl border border-dashed border-border/60 bg-muted/25 px-4 py-8 text-center text-sm text-muted-foreground sm:mt-5">
             Belum ada pengajuan cuti yang perlu Anda proses.
           </div>
         )}

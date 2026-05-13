@@ -100,7 +100,7 @@ export function PersuratanWidget({
             <Link
               key={item.id}
               href={`/surat-masuk?focus=${item.id}`}
-              className="flex flex-col gap-1 rounded-2xl border border-border bg-muted/25 px-4 py-3 transition-colors hover:bg-muted/45"
+              className="flex flex-col gap-1 rounded-2xl border border-border/60 bg-muted/25 px-4 py-3 transition-colors hover:bg-muted/45"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" className="rounded-full text-[10px]">
@@ -135,7 +135,7 @@ export function PersuratanWidget({
             <Link
               key={item.id}
               href="/disposisi"
-              className="flex flex-col gap-1 rounded-2xl border border-border bg-muted/25 px-4 py-3 transition-colors hover:bg-muted/45"
+              className="flex flex-col gap-1 rounded-2xl border border-border/60 bg-muted/25 px-4 py-3 transition-colors hover:bg-muted/45"
             >
               <div className="flex flex-wrap items-center gap-2">
                 {item.status && (
@@ -170,7 +170,7 @@ export function PersuratanWidget({
         </ListPanel>
       </section>
 
-      <section className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
+      <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-foreground">Aksi Cepat</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Jalur singkat ke pekerjaan yang paling sering dipakai.
@@ -203,7 +203,7 @@ function ListPanel({
   const hasItems = childArray.some(Boolean) && childArray.length > 0;
 
   return (
-    <div className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
+    <div className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground sm:text-lg">
@@ -224,7 +224,7 @@ function ListPanel({
       {hasItems ? (
         <div className="mt-4 grid gap-3 sm:mt-5">{children}</div>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground sm:mt-5">
+        <div className="mt-4 rounded-2xl border border-dashed border-border/60 bg-muted/25 px-4 py-8 text-center text-sm text-muted-foreground sm:mt-5">
           {emptyText}
         </div>
       )}

@@ -50,7 +50,7 @@ export function SertifikatWidget({ metrics }: SertifikatWidgetProps) {
       </section>
 
       {metrics.kegiatanTerbaru.length > 0 && (
-        <section className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
+        <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-foreground">
@@ -65,7 +65,7 @@ export function SertifikatWidget({ metrics }: SertifikatWidgetProps) {
             </Button>
           </div>
 
-          <div className="mt-5 divide-y divide-border rounded-2xl border border-border sm:mt-6">
+          <div className="mt-5 divide-y divide-border/60 rounded-2xl border border-border/60 sm:mt-6">
             {metrics.kegiatanTerbaru.map((kegiatan) => (
               <Link
                 key={kegiatan.id}
@@ -96,4 +96,3 @@ export function SertifikatWidget({ metrics }: SertifikatWidgetProps) {
     </>
   );
 }
-

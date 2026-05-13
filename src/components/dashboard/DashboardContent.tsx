@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { id } from "date-fns/locale";
 import {
   Award,
   Banknote,
   CalendarOff,
-  GraduationCap,
+  FileText,
   Inbox,
   Mail,
   Send,
   Timer,
   UserCheck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { StatsSummary } from "@/components/dashboard/StatsCharts";
 import { LazyStatsCharts } from "@/components/dashboard/LazyStatsCharts";
 import { PersuratanWidget } from "@/components/dashboard/PersuratanWidget";
@@ -23,10 +25,9 @@ import { KeuanganWidget } from "@/components/dashboard/KeuanganWidget";
 import { UjianDashboardWidget } from "@/components/jadwal-ujian/UjianDashboardWidget";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { DashboardSection } from "@/components/dashboard/DashboardSection";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
-import type { RoleDashboardData } from "@/server/actions/statistics";
+import type { RoleDashboardData, RecentSuratMasukItem } from "@/server/actions/statistics";
 
 interface DashboardContentProps {
   data: RoleDashboardData;
@@ -34,12 +35,11 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ data, userName }: DashboardContentProps) {
-  const { capabilities, isSuperAdmin } = useDashboard();
   return (
     <div className="space-y-5 sm:space-y-6">
       <DashboardHeader userName={userName} />
       <DashboardTabs
-        ringkasan={<RingkasanTab data={data} />}
+        ringkasan={<RingkasanTab data={data} userName={userName} />}
         persuratan={
           data.persuratan ? (
             <PersuratanWidget
@@ -72,9 +72,7 @@ export function DashboardContent({ data, userName }: DashboardContentProps) {
         }
         ujian={
           data.statistikUjian ? (
-            <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              <UjianDashboardWidget data={data.statistikUjian} />
-            </section>
+            <UjianDashboardWidget data={data.statistikUjian} />
           ) : undefined
         }
         analitik={
@@ -90,250 +88,281 @@ export function DashboardContent({ data, userName }: DashboardContentProps) {
   );
 }
 
-function RingkasanTab({ data }: { data: RoleDashboardData }) {
-  const hasAnyModule =
-    data.persuratan ||
-    data.kepegawaian ||
-    data.sertifikat ||
-    data.keuangan ||
-    data.statistikUjian;
+// ─── Ringkasan Tab ────────────────────────────────────────────────────────────
+
+function RingkasanTab({
+  data,
+  userName,
+}: {
+  data: RoleDashboardData;
+  userName: string | null;
+}) {
+  const { userRole, isSuperAdmin } = useDashboard();
 
   return (
-    <div className="space-y-6 sm:space-y-7">
-      {data.persuratan && (
-        <DashboardSection
-          title="Persuratan"
-          description="Antrean surat masuk, disposisi, dan surat keluar."
-          icon={Mail}
-          detailHref="/dashboard?tab=persuratan"
-        >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              compact
-              label="Surat Masuk Baru"
-              value={String(data.persuratan.suratMasukBaru)}
-              hint={`${data.persuratan.suratMasukDiproses} sedang diproses`}
-              href="/surat-masuk"
-              icon={Inbox}
-              tone="blue"
-            />
-            <MetricCard
-              compact
-              label="Disposisi Belum Dibaca"
-              value={String(data.persuratan.disposisiBelumDibaca)}
-              hint={`${data.persuratan.disposisiAktif} disposisi aktif`}
-              href="/disposisi"
-              icon={Mail}
-              tone="amber"
-            />
-            <MetricCard
-              compact
-              label="Perlu Review"
-              value={String(data.persuratan.suratKeluarReview)}
-              hint="Surat keluar menunggu persetujuan"
-              href="/surat-keluar"
-              icon={Send}
-              tone="violet"
-            />
-            <MetricCard
-              compact
-              label="Pengarsipan"
-              value={String(data.persuratan.suratKeluarArsip)}
-              hint="Siapkan nomor, QR, dan file final"
-              href="/surat-keluar"
-              icon={Award}
-              tone="emerald"
-            />
-          </div>
-        </DashboardSection>
-      )}
+    <div className="space-y-6">
+      {/* Hero 4 metric cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {data.persuratan && (
+          <MetricCard
+            heroLayout
+            label="Surat Masuk"
+            value={String(data.persuratan.suratMasukBaru)}
+            hint={`${data.persuratan.suratMasukDiproses} sedang diproses`}
+            href="/surat-masuk"
+            icon={Inbox}
+            tone="blue"
+          />
+        )}
+        {data.kepegawaian && (
+          <MetricCard
+            heroLayout
+            label="Kepegawaian"
+            value={String(data.kepegawaian.absensiHadirHariIni)}
+            hint={`${data.kepegawaian.cutiMenungguApproval} pengajuan cuti`}
+            href="/dashboard?tab=kepegawaian"
+            icon={Users}
+            tone="emerald"
+          />
+        )}
+        {data.sertifikat && (
+          <MetricCard
+            heroLayout
+            label="Sertifikat"
+            value={data.sertifikat.totalPeserta.toLocaleString("id-ID")}
+            hint={`${data.sertifikat.kegiatanAktif} kegiatan aktif`}
+            href="/dashboard?tab=sertifikat"
+            icon={Award}
+            tone="violet"
+          />
+        )}
+        {data.keuangan && (
+          <MetricCard
+            heroLayout
+            label="Keuangan"
+            value={`Rp ${data.keuangan.totalNominalDibayar.toLocaleString("id-ID")}`}
+            hint={`${data.keuangan.batchDikirimKeuangan + data.keuangan.batchDiprosesKeuangan} batch aktif`}
+            href="/dashboard?tab=keuangan"
+            icon={Banknote}
+            tone="amber"
+          />
+        )}
+      </div>
 
-      {data.kepegawaian && (
-        <DashboardSection
-          title="Kepegawaian"
-          description="Absensi & pengajuan cuti hari ini."
-          icon={UserCheck}
-          detailHref="/dashboard?tab=kepegawaian"
-        >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <MetricCard
-              compact
-              label="Hadir Hari Ini"
-              value={String(data.kepegawaian.absensiHadirHariIni)}
-              hint={`${data.kepegawaian.absensiTerlambatHariIni} terlambat`}
-              href="/absensi"
-              icon={UserCheck}
-              tone="emerald"
-            />
-            <MetricCard
-              compact
-              label="Cuti Menunggu"
-              value={String(data.kepegawaian.cutiMenungguApproval)}
-              hint={`${data.kepegawaian.cutiDisetujuiBulanIni} disetujui bulan ini`}
-              href="/cuti"
-              icon={CalendarOff}
-              tone="blue"
-            />
-            <MetricCard
-              compact
-              label="Alpha Hari Ini"
-              value={String(data.kepegawaian.absensiAlphaHariIni)}
-              hint="Tidak hadir tanpa keterangan"
-              href="/absensi"
-              icon={Timer}
-              tone="red"
-            />
-          </div>
-        </DashboardSection>
-      )}
+      {/* 2-column layout: content left + sidebar right */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+        {/* Left: Antrean Persuratan */}
+        <div className="space-y-5">
+          {data.recentSuratMasuk !== null && (
+            <AntreanPersuratanCard items={data.recentSuratMasuk ?? []} />
+          )}
+        </div>
 
-      {data.sertifikat && (
-        <DashboardSection
-          title="Sertifikat & Kegiatan"
-          description="Kegiatan aktif dan peserta."
-          icon={Award}
-          detailHref="/dashboard?tab=sertifikat"
-        >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
-            <MetricCard
-              compact
-              label="Kegiatan Aktif"
-              value={String(data.sertifikat.kegiatanAktif)}
-              hint="Kegiatan berlangsung saat ini"
-              href="/sertifikat/kegiatan"
-              icon={Award}
-              tone="violet"
-            />
-            <MetricCard
-              compact
-              label="Total Peserta"
-              value={data.sertifikat.totalPeserta.toLocaleString("id-ID")}
-              hint="Seluruh periode"
-              href="/sertifikat/peserta"
-              icon={UserCheck}
-              tone="blue"
-            />
-          </div>
-        </DashboardSection>
-      )}
-
-      {data.keuangan && (
-        <DashboardSection
-          title="Keuangan"
-          description="Status batch honorarium."
-          icon={Banknote}
-          detailHref="/dashboard?tab=keuangan"
-        >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <MetricCard
-              compact
-              label="Antrian Pembayaran"
-              value={String(
-                data.keuangan.batchDikirimKeuangan +
-                  data.keuangan.batchDiprosesKeuangan,
-              )}
-              hint="Batch menunggu diproses"
-              href="/keuangan/honorarium"
-              icon={Timer}
-              tone="amber"
-            />
-            <MetricCard
-              compact
-              label="Batch Dibayar"
-              value={String(data.keuangan.batchDibayar)}
-              hint="Sudah selesai dibayar"
-              href="/keuangan/honorarium"
-              icon={Banknote}
-              tone="emerald"
-            />
-            <MetricCard
-              compact
-              label="Total Dibayar"
-              value={`Rp ${data.keuangan.totalNominalDibayar.toLocaleString("id-ID")}`}
-              hint={`${data.keuangan.batchLocked} batch terkunci`}
-              href="/keuangan"
-              icon={Banknote}
-              tone="violet"
-            />
-          </div>
-        </DashboardSection>
-      )}
-
-      {data.statistikUjian && (
-        <DashboardSection
-          title="Jadwal Ujian"
-          description="Ringkasan jadwal ujian dan pengawas."
-          icon={GraduationCap}
-          detailHref="/dashboard?tab=ujian"
-        >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <UjianDashboardWidget data={data.statistikUjian} />
-          </div>
-        </DashboardSection>
-      )}
-
-      {hasAnyModule && <QuickActionsSection data={data} />}
+        {/* Right: Profile + Quick Actions */}
+        <div className="space-y-4">
+          <ProfileCard
+            userName={userName}
+            userRole={userRole}
+            isSuperAdmin={isSuperAdmin}
+          />
+          <QuickActionsCard data={data} />
+        </div>
+      </div>
     </div>
   );
 }
 
-function QuickActionsSection({ data }: { data: RoleDashboardData }) {
+// ─── Antrean Persuratan ───────────────────────────────────────────────────────
+
+function statusInfo(status: string | null): { label: string; className: string } {
+  switch (status) {
+    case "diterima":
+      return {
+        label: "Diterima",
+        className: "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300",
+      };
+    case "diproses":
+      return {
+        label: "Diproses",
+        className: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
+      };
+    case "selesai":
+      return {
+        label: "Selesai",
+        className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
+      };
+    case "ditolak":
+      return {
+        label: "Ditolak",
+        className: "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300",
+      };
+    default:
+      return { label: status ?? "—", className: "bg-muted text-muted-foreground" };
+  }
+}
+
+function AntreanPersuratanCard({ items }: { items: RecentSuratMasukItem[] }) {
   return (
-    <section className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
-      <h2 className="text-base font-semibold text-foreground sm:text-lg">
-        Aksi Cepat
-      </h2>
-      <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-        Jalur singkat ke pekerjaan yang paling sering dipakai.
-      </p>
-      <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 lg:grid-cols-3">
-        {data.persuratan && (
-          <>
-            <QuickAction href="/surat-masuk" label="Catat surat masuk" icon={Inbox} />
-            <QuickAction href="/surat-keluar" label="Buat surat keluar" icon={Send} />
-            <QuickAction href="/disposisi" label="Buka disposisi" icon={Mail} />
-          </>
-        )}
-        {data.kepegawaian && (
-          <>
-            <QuickAction href="/absensi" label="Cek absensi" icon={Timer} />
-            <QuickAction href="/cuti" label="Pengajuan cuti" icon={CalendarOff} />
-          </>
-        )}
-        {data.sertifikat && (
-          <QuickAction
-            href="/sertifikat/kegiatan"
-            label="Kelola kegiatan"
-            icon={Award}
-          />
-        )}
-        {data.keuangan && (
-          <QuickAction
-            href="/keuangan/honorarium"
-            label="Proses honorarium"
-            icon={Banknote}
-          />
-        )}
+    <section className="rounded-3xl border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Antrean Persuratan</h2>
+          <p className="text-xs text-muted-foreground">
+            Daftar surat masuk, disposisi, dan surat keluar.
+          </p>
+        </div>
+        <Link
+          href="/surat-masuk"
+          className="shrink-0 text-sm font-medium text-primary hover:underline"
+        >
+          Lihat detail →
+        </Link>
       </div>
+
+      {items.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border/60 bg-muted/25 py-10 text-center text-sm text-muted-foreground">
+          Tidak ada surat masuk terbaru.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {items.slice(0, 5).map((item) => {
+            const info = statusInfo(item.status);
+            const timeAgo = item.createdAt
+              ? formatDistanceToNow(new Date(item.createdAt), {
+                  addSuffix: true,
+                  locale: id,
+                })
+              : "—";
+            return (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5 transition-colors hover:bg-muted/40"
+              >
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {item.perihal}
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${info.className}`}
+                    >
+                      {info.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{timeAgo}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
 
-function QuickAction({
-  href,
-  label,
-  icon: Icon,
+// ─── Profile Card ─────────────────────────────────────────────────────────────
+
+function ProfileCard({
+  userName,
+  userRole,
+  isSuperAdmin,
 }: {
-  href: string;
-  label: string;
-  icon: LucideIcon;
+  userName: string | null;
+  userRole: string | null;
+  isSuperAdmin: boolean;
 }) {
+  const name = userName ?? "Pengguna";
+  const initials = name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase();
+
+  const roleLabel = isSuperAdmin
+    ? "Super Admin"
+    : userRole === "admin"
+      ? "Admin"
+      : userRole === "staff"
+        ? "Staff"
+        : userRole === "pejabat"
+          ? "Pejabat"
+          : (userRole ?? "Member");
+
   return (
-    <Button asChild variant="outline" className="h-auto justify-start px-4 py-3 text-left">
-      <Link href={href}>
-        <Icon className="h-4 w-4" />
-        {label}
-      </Link>
-    </Button>
+    <div className="rounded-3xl bg-linear-to-br from-blue-600 to-blue-700 p-5 text-white shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200">
+        Profil Saya
+      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-semibold">{name}</p>
+          <p className="text-xs text-blue-200">IAI Jakarta</p>
+        </div>
+      </div>
+      <div className="mt-4 space-y-2.5 border-t border-white/10 pt-4 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-blue-200">Peran</span>
+          <span className="font-semibold">{roleLabel}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-blue-200">Status</span>
+          <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
+            TERVERIFIKASI
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick Actions Card ───────────────────────────────────────────────────────
+
+function QuickActionsCard({ data }: { data: RoleDashboardData }) {
+  const actions: { href: string; label: string; icon: LucideIcon }[] = [];
+
+  if (data.persuratan) {
+    actions.push({ href: "/surat-masuk", label: "Catat surat masuk", icon: Inbox });
+    actions.push({ href: "/surat-keluar", label: "Buat surat keluar", icon: Send });
+    actions.push({ href: "/disposisi", label: "Buka disposisi", icon: Mail });
+  }
+  if (data.kepegawaian) {
+    actions.push({ href: "/absensi", label: "Cek absensi", icon: Timer });
+    actions.push({ href: "/cuti", label: "Pengajuan cuti", icon: CalendarOff });
+  }
+  if (data.sertifikat) {
+    actions.push({ href: "/sertifikat/kegiatan", label: "Kelola kegiatan", icon: Award });
+  }
+  if (data.keuangan) {
+    actions.push({ href: "/keuangan/honorarium", label: "Proses honorarium", icon: Banknote });
+  }
+
+  if (actions.length === 0) return null;
+
+  return (
+    <section className="rounded-3xl border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
+      <div className="mb-3 flex items-center gap-2">
+        <UserCheck className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground">Aksi Cepat</h3>
+      </div>
+      <div className="space-y-0.5">
+        {actions.map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+          >
+            <action.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            {action.label}
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react";
 import { formatTanggalLengkapJakarta } from "@/lib/utils";
 
 interface DashboardHeaderProps {
@@ -28,10 +29,11 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
     <header className="flex flex-col gap-1">
       <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
         {greeting}
-        {firstName ? `, ${firstName}` : ""}
+        {firstName ? `, ${firstName}!` : "!"}
       </h1>
-      <p className="text-sm text-muted-foreground">
-        {today} · Ringkasan aktivitas yang perlu Anda perhatikan hari ini.
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Clock className="h-3.5 w-3.5 shrink-0" />
+        {today} · Berikut ringkasan aktivitas yang perlu Anda perhatikan hari ini.
       </p>
     </header>
   );

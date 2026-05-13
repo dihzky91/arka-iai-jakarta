@@ -216,9 +216,9 @@ export function CalendarDashboard({
   })();
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-6 lg:grid-cols-3 xl:grid-cols-4">
       {/* Calendar Grid */}
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-2 xl:col-span-3 rounded-[24px] shadow-sm border-slate-100 border">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg">
             {format(currentDate, "MMMM yyyy", { locale: id })}
@@ -252,11 +252,11 @@ export function CalendarDashboard({
         </CardHeader>
         <CardContent>
           {/* Weekday Headers */}
-          <div className="mb-2 grid grid-cols-7 gap-1">
+          <div className="mb-4 grid grid-cols-7 gap-2">
             {weekDays.map((day) => (
               <div
                 key={day}
-                className="py-2 text-center text-sm font-medium text-muted-foreground"
+                className="py-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400"
               >
                 {day}
               </div>
@@ -264,7 +264,7 @@ export function CalendarDashboard({
           </div>
 
           {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-2">
             {daysInMonth.map((date, index) => {
               const dateEvents = getEventsForDate(date);
               const isSelected =
@@ -276,38 +276,42 @@ export function CalendarDashboard({
                 <button
                   key={index}
                   onClick={() => setSelectedDate(date)}
-                  className={`relative min-h-20 rounded-lg border p-2 text-left transition-colors ${
+                  className={`group relative min-h-[5.5rem] rounded-2xl p-2.5 text-left transition-all duration-300 ${
                     isCurrentMonth
-                      ? "bg-card"
-                      : "bg-muted/30 text-muted-foreground"
+                      ? "bg-white hover:bg-slate-50 hover:shadow-sm"
+                      : "bg-transparent text-slate-300"
                   } ${
                     isSelected
-                      ? "border-primary ring-2 ring-primary"
-                      : "border-border hover:border-muted-foreground/30"
-                  } ${isTodayDate ? "bg-primary/5" : ""}`}
+                      ? "ring-2 ring-primary ring-offset-2 bg-slate-50"
+                      : "border border-transparent"
+                  }`}
                 >
-                  <span
-                    className={`text-sm font-medium ${
-                      isTodayDate ? "text-primary" : ""
-                    } ${!isCurrentMonth ? "text-muted-foreground" : ""}`}
-                  >
-                    {format(date, "d")}
-                  </span>
+                  <div className="flex w-full justify-start">
+                    <span
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
+                        isTodayDate 
+                          ? "bg-primary text-white shadow-md shadow-primary/30" 
+                          : isCurrentMonth ? "text-slate-700" : "text-slate-400"
+                      } ${isSelected && !isTodayDate ? "text-primary bg-primary/10" : ""}`}
+                    >
+                      {format(date, "d")}
+                    </span>
+                  </div>
 
                   {/* Event Indicators */}
                   {dateEvents.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {dateEvents.slice(0, 3).map((event, i) => (
+                    <div className="mt-2 flex flex-wrap gap-1.5 px-1">
+                      {dateEvents.slice(0, 4).map((event, i) => (
                         <div
                           key={i}
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            eventTypeColors[event.eventType] || "bg-gray-500"
+                          className={`h-2 w-2 rounded-full shadow-sm ${
+                            eventTypeColors[event.eventType] || "bg-slate-400"
                           }`}
                         />
                       ))}
-                      {dateEvents.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          +{dateEvents.length - 3}
+                      {dateEvents.length > 4 && (
+                        <span className="text-[10px] font-medium text-slate-400">
+                          +{dateEvents.length - 4}
                         </span>
                       )}
                     </div>
@@ -320,8 +324,8 @@ export function CalendarDashboard({
       </Card>
 
       {/* Events List */}
-      <Card>
-        <CardHeader>
+      <Card className="rounded-[24px] shadow-sm border-slate-100 border">
+        <CardHeader className="border-b border-slate-50 bg-slate-50/50 pb-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <CalendarIcon className="h-4 w-4" />
             {selectedDate
@@ -333,27 +337,27 @@ export function CalendarDashboard({
           <ScrollArea className="h-96">
             {selectedDate ? (
               selectedDateEvents.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4 pr-3 py-2">
                   {selectedDateEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="rounded-lg border bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+                      className="group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <Badge
                             className={`${
-                              eventTypeColors[event.eventType] || "bg-gray-500"
-                            } mb-2 text-white`}
+                              eventTypeColors[event.eventType] || "bg-slate-500"
+                            } mb-3 text-white border-0 font-medium`}
                           >
                             {eventTypeLabels[event.eventType] ||
                               event.eventType}
                           </Badge>
-                          <h4 className="text-sm font-medium">
+                          <h4 className="font-outfit text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">
                             {event.title}
                           </h4>
                           {event.description && (
-                            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                            <p className="mt-1.5 line-clamp-2 text-sm text-slate-500 leading-relaxed">
                               {event.description}
                             </p>
                           )}
@@ -399,8 +403,8 @@ export function CalendarDashboard({
       </Card>
 
       {/* Legend */}
-      <Card className="lg:col-span-3">
-        <CardContent className="pt-6">
+      <Card className="lg:col-span-3 xl:col-span-4 rounded-[24px] border-slate-100 shadow-sm overflow-hidden">
+        <CardContent className="p-4 bg-slate-50/50">
           <div className="flex flex-wrap gap-4">
             {indicators.map(([type, label]) => (
               <div key={type} className="flex items-center gap-2">

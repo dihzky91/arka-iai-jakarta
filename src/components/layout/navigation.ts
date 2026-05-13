@@ -49,6 +49,7 @@ export interface NavigationItem {
 
 export interface NavigationSection {
   title: string;
+  icon: LucideIcon;
   collapsedHref?: string;
   items: NavigationItem[];
 }
@@ -56,6 +57,7 @@ export interface NavigationSection {
 export const navigationSections: NavigationSection[] = [
   {
     title: "Utama",
+    icon: LayoutDashboard,
     collapsedHref: "/dashboard",
     items: [
       {
@@ -90,6 +92,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Kepegawaian",
+    icon: Users,
     collapsedHref: "/pegawai",
     items: [
       {
@@ -126,6 +129,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Persuratan",
+    icon: Mail,
     collapsedHref: "/surat-keluar",
     items: [
       {
@@ -154,6 +158,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Sertifikat & Kegiatan",
+    icon: Award,
     collapsedHref: "/sertifikat/kegiatan",
     items: [
       {
@@ -232,6 +237,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Program Pelatihan",
+    icon: CalendarDays,
     collapsedHref: "/jadwal-otomatis",
     items: [
       {
@@ -273,6 +279,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Keuangan",
+    icon: Landmark,
     collapsedHref: "/keuangan",
     items: [
       {
@@ -293,6 +300,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Manajemen Ujian",
+    icon: ShieldCheck,
     collapsedHref: "/jadwal-ujian/admin-jaga",
     items: [
       {
@@ -354,6 +362,7 @@ export const navigationSections: NavigationSection[] = [
   },
   {
     title: "Administrasi",
+    icon: Settings,
     collapsedHref: "/surat-keputusan",
     items: [
       {

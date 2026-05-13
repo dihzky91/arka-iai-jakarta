@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   Landmark,
@@ -18,15 +19,11 @@ import {
   getNavigationItem,
   navigationSections,
   type NavRole,
+  type NavigationSection,
 } from "@/components/layout/navigation";
-import {
-  APP_BRAND_DESCRIPTION,
-  APP_BRAND_NAME,
-  APP_BRAND_TAGLINE,
-} from "@/lib/branding";
+import { APP_BRAND_DESCRIPTION, APP_BRAND_NAME } from "@/lib/branding";
 import type { Capability } from "@/lib/rbac/capabilities";
 
-const SIDEBAR_OPEN_SECTION_KEY = "iai-sidebar-open-section";
 const SIDEBAR_COLLAPSED_KEY = "iai-sidebar-collapsed";
 const EMPTY_CAPABILITIES: Capability[] = [];
 
@@ -62,7 +59,7 @@ export function Sidebar({
     process.env.NEXT_PUBLIC_APP_NAME ??
     APP_BRAND_NAME;
   const logoUrl = systemIdentity?.logoUrl ?? "/iai-logo.png";
-  const activeItem = getNavigationItem(pathname);
+  
   const userCapabilityList = userCapabilities ?? EMPTY_CAPABILITIES;
   const capabilitySet = useMemo(
     () => new Set(userCapabilityList),
@@ -91,11 +88,26 @@ export function Sidebar({
     [capabilitySet, isSuperAdmin, userRole],
   );
 
+  // Tier 1 Active Section State
+  const [activeSectionTitle, setActiveSectionTitle] = useState<string | null>(null);
+
+  // Auto-select active section based on pathname
+  useEffect(() => {
+    const match = visibleSections.find((s) =>
+      s.items.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
+    );
+    if (match) {
+      setActiveSectionTitle(match.title);
+    } else if (visibleSections.length > 0 && !activeSectionTitle) {
+      setActiveSectionTitle(visibleSections[0]!.title);
+    }
+  }, [pathname, visibleSections]);
+
+  const activeSection = visibleSections.find((s) => s.title === activeSectionTitle) || visibleSections[0];
+
   useEffect(() => {
     try {
-      setDesktopCollapsed(
-        window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1",
-      );
+      setDesktopCollapsed(window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1");
     } catch {
       setDesktopCollapsed(false);
     } finally {
@@ -105,7 +117,6 @@ export function Sidebar({
 
   useEffect(() => {
     if (!hasLoadedCollapsedState) return;
-
     try {
       if (desktopCollapsed) {
         window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, "1");
@@ -113,44 +124,165 @@ export function Sidebar({
         window.localStorage.removeItem(SIDEBAR_COLLAPSED_KEY);
       }
     } catch {
-      // localStorage can be unavailable in restricted browser contexts.
+      // ignore
     }
   }, [desktopCollapsed, hasLoadedCollapsedState]);
 
+  if (!hasLoadedCollapsedState) return null;
+
   return (
     <>
-      <aside
-        className={cn(
-          "relative sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card transition-[width] duration-200 lg:flex lg:flex-col",
-          desktopCollapsed ? "w-20" : "w-80",
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setDesktopCollapsed(!desktopCollapsed)}
-          className="absolute -right-4 top-5 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
-          aria-label={desktopCollapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
-          title={desktopCollapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
-        >
-          {desktopCollapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
+      {/* DESKTOP SIDEBAR - DUAL TIER */}
+      <aside className="relative sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card lg:flex">
+        <div
+          className={cn(
+            "flex h-full transition-[width] duration-300 ease-in-out",
+            desktopCollapsed ? "w-[80px]" : "w-[300px]"
           )}
-        </button>
-        <SidebarContent
-          pathname={pathname}
-          visibleSections={visibleSections}
-          appName={appName}
-          logoUrl={logoUrl}
-          activeItemLabel={activeItem?.label}
-          unreadDisposisiCount={unreadDisposisiCount}
-          unreadAnnouncementCount={unreadAnnouncementCount}
-          collapsed={desktopCollapsed}
-          onCollapsedChange={setDesktopCollapsed}
-        />
+        >
+          {/* TIER 1: Module Strip */}
+          <div className="flex w-[80px] shrink-0 flex-col items-center border-r border-slate-100 bg-slate-50/60 py-6 z-10 backdrop-blur-xl">
+            {/* Logo */}
+            <div className="mb-8 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt={appName} className="h-full w-full object-contain" />
+              ) : (
+                <Landmark className="h-6 w-6" />
+              )}
+            </div>
+
+            {/* Icons List */}
+            <div className="flex w-full flex-col items-center gap-4 px-3 flex-1 overflow-y-auto no-scrollbar">
+              {visibleSections.map((section) => {
+                const isActive = section.title === activeSectionTitle;
+                return (
+                  <button
+                    key={section.title}
+                    onClick={() => {
+                      setActiveSectionTitle(section.title);
+                      if (desktopCollapsed) setDesktopCollapsed(false);
+                    }}
+                    className={cn(
+                      "group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-200",
+                      isActive
+                        ? "bg-primary text-white shadow-md shadow-primary/20 scale-105"
+                        : "text-slate-500 hover:bg-slate-200/60 hover:text-slate-900"
+                    )}
+                    title={section.title}
+                  >
+                    <section.icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.5 : 2} />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Toggle Button */}
+            <div className="mt-4 px-3">
+              <button
+                onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl text-slate-400 hover:bg-slate-200/60 hover:text-slate-900 transition-colors"
+                title={desktopCollapsed ? "Expand" : "Collapse"}
+              >
+                {desktopCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* TIER 2: Sub-menu Panel */}
+          <AnimatePresence initial={false}>
+            {!desktopCollapsed && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 220, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="flex h-full flex-col overflow-hidden bg-white z-0"
+              >
+                <div className="w-[220px] flex h-full flex-col">
+                  <div className="px-6 py-8">
+                    <h2 className="font-outfit text-xl font-bold text-slate-900 tracking-tight">
+                      {activeSection?.title}
+                    </h2>
+                  </div>
+                  <nav className="flex-1 overflow-y-auto px-4 pb-6">
+                    <ul className="space-y-2">
+                      {activeSection?.items.map((item) => {
+                        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                        const unreadCount =
+                          (item.href === "/disposisi" ? unreadDisposisiCount : 0) +
+                          (item.href === "/pengumuman" ? unreadAnnouncementCount : 0);
+
+                        if (!item.active) {
+                          return (
+                            <li key={item.href}>
+                              <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-slate-400 opacity-80">
+                                <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
+                                <span className="flex-1 font-medium">{item.label}</span>
+                                <LockKeyhole className="h-3.5 w-3.5" />
+                              </div>
+                            </li>
+                          );
+                        }
+
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              className={cn(
+                                "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200",
+                                isActive
+                                  ? "bg-slate-100/80 font-semibold text-primary"
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                              )}
+                            >
+                              <item.icon
+                                className={cn(
+                                  "h-[18px] w-[18px] transition-transform group-hover:scale-110",
+                                  isActive ? "text-primary" : "text-slate-400"
+                                )}
+                                strokeWidth={isActive ? 2.5 : 2}
+                              />
+                              <span className="flex-1">{item.label}</span>
+                              {unreadCount > 0 && (
+                                <Badge
+                                  variant={isActive ? "default" : "secondary"}
+                                  className={cn(
+                                    "rounded-full px-1.5 h-5 min-w-5 flex items-center justify-center text-[10px]",
+                                    isActive ? "bg-primary text-white" : ""
+                                  )}
+                                >
+                                  {unreadCount > 99 ? "99+" : unreadCount}
+                                </Badge>
+                              )}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </nav>
+                  
+                  {/* ID Card Profil Minimalis */}
+                  <div className="p-4 mt-auto border-t border-slate-100">
+                    <div className="bg-primary/5 rounded-2xl p-3 flex items-center gap-3 border border-primary/10">
+                       <div className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                          {userRole?.charAt(0).toUpperCase() || "A"}
+                       </div>
+                       <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 truncate uppercase">{userRole || "Administrator"}</p>
+                          <p className="text-[10px] text-slate-500 truncate">Status: Aktif</p>
+                       </div>
+                    </div>
+                  </div>
+
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </aside>
 
+      {/* MOBILE DIALOG */}
       <Dialog open={mobileOpen} onOpenChange={onMobileOpenChange}>
         <DialogContent
           showCloseButton={false}
@@ -159,372 +291,55 @@ export function Sidebar({
         >
           <DialogTitle className="sr-only">Navigasi utama</DialogTitle>
           <div className="flex h-full min-h-0 flex-col bg-card">
-            <div className="flex items-center justify-end border-b border-border px-3 py-3">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Landmark className="h-5 w-5" />
+                </div>
+                <span className="font-outfit font-bold text-slate-900">{appName}</span>
+              </div>
               <button
                 type="button"
                 onClick={() => onMobileOpenChange?.(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Tutup navigasi"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-900"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <SidebarContent
-              pathname={pathname}
-              visibleSections={visibleSections}
-              appName={appName}
-              logoUrl={logoUrl}
-              activeItemLabel={activeItem?.label}
-              unreadDisposisiCount={unreadDisposisiCount}
-              unreadAnnouncementCount={unreadAnnouncementCount}
-              mobile
-              collapsed={false}
-              onNavigate={() => onMobileOpenChange?.(false)}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-function SidebarContent({
-  pathname,
-  visibleSections,
-  appName,
-  logoUrl,
-  activeItemLabel,
-  unreadDisposisiCount,
-  unreadAnnouncementCount,
-  collapsed = false,
-  onCollapsedChange,
-  mobile = false,
-  onNavigate,
-}: {
-  pathname: string;
-  visibleSections: typeof navigationSections;
-  appName: string;
-  logoUrl: string;
-  activeItemLabel?: string;
-  unreadDisposisiCount: number;
-  unreadAnnouncementCount: number;
-  collapsed?: boolean;
-  onCollapsedChange?: (collapsed: boolean) => void;
-  mobile?: boolean;
-  onNavigate?: () => void;
-}) {
-  const [openSectionTitle, setOpenSectionTitle] = useState<string | null>(null);
-  const [hasLoadedOpenState, setHasLoadedOpenState] = useState(false);
-
-  const activeNavigationMatch = useMemo(() => {
-    return visibleSections
-      .map((section) => {
-        const matchingItem = section.items
-          .filter(
-            (item) =>
-              pathname === item.href || pathname.startsWith(`${item.href}/`),
-          )
-          .sort((a, b) => b.href.length - a.href.length)[0];
-
-        return matchingItem
-          ? {
-              sectionTitle: section.title,
-              href: matchingItem.href,
-              hrefLength: matchingItem.href.length,
-            }
-          : null;
-      })
-      .filter(
-        (
-          match,
-        ): match is {
-          sectionTitle: string;
-          href: string;
-          hrefLength: number;
-        } => match !== null,
-      )
-      .sort((a, b) => b.hrefLength - a.hrefLength)[0];
-  }, [pathname, visibleSections]);
-  const activeSectionTitle = activeNavigationMatch?.sectionTitle;
-  const activeItemHref = activeNavigationMatch?.href;
-
-  useEffect(() => {
-    try {
-      const storedValue = window.localStorage.getItem(SIDEBAR_OPEN_SECTION_KEY);
-      if (
-        storedValue &&
-        visibleSections.some((section) => section.title === storedValue)
-      ) {
-        setOpenSectionTitle(storedValue);
-      }
-    } catch {
-      setOpenSectionTitle(null);
-    } finally {
-      setHasLoadedOpenState(true);
-    }
-  }, [visibleSections]);
-
-  useEffect(() => {
-    if (!hasLoadedOpenState) return;
-
-    if (openSectionTitle) {
-      window.localStorage.setItem(SIDEBAR_OPEN_SECTION_KEY, openSectionTitle);
-    } else {
-      window.localStorage.removeItem(SIDEBAR_OPEN_SECTION_KEY);
-    }
-  }, [openSectionTitle, hasLoadedOpenState]);
-
-  useEffect(() => {
-    if (!hasLoadedOpenState || !activeSectionTitle) return;
-    setOpenSectionTitle(activeSectionTitle);
-  }, [activeSectionTitle, hasLoadedOpenState]);
-
-  function toggleSection(title: string) {
-    setOpenSectionTitle((current) => {
-      if (current !== title) return title;
-      return title === activeSectionTitle ? title : null;
-    });
-  }
-
-  return (
-    <>
-      <div
-        className={cn(
-          "border-b border-border px-4 py-4 lg:py-5",
-          collapsed ? "lg:px-3" : "lg:px-5",
-        )}
-      >
-        <div
-          className={cn(
-            "flex items-center gap-3",
-            collapsed && "justify-center",
-          )}
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={appName}
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <Landmark className="h-5 w-5" />
-            )}
-          </div>
-          {collapsed ? null : (
-            <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-foreground">
-              {appName}
-            </p>
-            <p className="text-xs text-muted-foreground">{APP_BRAND_TAGLINE}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <nav
-        className={cn(
-          "min-h-0 flex-1 overflow-y-auto overscroll-contain py-4",
-          collapsed ? "px-2" : "px-3",
-        )}
-      >
-        {collapsed ? (
-          <ul className="space-y-1">
-            {visibleSections.map((section) => {
-              const primaryItem =
-                section.items.find(
-                  (item) => item.href === section.collapsedHref && item.active,
-                ) ??
-                section.items.find((item) => item.active) ??
-                section.items[0];
-
-              if (!primaryItem) return null;
-
-              const isActive = activeSectionTitle === section.title;
-              const sectionTooltip = `${section.title} - ${primaryItem.label}`;
-              const unreadCount =
-                (section.items.some((item) => item.href === "/disposisi")
-                  ? unreadDisposisiCount
-                  : 0) +
-                (section.items.some((item) => item.href === "/pengumuman")
-                  ? unreadAnnouncementCount
-                  : 0);
-
-              if (!primaryItem.active) {
-                return (
-                  <li key={section.title}>
-                    <div
-                      className="relative flex h-12 items-center justify-center rounded-2xl text-muted-foreground opacity-80"
-                      title={`${sectionTooltip} (${primaryItem.statusLabel ?? "Nonaktif"})`}
-                    >
-                      <primaryItem.icon className="h-5 w-5" />
-                      <LockKeyhole className="absolute bottom-2 right-2 h-3 w-3" />
-                    </div>
-                  </li>
-                );
-              }
-
-              return (
-                <li key={section.title}>
-                  <Link
-                    href={primaryItem.href}
-                    onClick={onNavigate}
-                    title={sectionTooltip}
-                    aria-label={sectionTooltip}
-                    className={cn(
-                      "relative flex h-12 items-center justify-center rounded-2xl transition-colors",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-foreground hover:bg-muted",
-                    )}
-                  >
-                    <primaryItem.icon className="h-5 w-5" />
-                    {unreadCount > 0 ? (
-                      <span
-                        className={cn(
-                          "absolute right-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold",
-                          isActive
-                            ? "bg-white/20 text-primary-foreground"
-                            : "bg-primary text-primary-foreground",
-                        )}
-                      >
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div className="space-y-5">
-            {visibleSections.map((section) => {
-            const isCollapsed =
-              (openSectionTitle ?? activeSectionTitle) !== section.title;
-
-            return (
-              <section key={section.title} className="min-w-0">
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.title)}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-expanded={!isCollapsed}
-                >
-                  <span className="min-w-0 flex-1 truncate">
-                    {section.title}
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 shrink-0 transition-transform",
-                      isCollapsed && "-rotate-90",
-                    )}
-                  />
-                </button>
-
-                {isCollapsed ? null : (
-                  <ul className="mt-2 space-y-1">
+            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+              {visibleSections.map((section) => (
+                <div key={section.title} className="space-y-3">
+                  <h3 className="font-outfit text-sm font-bold text-slate-900 flex items-center gap-2">
+                     <section.icon className="h-4 w-4 text-primary" />
+                     {section.title}
+                  </h3>
+                  <ul className="space-y-1">
                     {section.items.map((item) => {
-                      const isActive = activeItemHref === item.href;
-
-                      if (!item.active) {
-                        return (
-                          <li key={item.href}>
-                            <div className="flex items-center gap-3 rounded-2xl border border-transparent px-3 py-3 text-sm text-muted-foreground opacity-90">
-                              <item.icon className="h-4 w-4 shrink-0" />
-                              <span className="flex-1">{item.label}</span>
-                              <Badge
-                                variant="outline"
-                                className="rounded-full text-xs"
-                              >
-                                {item.statusLabel ?? "Nonaktif"}
-                              </Badge>
-                              <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
-                            </div>
-                          </li>
-                        );
-                      }
-
+                      const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                       return (
                         <li key={item.href}>
                           <Link
                             href={item.href}
-                            onClick={onNavigate}
+                            onClick={() => onMobileOpenChange?.(false)}
                             className={cn(
-                              "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-colors",
+                              "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
                               isActive
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-foreground hover:bg-muted",
+                                ? "bg-primary/10 text-primary"
+                                : "text-slate-600 hover:bg-slate-50"
                             )}
                           >
-                            <item.icon className="h-4 w-4 shrink-0" />
                             <span className="flex-1">{item.label}</span>
-                            {item.href === "/disposisi" &&
-                            unreadDisposisiCount > 0 ? (
-                              <Badge
-                                variant={isActive ? "secondary" : "outline"}
-                                className="rounded-full"
-                              >
-                                {unreadDisposisiCount}
-                              </Badge>
-                            ) : null}
-                            {item.href === "/pengumuman" &&
-                            unreadAnnouncementCount > 0 ? (
-                              <Badge
-                                variant={isActive ? "secondary" : "outline"}
-                                className="rounded-full"
-                              >
-                                {unreadAnnouncementCount}
-                              </Badge>
-                            ) : null}
-                            {isActive ? (
-                              <Badge
-                                variant="secondary"
-                                className="border-0 bg-white/15 text-primary-foreground"
-                              >
-                                Aktif
-                              </Badge>
-                            ) : null}
                           </Link>
                         </li>
                       );
                     })}
                   </ul>
-                )}
-              </section>
-            );
-            })}
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-      </nav>
-
-      {collapsed ? (
-        <div className="border-t border-border px-2 py-3">
-          <button
-            type="button"
-            onClick={() => onCollapsedChange?.(false)}
-            className="flex h-11 w-full items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Lebarkan sidebar"
-            title="Lebarkan sidebar"
-          >
-            <PanelLeftOpen className="h-5 w-5" />
-          </button>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            "border-t border-border px-4 py-4 lg:px-5",
-            mobile && "pb-[max(1rem,env(safe-area-inset-bottom))]",
-          )}
-        >
-          <p className="text-xs font-medium text-foreground">
-            {activeItemLabel ?? "Aplikasi Internal"}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {APP_BRAND_DESCRIPTION}
-          </p>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

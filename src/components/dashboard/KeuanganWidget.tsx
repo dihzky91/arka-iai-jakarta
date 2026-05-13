@@ -77,7 +77,7 @@ export function KeuanganWidget({
         />
       </section>
 
-      <section className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
+      <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground sm:text-lg">
@@ -104,7 +104,7 @@ export function KeuanganWidget({
               <Link
                 key={item.id}
                 href={`/keuangan/honorarium/${item.id}`}
-                className="grid gap-2 rounded-2xl border border-border bg-muted/25 p-4 transition-colors hover:bg-muted/45 sm:grid-cols-[1fr_auto] sm:items-center"
+                className="grid gap-2 rounded-2xl border border-border/60 bg-muted/25 p-4 transition-colors hover:bg-muted/45 sm:grid-cols-[1fr_auto] sm:items-center"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -130,13 +130,13 @@ export function KeuanganWidget({
             ))}
           </div>
         ) : (
-          <div className="mt-4 rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground sm:mt-5">
+          <div className="mt-4 rounded-2xl border border-dashed border-border/60 bg-muted/25 px-4 py-8 text-center text-sm text-muted-foreground sm:mt-5">
             Belum ada batch honorarium yang perlu diproses.
           </div>
         )}
       </section>
 
-      <section className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6">
+      <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-foreground">
           Status Batch Honorarium
         </h2>
@@ -165,7 +165,7 @@ function StatusItem({
   icon: LucideIcon;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/25 p-3">
+    <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-muted/25 p-3">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-background text-muted-foreground">
         <Icon className="h-4 w-4" />
       </div>

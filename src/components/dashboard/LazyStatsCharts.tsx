@@ -21,7 +21,7 @@ function ChartsLoading() {
       {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
-          className="rounded-[24px] border border-border bg-card p-4 shadow-sm sm:p-6"
+          className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6"
         >
           <Skeleton className="mb-4 h-5 w-40" />
           <Skeleton className="h-64 w-full rounded-xl" />

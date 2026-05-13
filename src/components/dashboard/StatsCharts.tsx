@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  FileInput,
+  FileOutput,
+  Network,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -17,6 +24,7 @@ import {
   Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricCard } from "@/components/dashboard/MetricCard";
 import type { DashboardStats } from "@/server/actions/statistics";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
@@ -236,21 +244,29 @@ export function StatsSummary({ stats }: StatsChartsProps) {
         title="Total Surat Keluar"
         value={stats.totalSuratKeluar}
         description="Seluruh periode"
+        icon={FileOutput}
+        tone="blue"
       />
       <StatCard
         title="Total Surat Masuk"
         value={stats.totalSuratMasuk}
         description="Seluruh periode"
+        icon={FileInput}
+        tone="emerald"
       />
       <StatCard
         title="Total Disposisi"
         value={stats.totalDisposisi}
         description="Seluruh periode"
+        icon={Network}
+        tone="amber"
       />
       <StatCard
         title="Total Pegawai"
         value={stats.totalPegawai}
         description="Pegawai aktif"
+        icon={Users}
+        tone="violet"
       />
     </div>
   );
@@ -260,20 +276,22 @@ function StatCard({
   title,
   value,
   description,
+  icon,
+  tone,
 }: {
   title: string;
   value: number;
   description: string;
+  icon: LucideIcon;
+  tone: "blue" | "emerald" | "amber" | "violet";
 }) {
   return (
-    <Card className="gap-4 rounded-[24px]">
-      <CardHeader className="pb-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="text-2xl font-bold sm:text-3xl">{value.toLocaleString()}</div>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
-      </CardContent>
-    </Card>
+    <MetricCard
+      label={title}
+      value={value.toLocaleString("id-ID")}
+      hint={description}
+      icon={icon}
+      tone={tone}
+    />
   );
 }

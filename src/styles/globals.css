@@ -4,10 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 47.4% 11.2%);
-  --surface: hsl(220 45% 99%);
-  --surface-strong: hsl(216 48% 96%);
+  --background: hsl(210 40% 98%); /* slate-50 */
+  --foreground: hsl(222.2 47.4% 11.2%); /* slate-900 */
+  --surface: hsl(0 0% 100%);
+  --surface-strong: hsl(210 40% 96.1%); /* slate-100 */
 
   --muted: hsl(210 40% 96.1%);
   --muted-foreground: hsl(215.4 16.3% 40%);
@@ -47,7 +47,46 @@
   --chart-4: hsl(43 74% 66%);
   --chart-5: hsl(27 87% 67%);
 
-  --radius: 0.5rem;
+  --radius: 1rem; /* rounded-2xl untuk gaya modern */
+}
+
+.dark {
+  --background: hsl(222.2 47.4% 7%);
+  --foreground: hsl(210 40% 98%);
+  --surface: hsl(222.2 47.4% 9%);
+  --surface-strong: hsl(217.2 32.6% 15%);
+
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 70%);
+
+  --card: hsl(222.2 47.4% 9%);
+  --card-foreground: hsl(210 40% 98%);
+
+  --popover: hsl(222.2 47.4% 9%);
+  --popover-foreground: hsl(210 40% 98%);
+
+  --border: hsl(217.2 32.6% 22%);
+  --input: hsl(217.2 32.6% 22%);
+
+  --primary: hsl(217.2 91.2% 59.8%);
+  --primary-foreground: hsl(222.2 47.4% 11.2%);
+
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
+
+  --destructive: hsl(0 62.8% 55%);
+  --destructive-foreground: hsl(210 40% 98%);
+
+  --success: hsl(142.1 70.6% 45.3%);
+  --success-foreground: hsl(222.2 47.4% 11.2%);
+
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(222.2 47.4% 11.2%);
+
+  --ring: hsl(217.2 91.2% 59.8%);
 }
 
 @theme inline {
@@ -85,27 +124,17 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --font-sans:
-    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-outfit), system-ui, sans-serif;
 }
 
 @layer base {
-  * {
-    border-color: var(--border);
-  }
-  body {
-    background:
-      radial-gradient(circle at top, hsl(221 83% 53% / 0.08), transparent 32%),
-      linear-gradient(180deg, var(--surface) 0%, var(--background) 24%, var(--background) 100%);
-    color: var(--foreground);
-    font-family: var(--font-sans);
-    font-size: 1rem;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-  }
-  html {
+  :root {
     color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
   }
   ::selection {
     background-color: hsl(221.2 83.2% 53.3% / 0.16);

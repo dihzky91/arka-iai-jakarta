@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Tabs,
   TabsList,
@@ -134,13 +135,13 @@ export function DashboardTabs({
     >
       <TabsList
         variant="line"
-        className="h-auto w-full flex-wrap gap-0 border-b border-border bg-transparent"
+        className="h-auto w-full justify-start gap-1 overflow-x-auto border-b border-border/60 bg-transparent pb-px"
       >
         {visibleTabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="gap-2 px-4 py-2.5 text-sm"
+            className="flex-none gap-2 rounded-t-xl px-4 py-2.5 text-sm data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
           >
             <tab.icon className="h-4 w-4" />
             {tab.label}
@@ -154,7 +155,14 @@ export function DashboardTabs({
           value={tab.value}
           className="space-y-5 sm:space-y-6"
         >
-          {contentMap[tab.value]}
+          <motion.div
+            key={tab.value}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            {contentMap[tab.value]}
+          </motion.div>
         </TabsContent>
       ))}
     </Tabs>
