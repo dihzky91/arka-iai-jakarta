@@ -38,7 +38,7 @@ export function CertificateSection({
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-300">
             <Award className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold">Sertifikat</h3>
@@ -72,7 +72,7 @@ export function CertificateSection({
         {info.participantCount > 0 ? (
           <Badge
             variant="outline"
-            className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs"
+            className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:text-emerald-300 text-xs"
           >
             Sertifikat: {info.participantCount} diterbitkan
           </Badge>

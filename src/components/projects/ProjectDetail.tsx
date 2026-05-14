@@ -235,7 +235,7 @@ export function ProjectDetail({
       const result = await updateProjectStatus(project.id, next);
       if (result.ok) {
         setStatus(next);
-        toast.success("Status project diperbarui.");
+        toast.success("Status project berhasil diperbarui.");
         refreshAll();
       } else {
         toast.error(result.error);
@@ -320,7 +320,7 @@ export function ProjectDetail({
                   startTransition(async () => {
                     const result = await duplicateProject(project.id);
                     if (result.ok) {
-                      toast.success("Project diduplikat.");
+                      toast.success("Project berhasil diduplikat.");
                       window.location.href = `/projects/${result.data.id}`;
                     } else {
                       toast.error(result.error);
@@ -342,7 +342,7 @@ export function ProjectDetail({
                   startTransition(async () => {
                     const result = await toggleProjectTemplate(project.id);
                     if (result.ok) {
-                      toast.success(isTemplate ? "Template dinonaktifkan." : "Project dijadikan template.");
+                      toast.success(isTemplate ? "Template berhasil dinonaktifkan." : "Project berhasil dijadikan template.");
                       setIsTemplate(!isTemplate);
                       refreshAll();
                     } else {

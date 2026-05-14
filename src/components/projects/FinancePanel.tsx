@@ -63,7 +63,7 @@ function BudgetList({ projectId, rows, canManage: canManageProp, onRefresh, pend
       const payload = { ...form, jumlahRencana: Number(form.jumlahRencana || 0) };
       const result = editing ? await updateProjectBudgetItem(editing.id, payload) : await createProjectBudgetItem(projectId, payload);
       if (result.ok) {
-        toast.success(editing ? "Budget diperbarui." : "Budget ditambahkan.");
+        toast.success(editing ? "Budget berhasil diperbarui." : "Budget berhasil dibuat.");
         setOpen(false);
         onRefresh();
       } else {
@@ -176,7 +176,7 @@ function ExpenseList({ projectId, rows, canManage: canManageProp, onRefresh, pen
       const payload = { ...form, buktiUrl, jumlah: Number(form.jumlah || 0) };
       const result = editing ? await updateProjectExpense(editing.id, payload) : await createProjectExpense(projectId, payload);
       if (result.ok) {
-        toast.success(editing ? "Expense diperbarui." : "Expense ditambahkan.");
+        toast.success(editing ? "Expense berhasil diperbarui." : "Expense berhasil dibuat.");
         setOpen(false);
         setProofFile(null);
         onRefresh();

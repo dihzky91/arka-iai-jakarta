@@ -48,13 +48,13 @@ import {
 
 const availabilityStatusClass: Record<AvailabilityStatus, string> = {
   pending_wa_confirmation:
-    "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus:ring-amber-200",
+    "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 focus:ring-amber-200 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-300",
   accepted:
-    "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 focus:ring-emerald-200",
+    "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 focus:ring-emerald-200 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:text-emerald-300",
   rejected:
-    "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100 focus:ring-rose-200",
+    "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100 focus:ring-rose-200 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-300",
   no_response:
-    "border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-200",
+    "border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-200 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
 };
 
 const sessionStatusLabels: Record<string, string> = {
@@ -65,10 +65,10 @@ const sessionStatusLabels: Record<string, string> = {
 };
 
 const sessionStatusClass: Record<string, string> = {
-  scheduled: "border-blue-200 bg-blue-50 text-blue-800",
-  completed: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  cancelled: "border-rose-200 bg-rose-50 text-rose-800",
-  makeup: "border-violet-200 bg-violet-50 text-violet-800",
+  scheduled: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/70 dark:bg-blue-950/30 dark:text-blue-300",
+  completed: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:text-emerald-300",
+  cancelled: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-300",
+  makeup: "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800/70 dark:bg-violet-950/30 dark:text-violet-300",
 };
 
 export function JadwalDetail({
@@ -861,7 +861,7 @@ export function JadwalDetail({
                             className={cn(
                               "font-medium",
                               sessionStatusClass[session.status] ??
-                                "border-slate-200 bg-slate-100 text-slate-700",
+                                "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
                             )}
                           >
                             {sessionStatusLabels[session.status] ?? session.status}

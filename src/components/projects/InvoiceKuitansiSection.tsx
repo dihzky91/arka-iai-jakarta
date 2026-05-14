@@ -79,7 +79,7 @@ export function InvoiceKuitansiSection({
                     className={`text-[10px] ${
                       inv.status === "terbit"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
-                        : "border-gray-200 bg-gray-50 text-gray-600 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300"
+                        : "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
                     }`}
                   >
                     {inv.status === "terbit" ? "Lunas" : inv.status ?? "Draft"}
@@ -116,7 +116,7 @@ export function InvoiceKuitansiSection({
                     className={`text-[10px] ${
                       kt.status === "terbit"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300"
-                        : "border-gray-200 bg-gray-50 text-gray-600 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300"
+                        : "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
                     }`}
                   >
                     {kt.status === "terbit"

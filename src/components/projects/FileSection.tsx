@@ -45,7 +45,7 @@ export function FileSection({
           dataUrl: String(reader.result),
         });
         if (result.ok) {
-          toast.success("File diupload.");
+          toast.success("File berhasil diunggah.");
           if (fileInputRef.current) fileInputRef.current.value = "";
           onRefresh();
         } else {
@@ -78,7 +78,7 @@ export function FileSection({
     startTransition(async () => {
       const result = await deleteProjectFile(file.id);
       if (result.ok) {
-        toast.success("File dihapus.");
+        toast.success("File berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

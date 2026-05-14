@@ -55,7 +55,7 @@ export function AnnouncementQuickActions({
     <>
       <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-950/30 dark:text-sky-300">
             <Megaphone className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold">Pengumuman Cepat</h3>

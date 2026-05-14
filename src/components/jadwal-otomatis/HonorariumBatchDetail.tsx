@@ -201,7 +201,7 @@ export function HonorariumBatchDetail({ initialData, initialDeductions, initialP
         const result = await uploadHonorariumPaymentProof({ batchId: batch.id, fileName: file.name, contentType: file.type || "application/octet-stream", dataUrl });
         if (result.ok) {
           setPaymentProofs((prev) => [{ id: result.data.id, fileName: result.data.fileName, fileUrl: result.data.fileUrl, fileSize: result.data.fileSize, mimeType: result.data.mimeType, uploadedBy: "current-user", uploaderName: "Anda", uploadedAt: new Date() }, ...prev]);
-          toast.success("Bukti pembayaran berhasil diupload.");
+          toast.success("Bukti pembayaran berhasil diunggah.");
           router.refresh();
         }
       } catch (e) { toast.error(e instanceof Error ? e.message : "Gagal upload bukti pembayaran."); }

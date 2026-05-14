@@ -22,13 +22,13 @@ function honorariumStatusLabel(status: string) {
 
 function honorariumStatusColor(status: string) {
   const colors: Record<string, string> = {
-    draft: "bg-gray-100 text-gray-700 border-gray-200",
-    dikirim_ke_keuangan: "bg-blue-50 text-blue-700 border-blue-200",
-    diproses_keuangan: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    dibayar: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    locked: "bg-purple-50 text-purple-700 border-purple-200",
+    draft: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700",
+    dikirim_ke_keuangan: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800/70",
+    diproses_keuangan: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-300 dark:border-yellow-800/70",
+    dibayar: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/70",
+    locked: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800/70",
   };
-  return colors[status] ?? "bg-gray-100 text-gray-700 border-gray-200";
+  return colors[status] ?? "bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700";
 }
 
 function rupiah(value: number | string | null | undefined) {
@@ -60,7 +60,7 @@ export function HonorariumCard({
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300">
             <Banknote className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold">Honorarium</h3>
@@ -103,7 +103,7 @@ export function HonorariumCard({
         </div>
         <div className="col-span-2">
           <p className="text-xs text-muted-foreground">Total Honorarium</p>
-          <p className="font-semibold text-emerald-700">
+          <p className="font-semibold text-emerald-700 dark:text-emerald-300">
             {rupiah(summary.totalGrossAmount)}
           </p>
         </div>

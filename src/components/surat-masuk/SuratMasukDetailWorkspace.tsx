@@ -39,31 +39,31 @@ import { SuratMasukForm } from "./SuratMasukForm";
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   diterima: {
     label: "Diterima",
-    className: "bg-sky-100 text-sky-700",
+    className: "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300",
   },
   diproses: {
     label: "Diproses",
-    className: "bg-amber-100 text-amber-700",
+    className: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
   },
   diarsip: {
     label: "Diarsip",
-    className: "bg-emerald-100 text-emerald-700",
+    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
   },
   dibatalkan: {
     label: "Dibatalkan",
-    className: "bg-rose-100 text-rose-700",
+    className: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300",
   },
   belum_dibaca: {
     label: "Belum Dibaca",
-    className: "bg-sky-100 text-sky-700",
+    className: "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300",
   },
   dibaca: {
     label: "Dibaca",
-    className: "bg-slate-100 text-slate-700",
+    className: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
   },
   selesai: {
     label: "Selesai",
-    className: "bg-emerald-100 text-emerald-700",
+    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
   },
 };
 
@@ -166,7 +166,7 @@ export function SuratMasukDetailWorkspace({
         toast.error(result.error);
         return;
       }
-      toast.success("Status surat masuk diperbarui.");
+      toast.success("Status surat masuk berhasil diperbarui.");
       router.refresh();
     });
   }
@@ -228,7 +228,7 @@ export function SuratMasukDetailWorkspace({
           return;
         }
 
-        toast.success("Disposisi dibuat.");
+        toast.success("Disposisi berhasil dibuat.");
         router.refresh();
         setKepadaUserId("");
         setInstruksi("");

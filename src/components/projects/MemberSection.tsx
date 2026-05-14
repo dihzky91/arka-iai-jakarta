@@ -67,7 +67,7 @@ export function MemberSection({
         setSelectedIds([]);
         setQuery("");
         setResults([]);
-        toast.success("Anggota ditambahkan.");
+        toast.success("Anggota berhasil dibuat.");
         onRefresh();
       } else {
         toast.error(result.error);
@@ -79,7 +79,7 @@ export function MemberSection({
     startTransition(async () => {
       const result = await updateMemberRole(projectId, userId, nextRole);
       if (result.ok) {
-        toast.success("Role anggota diperbarui.");
+        toast.success("Role anggota berhasil diperbarui.");
         onRefresh();
       } else {
         toast.error(result.error);
@@ -92,7 +92,7 @@ export function MemberSection({
     startTransition(async () => {
       const result = await removeProjectMember(projectId, userId);
       if (result.ok) {
-        toast.success("Anggota dihapus.");
+        toast.success("Anggota berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

@@ -135,7 +135,7 @@ export function SuratMouManager({
       })),
       "arsip-surat-mou.csv",
     );
-    toast.success("CSV surat MOU berhasil diexport.");
+    toast.success("CSV surat MOU berhasil diekspor.");
   }
 
   return (

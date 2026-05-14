@@ -75,10 +75,10 @@ export function Overview({
             <CircularProgress value={project.progress} />
             <div className="flex flex-wrap gap-1.5">
               <Badge variant="outline" className="text-xs">{todoCount} To Do</Badge>
-              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-xs">
+              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/30 dark:text-blue-300 text-xs">
                 {inProgressCount} In Progress
               </Badge>
-              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs">
+              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/30 dark:text-emerald-300 text-xs">
                 {doneCount} Done
               </Badge>
             </div>

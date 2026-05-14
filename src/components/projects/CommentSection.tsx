@@ -282,7 +282,7 @@ export function CommentSection({
         setContent("");
         setReplyTo(null);
         setPendingAttachments([]);
-        toast.success("Komentar ditambahkan.");
+        toast.success("Komentar berhasil dibuat.");
         onRefresh();
       } else {
         toast.error(result.error);

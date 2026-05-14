@@ -400,7 +400,7 @@ export function SuratKeluarManager({
         return;
       }
 
-      toast.success("Surat keluar dihapus.");
+      toast.success("Surat keluar berhasil dihapus.");
       setDeleteTarget(null);
     });
   }
@@ -427,7 +427,7 @@ export function SuratKeluarManager({
       })),
       "arsip-surat-keluar.csv",
     );
-    toast.success("CSV surat keluar berhasil diexport.");
+    toast.success("CSV surat keluar berhasil diekspor.");
   }
 
   function handleBulkAssignNomor() {

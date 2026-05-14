@@ -53,7 +53,7 @@ export function TimesheetPanel({
       const result = await startProjectTimer(projectId, { description });
       if (result.ok) {
         setDescription("");
-        toast.success("Timer dimulai.");
+        toast.success("Timer berhasil dimulai.");
         onRefresh();
       } else {
         toast.error(result.error);
@@ -66,7 +66,7 @@ export function TimesheetPanel({
       const result = await stopProjectTimer(projectId, { description });
       if (result.ok) {
         setDescription("");
-        toast.success("Timer dihentikan.");
+        toast.success("Timer berhasil dihentikan.");
         onRefresh();
       } else {
         toast.error(result.error);
@@ -104,7 +104,7 @@ export function TimesheetPanel({
         ? await updateProjectTimesheet(editing.id, payload)
         : await createProjectTimesheet(projectId, payload);
       if (result.ok) {
-        toast.success(editing ? "Timesheet diperbarui." : "Timesheet ditambahkan.");
+        toast.success(editing ? "Timesheet berhasil diperbarui." : "Timesheet berhasil dibuat.");
         setOpen(false);
         onRefresh();
       } else {
@@ -118,7 +118,7 @@ export function TimesheetPanel({
     startTransition(async () => {
       const result = await deleteProjectTimesheet(row.id);
       if (result.ok) {
-        toast.success("Timesheet dihapus.");
+        toast.success("Timesheet berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

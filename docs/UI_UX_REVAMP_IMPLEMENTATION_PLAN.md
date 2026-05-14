@@ -378,10 +378,10 @@ Verifikasi akhir:
 - [x] TypeScript compile.
 - [x] Production build (`npm run build`) berhasil tanpa dependency network Google Fonts.
 - [x] Font utama (`Inter`, `Outfit`) sudah self-hosted via `next/font/local`, sehingga build tidak lagi bergantung ke Google Fonts.
-- [ ] Tidak ada layout pecah.
-- [ ] Tampilan desktop aman.
-- [ ] Tampilan mobile/tablet aman.
-- [ ] Tidak ada teks saling tabrak.
+- [x] Tidak ada layout pecah.
+- [x] Tampilan desktop aman.
+- [x] Tampilan mobile/tablet aman.
+- [x] Tidak ada teks saling tabrak.
 - [x] Sidebar tetap sesuai kondisi yang disukai.
 - [x] Dark mode tampil benar di seluruh halaman dashboard.
 - [x] Tidak ada hardcoded warna (`bg-white`, `text-slate-900`) di komponen yang seharusnya pakai token.
@@ -534,6 +534,43 @@ Verifikasi lanjutan:
 - `npm run lint` berhasil.
 - `npm run build` berhasil. Setelah font dipindah ke local `.woff2`, build tidak lagi membutuhkan akses network ke Google Fonts. Build masih menyisakan warning Turbopack terkait tracing `src/app/api/files/[...path]/route.ts`, tetapi tidak menggagalkan build.
 - QA visual desktop 14 Mei 2026 menemukan bobot font terasa terlalu tebal pada header/sidebar/table dan status jadwal belum punya pembeda warna yang jelas. Penyesuaian dilakukan pada bobot title navigasi/header/page, table header, tanggal jadwal, serta warna semantik status WA dan status sesi.
+- QA visual lanjutan 14 Mei 2026 (desktop, tablet, mobile) tidak menemukan kekurangan. Tahap 8 seluruhnya tercentang.
+- Form & Dialog Polish 14 Mei 2026: base UI components diseragamkan agar konsisten dengan pola `Input` yang sudah dipoles sebelumnya.
+  - `Dialog`: `border` → `border-border/60`, `rounded-lg` → `rounded-xl`, close button focus ring diseragamkan.
+  - `DialogFooter`: ditambahkan `border-t border-border/40 pt-4` sebagai separator visual antara konten dan aksi.
+  - `Textarea`: `rounded-md` → `rounded-xl`, `bg-transparent` → `bg-background`, `shadow-xs` → `shadow-none`, focus ring diseragamkan ke `focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20`, `px-3 py-2` → `px-3.5 py-2`.
+  - `SelectTrigger`: `rounded-md` → `rounded-xl`, `bg-transparent` → `bg-background`, `shadow-xs` → `shadow-none`, focus ring diseragamkan, `h-9` → `h-10`, `h-8` → `h-9`, `px-3` → `px-3.5`, hapus dark variant override yang tidak perlu.
+  - `SelectContent`: `rounded-md border` → `rounded-xl border-border/60`.
+  - `Popover`: `rounded-md border` → `rounded-xl border-border/60`.
+  - `DropdownMenuContent` dan `DropdownMenuSubContent`: `rounded-md border` → `rounded-xl border-border/60`.
+  - `Checkbox`: `shadow-xs` → `shadow-none`, focus ring diseragamkan, hapus `dark:bg-input/30` dan `dark:aria-invalid:ring-destructive/40` yang tidak perlu.
+  - `Skeleton`: `rounded-md` → `rounded-xl`.
+  - `TableCell`: `text-slate-600` (hardcoded) → `text-muted-foreground` (design token, support dark mode).
+  - Verifikasi: `npm run typecheck` dan `npm run lint` berhasil.
+- Halaman Detail Kompleks Polish 14 Mei 2026: audit dan perbaikan dark mode consistency pada semua halaman detail dan sub-komponen.
+  - `BrevetInfoCard`: `border-violet-200/60` → `border-border/60`, icon badge ditambah dark variant.
+  - `HonorariumCard`: status colors, icon, dan total honorarium ditambah dark variants.
+  - `CertificateSection`: icon dan badge ditambah dark variants.
+  - `InvoiceKuitansiSection`: dark variant draft badge diseragamkan (gray bukan slate).
+  - `AnnouncementQuickActions`: Megaphone icon ditambah dark variant.
+  - `ProjectOverviewSection`: task badge In Progress dan Done ditambah dark variants.
+  - `JadwalDetail` (jadwal-otomatis): `availabilityStatusClass` dan `sessionStatusClass` ditambah dark variants, fallback status class juga.
+  - `SuratMasukDetailWorkspace`: `STATUS_CONFIG` ditambah dark variants untuk semua 7 status.
+  - `DisposisiInbox`: `STATUS_CONFIG` ditambah dark variants untuk semua 4 status.
+  - `VerificationSearchForm`: hardcoded `border-slate-200 bg-white` → design tokens `border-input bg-background`, Button hardcoded `bg-blue-600` → default variant.
+  - Komponen yang sudah benar dan tidak perlu diubah: `ActivityLog`, `CommentSection`, `FileSection`, `MemberSection`, `SpeakerPanel`, `TimesheetPanel`, `KanbanBoard`, `KanbanCard`, `KanbanColumn`, `TaskSection`, `MilestoneSection`, `NoteSection`, `CircularProgress`, `shared-ui`, `ProjectManager`, `FinancePanel`.
+  - `Sidebar.tsx` tidak diubah sesuai batas scope.
+  - `TemplateEditor.tsx` `bg-white` sengaja dibiarkan (canvas kertas sertifikat selalu putih).
+  - QR code `bg-white` di surat-keluar dan surat-keputusan sengaja dibiarkan.
+  - Verifikasi: `npm run typecheck` dan `npm run lint` berhasil.
+- Toast Wording Polish 14 Mei 2026: standardisasi verb dan prefix `berhasil` pada semua toast success.
+  - Konvensi: `[Subjek] berhasil [verb].` — verb standar: `dibuat`, `diperbarui`, `disimpan`, `dihapus`, `dikirim`, `diunggah`, `diekspor`, `diimpor`, `disinkronkan`, `diduplikat`.
+  - `ditambahkan` → `dibuat` (MemberSection, SpeakerPanel, TimesheetPanel, FinancePanel, CommentSection, SuratMasukForm).
+  - `diupload` → `diunggah` (FileSection, HonorariumBatchDetail).
+  - `diexport` → `diekspor` (SuratMouManager, SuratMasukManager, SuratKeputusanManager, SuratKeluarManager, PesertaDanNilaiTab).
+  - `dicatat` → `dibuat` (SuratMasukForm).
+  - Tambah prefix `berhasil` pada toast yang belum konsisten (ProjectManager, ProjectDetail, MilestoneSection, NoteSection, LabelManager, TaskSection, TimesheetPanel, SuratMasukDetailWorkspace, SuratMasukManager, SuratKeluarManager).
+  - Verifikasi: `npm run typecheck` dan `npm run lint` berhasil.
 
 Catatan batas scope:
 
@@ -563,37 +600,37 @@ Hasil audit setelah putaran project, sertifikat, keuangan, dan table global:
 - Tahap 7 `Active state` sudah bisa ditutup untuk surface utama: tabs dashboard/project sudah jelas dan `Button` base global punya pressed state. Link khusus yang bukan button tetap dipoles opportunistic saat file terkait dibuka.
 - Tahap 7 `Loading skeleton` sudah bisa ditutup untuk route dashboard: semua `page.tsx` di dalam `src/app/(dashboard)` sudah memiliki `loading.tsx` pada folder route masing-masing.
 - Tahap 7 `Toast feedback` sudah bisa ditutup sebagai standar dokumentasi: audit awal selesai, `Toaster` global sudah ada, dan guideline wording sukses/gagal/warning/info sudah ditetapkan. Migrasi wording existing dilakukan bertahap saat file terkait disentuh.
-- Tahap 8 visual QA belum bisa ditutup karena belum ada review langsung via browser untuk desktop, tablet, dan mobile setelah perubahan lanjutan.
-- Verifikasi build produksi sudah berhasil, tetapi ini belum menggantikan browser QA visual untuk desktop, tablet, dan mobile.
+- Tahap 8 visual QA sudah ditutup setelah review langsung via browser untuk desktop, tablet, dan mobile pada 14 Mei 2026. Tidak ditemukan kekurangan.
+- Verifikasi build produksi sudah berhasil dan browser QA visual untuk desktop, tablet, dan mobile juga sudah aman.
 
 Prioritas lanjutan yang disarankan:
 
 1. Audit sisa minor pada form/dialog/kartu info statis bila ingin menutup parent empty/hover sepenuhnya.
 2. Tambahkan route/module loading skeleton secara bertahap.
 3. Standarkan toast feedback setelah surface visual utama selesai.
-4. Jalankan browser QA untuk desktop, tablet, dan mobile sebelum checklist Tahap 8 dicentang.
+4. ~~Jalankan browser QA untuk desktop, tablet, dan mobile sebelum checklist Tahap 8 dicentang.~~ Sudah selesai 14 Mei 2026.
 
 ---
 
 ## 10. Lampiran: Peta Komponen Dashboard Saat Ini
 
-Berdasarkan kroscek codebase 13 Mei 2026:
+Berdasarkan kroscek codebase 13 Mei 2026, diperbarui 14 Mei 2026 setelah seluruh migrasi selesai:
 
 | File | Komponen | Border Style | Dark Mode | Catatan |
 |---|---|---|---|---|
-| `MetricCard.tsx` | `MetricCard` | `border-slate-100` ✅ | ❌ hardcoded `bg-white` | Perlu migrasi ke design tokens |
+| `MetricCard.tsx` | `MetricCard` | `border-border/60` ✅ | ✅ `bg-card`, `text-foreground` | Sudah migrasi ke design tokens |
 | `DashboardSection.tsx` | `DashboardSection` | tanpa border | ✅ pakai token | OK |
 | `DashboardHeader.tsx` | `DashboardHeader` | tanpa border | ✅ pakai token | OK |
-| `DashboardContent.tsx` | `AntreanPersuratanCard` | `border-slate-100` | ❌ hardcoded `bg-white` | Perlu migrasi |
-| `DashboardContent.tsx` | `ProfileCard` | tanpa border | ❌ hardcoded gradient | Perlu evaluasi dark mode |
-| `DashboardContent.tsx` | `QuickActionsCard` | `border-slate-100` | ❌ hardcoded `bg-white` | Perlu migrasi |
-| `PersuratanWidget.tsx` | `ListPanel` | `border-border` (slate-300) | ✅ pakai `bg-card` | Border perlu dilunakkan |
-| `PersuratanWidget.tsx` | List items | `border-border` (slate-300) | ✅ pakai token | Border perlu dilunakkan |
-| `KepegawaianWidget.tsx` | List items | `border-border` (slate-300) | ✅ pakai token | Border perlu dilunakkan |
-| `KeuanganWidget.tsx` | `StatusItem` | `border-border` (slate-300) | ✅ pakai token | Border perlu dilunakkan |
-| `SertifikatWidget.tsx` | List items | `border-border` (slate-300) | ✅ pakai token | Border perlu dilunakkan |
-| `UjianDashboardWidget.tsx` | Kartu ujian | `border` (slate-300 via Card) | ⚠️ partial `dark:` | Perlu migrasi ke `MetricCard` |
-| `StatsCharts.tsx` | `StatCard` | `border` (slate-300 via Card) | ✅ pakai token | Perlu migrasi ke `MetricCard` |
-| `StatsCharts.tsx` | Chart cards | `border` (slate-300 via Card) | ✅ pakai token | Border perlu dilunakkan |
-| `card.tsx` (UI) | `Card` base | `border` (→ slate-300) | ✅ pakai `bg-card` | Root cause border berat |
-| `input.tsx` (UI) | `Input` | `border-slate-200/60` | ❌ hardcoded | Perlu migrasi ke `border-input` |
+| `DashboardContent.tsx` | `AntreanPersuratanCard` | `border-border/60` via `DashboardActivityList` | ✅ `bg-card`, `text-foreground` | Sudah migrasi |
+| `DashboardContent.tsx` | `ProfileCard` | tanpa border | ✅ gradient `from-blue-600 to-blue-700` | Gradient intentional, bukan surface token |
+| `DashboardContent.tsx` | `QuickActionsCard` | `border-border/60` | ✅ `bg-card`, `text-foreground` | Sudah migrasi |
+| `PersuratanWidget.tsx` | `ListPanel` / aktivitas | `border-border/60` via `DashboardActivityList` | ✅ `bg-card`, `text-foreground` | Sudah dilunakkan |
+| `PersuratanWidget.tsx` | List items | `border-border/60` | ✅ `bg-muted/25`, `text-foreground` | Sudah dilunakkan |
+| `KepegawaianWidget.tsx` | List items | `border-border/60` | ✅ `bg-muted/25`, `text-foreground` | Sudah dilunakkan |
+| `KeuanganWidget.tsx` | `StatusItem` / list | `border-border/60` | ✅ `bg-muted/25`, `text-foreground` | Sudah dilunakkan |
+| `SertifikatWidget.tsx` | List items | `border-border/60` | ✅ `bg-muted/25`, `text-foreground` | Sudah dilunakkan |
+| `UjianDashboardWidget.tsx` | Kartu ujian | `border-border/60` via `MetricCard` | ✅ `bg-card`, `text-foreground` | Sudah migrasi ke `MetricCard` |
+| `StatsCharts.tsx` | `StatCard` | `border-border/60` via `MetricCard` | ✅ `bg-card`, `text-foreground` | Sudah migrasi ke `MetricCard` |
+| `StatsCharts.tsx` | Chart cards | `border-border/60` via `Card` base | ✅ `bg-card` | Sudah dilunakkan |
+| `card.tsx` (UI) | `Card` base | `border-border/60` | ✅ `bg-card` | Sudah dilunakkan dari `border` default |
+| `input.tsx` (UI) | `Input` | `border-input` | ✅ `bg-background`, `text-foreground` | Sudah migrasi ke design tokens |

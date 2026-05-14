@@ -237,7 +237,7 @@ export function SuratMasukManager({
         toast.error(result.error);
         return;
       }
-      toast.success("Surat masuk dihapus.");
+      toast.success("Surat masuk berhasil dihapus.");
       router.refresh();
       setDeleteTarget(null);
     });
@@ -262,7 +262,7 @@ export function SuratMasukManager({
       })),
       "arsip-surat-masuk.csv",
     );
-    toast.success("CSV surat masuk berhasil diexport.");
+    toast.success("CSV surat masuk berhasil diekspor.");
   }
 
   const processedCount = initialData.filter((item) => item.status === "diproses").length;

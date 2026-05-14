@@ -91,7 +91,7 @@ export function SpeakerPanel({
         ? await updateProjectSpeaker(editing.id, payload)
         : await createProjectSpeaker(projectId, payload);
       if (result.ok) {
-        toast.success(editing ? "Narasumber diperbarui." : "Narasumber ditambahkan.");
+        toast.success(editing ? "Narasumber berhasil diperbarui." : "Narasumber berhasil dibuat.");
         setOpen(false);
         onRefresh();
       } else {
@@ -105,7 +105,7 @@ export function SpeakerPanel({
     startTransition(async () => {
       const result = await deleteProjectSpeaker(row.id);
       if (result.ok) {
-        toast.success("Narasumber dihapus.");
+        toast.success("Narasumber berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

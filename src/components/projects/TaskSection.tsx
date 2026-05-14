@@ -167,7 +167,7 @@ export function TaskSection({
         : await createProjectTask(projectId, payload);
 
       if (result.ok) {
-        toast.success(editingTask ? "Task diperbarui." : "Task dibuat.");
+        toast.success(editingTask ? "Task berhasil diperbarui." : "Task berhasil dibuat.");
         setDialogOpen(false);
         onRefresh();
       } else {
@@ -202,7 +202,7 @@ export function TaskSection({
     startTransition(async () => {
       const result = await deleteProjectTask(task.id);
       if (result.ok) {
-        toast.success("Task dihapus.");
+        toast.success("Task berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

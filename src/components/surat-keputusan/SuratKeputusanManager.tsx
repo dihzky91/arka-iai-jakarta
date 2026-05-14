@@ -133,7 +133,7 @@ export function SuratKeputusanManager({
       })),
       "arsip-surat-keputusan.csv",
     );
-    toast.success("CSV surat keputusan berhasil diexport.");
+    toast.success("CSV surat keputusan berhasil diekspor.");
   }
 
   return (

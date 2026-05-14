@@ -191,7 +191,7 @@ export function SuratMasukForm({
         }
 
         toast.success(
-          mode === "edit" ? "Surat masuk diperbarui." : "Surat masuk dicatat.",
+          mode === "edit" ? "Surat masuk berhasil diperbarui." : "Surat masuk berhasil dibuat.",
         );
         onSuccess?.(
           mode === "edit" && initialData

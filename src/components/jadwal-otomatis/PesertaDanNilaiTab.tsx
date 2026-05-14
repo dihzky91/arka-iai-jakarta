@@ -596,7 +596,7 @@ export function PesertaDanNilaiTab({ kelasId, canManage }: PesertaDanNilaiTabPro
         const ws = XLSX.utils.json_to_sheet(rows);
         XLSX.utils.book_append_sheet(wb, ws, "Rekap");
         XLSX.writeFile(wb, `rekap-kelas-${kelasId.slice(0, 8)}.xlsx`);
-        toast.success("Rekap berhasil diexport.");
+        toast.success("Rekap berhasil diekspor.");
       } catch {
         toast.error("Gagal mengexport Excel.");
       }

@@ -237,7 +237,7 @@ export function ProjectManager({
         endDate: templateEndDate || undefined,
       });
       if (result.ok) {
-        toast.success("Project dibuat dari template.");
+        toast.success("Project berhasil dibuat dari template.");
         setTemplateDialogOpen(false);
         fetchProjects();
       } else {
@@ -289,7 +289,7 @@ export function ProjectManager({
         : await createProject(payload);
 
       if (result.ok) {
-        toast.success(editingProject ? "Project diperbarui." : "Project dibuat.");
+        toast.success(editingProject ? "Project berhasil diperbarui." : "Project berhasil dibuat.");
         setDialogOpen(false);
         fetchProjects();
       } else {
@@ -303,7 +303,7 @@ export function ProjectManager({
     startTransition(async () => {
       const result = await deleteProject(project.id);
       if (result.ok) {
-        toast.success("Project dihapus.");
+        toast.success("Project berhasil dihapus.");
         fetchProjects();
       } else {
         toast.error(result.error);
@@ -316,7 +316,7 @@ export function ProjectManager({
     startTransition(async () => {
       const result = await duplicateProject(project.id);
       if (result.ok) {
-        toast.success("Project diduplikat.");
+        toast.success("Project berhasil diduplikat.");
         fetchProjects();
       } else {
         toast.error(result.error);

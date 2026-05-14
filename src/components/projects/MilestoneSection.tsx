@@ -101,7 +101,7 @@ export function MilestoneSection({
         : await createProjectMilestone(projectId, payload);
 
       if (result.ok) {
-        toast.success(editingMilestone ? "Milestone diperbarui." : "Milestone dibuat.");
+        toast.success(editingMilestone ? "Milestone berhasil diperbarui." : "Milestone berhasil dibuat.");
         setDialogOpen(false);
         onRefresh();
       } else {
@@ -115,7 +115,7 @@ export function MilestoneSection({
       const result = await toggleProjectMilestone(milestone.id);
       if (result.ok) {
         toast.success(
-          milestone.isCompleted ? "Milestone dibuka kembali." : "Milestone diselesaikan.",
+          milestone.isCompleted ? "Milestone berhasil dibuka kembali." : "Milestone berhasil diselesaikan.",
         );
         onRefresh();
       } else {
@@ -129,7 +129,7 @@ export function MilestoneSection({
     startTransition(async () => {
       const result = await deleteProjectMilestone(milestone.id);
       if (result.ok) {
-        toast.success("Milestone dihapus.");
+        toast.success("Milestone berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

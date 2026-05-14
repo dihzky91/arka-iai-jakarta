@@ -26,12 +26,12 @@ export function VerificationSearchForm({ initialValue = "" }: { initialValue?: s
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="Masukkan nomor sertifikat..."
-        className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-sm focus-visible:ring-blue-200"
+        className="h-12 rounded-xl border-input bg-background px-4 text-base shadow-none focus-visible:ring-primary/20"
       />
       <Button
         type="submit"
         disabled={loading || value.trim().length === 0}
-        className="h-12 rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-700"
+        className="h-12 rounded-xl px-5"
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
         <span className="sr-only">Cari</span>

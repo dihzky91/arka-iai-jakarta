@@ -65,7 +65,7 @@ export function NoteSection({
         ? await updateProjectNote(editingNote.id, data)
         : await createProjectNote(projectId, data);
       if (result.ok) {
-        toast.success(editingNote ? "Catatan diperbarui." : "Catatan dibuat.");
+        toast.success(editingNote ? "Catatan berhasil diperbarui." : "Catatan berhasil dibuat.");
         setDialogOpen(false);
         onRefresh();
       } else {
@@ -79,7 +79,7 @@ export function NoteSection({
     startTransition(async () => {
       const result = await deleteProjectNote(note.id);
       if (result.ok) {
-        toast.success("Catatan dihapus.");
+        toast.success("Catatan berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error);

@@ -71,7 +71,7 @@ export function LabelManager({
         newGroup === "__none__" ? null : newGroup,
       );
       if (result.ok) {
-        toast.success("Label dibuat.");
+        toast.success("Label berhasil dibuat.");
         setDialogOpen(false);
         onRefresh();
       } else {
@@ -84,7 +84,7 @@ export function LabelManager({
     startTransition(async () => {
       const result = await deleteProjectLabel(id);
       if (result.ok) {
-        toast.success("Label dihapus.");
+        toast.success("Label berhasil dihapus.");
         onRefresh();
       } else {
         toast.error(result.error ?? "Gagal menghapus label.");
