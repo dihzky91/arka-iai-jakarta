@@ -298,7 +298,7 @@ export function DisposisiInbox({
         />
       </section>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>

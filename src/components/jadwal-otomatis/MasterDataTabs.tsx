@@ -368,7 +368,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
 
         {/* Programs Tab */}
         <TabsContent value="programs" className="space-y-4">
-          <Card className="rounded-[28px]">
+          <Card className="rounded-[24px]">
             <CardHeader className="border-b border-border/60">
               <div className="flex items-start justify-between">
                 <div>
@@ -440,7 +440,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
 
         {/* Class Types Tab */}
         <TabsContent value="class-types" className="space-y-4">
-          <Card className="rounded-[28px]">
+          <Card className="rounded-[24px]">
             <CardHeader className="border-b border-border/60">
               <div className="flex items-start justify-between">
                 <div>
@@ -496,7 +496,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
 
         {/* Curriculum Tab */}
         <TabsContent value="curriculum" className="space-y-4">
-          <Card className="rounded-[28px]">
+          <Card className="rounded-[24px]">
             <CardHeader className="border-b border-border/60">
               <CardTitle>Kurikulum per Program</CardTitle>
               <CardDescription className="mt-1">

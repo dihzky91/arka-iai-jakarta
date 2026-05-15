@@ -135,7 +135,7 @@ function KonfigSection({
   }
 
   return (
-    <Card className="mt-4 rounded-[28px]">
+    <Card className="mt-4 rounded-[24px]">
       <CardHeader className="border-b border-border">
         <CardTitle className="text-base">{TAB_LABELS[jenis]}</CardTitle>
         <CardDescription>{description}</CardDescription>

@@ -67,7 +67,7 @@ export function GlobalParticipantSearch({ initialData }: { initialData: GlobalSe
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 rounded-[24px] border border-border/60 bg-card p-4 shadow-sm">
         <div className="relative flex-1 min-w-[260px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -101,7 +101,7 @@ export function GlobalParticipantSearch({ initialData }: { initialData: GlobalSe
         </Button>
       </form>
 
-      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+      <div className="rounded-[24px] border border-border/60 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

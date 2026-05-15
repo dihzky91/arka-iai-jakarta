@@ -46,6 +46,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 const JENIS_LABEL: Record<string, string> = {
   tahunan: "Cuti Tahunan",
+  kompensasi: "Cuti Kompensasi",
   sakit: "Cuti Sakit",
   melahirkan: "Cuti Melahirkan",
   menikah: "Cuti Menikah",
@@ -105,6 +106,7 @@ export function CutiApproval() {
         );
         setSelectedCuti(null);
         setRejectedReason("");
+        fetchData();
         router.refresh();
       } else {
         toast.error(res.error);

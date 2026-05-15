@@ -236,7 +236,7 @@ export function NomorSuratManager({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="border-b border-border">
             <CardTitle>Generator Nomor Surat</CardTitle>
             <CardDescription>
@@ -390,7 +390,7 @@ export function NomorSuratManager({
           </CardContent>
         </Card>
 
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="border-b border-border">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>

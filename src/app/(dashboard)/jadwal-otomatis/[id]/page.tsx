@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JadwalDetail } from "@/components/jadwal-otomatis/JadwalDetail";
 import { JadwalUjianIntegrasi } from "@/components/jadwal-otomatis/JadwalUjianIntegrasi";
@@ -82,6 +85,14 @@ export default async function Page({ params }: Props) {
       title={kelas.namaKelas}
       description="Detail lengkap kelas pelatihan."
     >
+      <div className="mb-5">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/jadwal-otomatis">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Kembali ke Daftar Kelas
+          </Link>
+        </Button>
+      </div>
       <Tabs defaultValue="informasi" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="informasi">Informasi Kelas</TabsTrigger>

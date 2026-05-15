@@ -186,7 +186,7 @@ export function PegawaiManager({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="gap-0 overflow-hidden rounded-[28px]">
+        <Card className="gap-0 overflow-hidden rounded-[24px]">
           <CardHeader className="border-b border-border/60">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -284,7 +284,7 @@ export function PegawaiManager({
         </Card>
 
         {selected ? (
-          <Card className="rounded-[28px]">
+          <Card className="rounded-[24px]">
             <CardHeader className="border-b border-border/60">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -446,7 +446,7 @@ export function PegawaiManager({
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-[28px]">
+          <Card className="rounded-[24px]">
             <CardContent className="py-16 text-center text-sm text-muted-foreground">
               Pilih satu pegawai untuk melihat detail dan tab administrasinya.
             </CardContent>

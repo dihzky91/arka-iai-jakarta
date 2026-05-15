@@ -36,8 +36,10 @@ export type PermissionModule =
   | "manajemenUser"
   | "absensi"
   | "cuti"
+  | "saldoCuti"
   | "invoice"
-  | "kuitansi";
+  | "kuitansi"
+  | "penilaianKinerja";
 
 export type PermissionAction =
   | "view"
@@ -206,6 +208,13 @@ const PERMISSION_TO_CAPABILITY: Record<
     approve: "cuti:approve",
     manage: "cuti:approve",
   },
+  saldoCuti: {
+    view: "saldo_cuti:view",
+    create: "saldo_cuti:manage",
+    update: "saldo_cuti:manage",
+    delete: "saldo_cuti:manage",
+    manage: "saldo_cuti:manage",
+  },
   invoice: {
     view: "invoice:view",
     create: "invoice:create",
@@ -221,6 +230,14 @@ const PERMISSION_TO_CAPABILITY: Record<
     delete: "kuitansi:delete",
     assign: "kuitansi:assign",
     manage: "kuitansi:manage",
+  },
+  penilaianKinerja: {
+    view: "penilaian_kinerja:view",
+    create: "penilaian_kinerja:create",
+    update: "penilaian_kinerja:edit",
+    approve: "penilaian_kinerja:approve",
+    manage: "penilaian_kinerja:manage",
+    export: "penilaian_kinerja:export",
   },
 };
 

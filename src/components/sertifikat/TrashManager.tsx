@@ -84,7 +84,7 @@ export function TrashManager({
       </TabsList>
 
       <TabsContent value="events">
-        <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="rounded-[24px] border border-border/60 bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -138,7 +138,7 @@ export function TrashManager({
       </TabsContent>
 
       <TabsContent value="participants">
-        <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="rounded-[24px] border border-border/60 bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

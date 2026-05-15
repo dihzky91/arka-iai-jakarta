@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
+import { Button } from "@/components/ui/button";
 import { YearlyReportView } from "@/components/sertifikat/YearlyReportView";
 import {
   getAvailableYears,
@@ -32,6 +35,14 @@ export default async function Page() {
       title="Rekap Tahunan"
       description="Statistik penomoran sertifikat formal dikelompokkan per tahun, program, dan jenis kelas."
     >
+      <div className="mb-5">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/sertifikat/nomor">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Kembali ke Daftar Batch
+          </Link>
+        </Button>
+      </div>
       <YearlyReportView
         availableYears={
           availableYears.length > 0 ? availableYears : [currentYear]

@@ -438,7 +438,7 @@ export function JadwalDetail({
     <div className="space-y-6">
       {(mode === "full" || mode === "informasi") && (
         <>
-          <Card className="rounded-[28px]">
+          <Card className="rounded-[24px]">
             <CardHeader className="border-b border-border/60">
               <CardTitle>Informasi Kelas</CardTitle>
             </CardHeader>
@@ -501,7 +501,7 @@ export function JadwalDetail({
       )}
 
       {(mode === "full" || mode === "instruktur") && canManage ? (
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="border-b border-border/60">
             <CardTitle>Assign Instruktur</CardTitle>
           </CardHeader>
@@ -637,7 +637,7 @@ export function JadwalDetail({
       ) : null}
 
       {(mode === "full" || mode === "jadwal") && (
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="border-b border-border/60">
             <div className="flex items-center justify-between">
               <CardTitle>Jadwal Kelas</CardTitle>

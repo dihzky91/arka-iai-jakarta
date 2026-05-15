@@ -146,7 +146,7 @@ export function SuratMouManager({
         <SummaryCard label="Dokumen Terlampir" value={String(initialData.filter((item) => item.fileUrl).length)} hint="Sudah memiliki file dokumen" />
       </section>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>

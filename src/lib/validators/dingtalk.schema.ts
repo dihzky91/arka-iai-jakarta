@@ -9,7 +9,7 @@ export const absensiSyncSchema = z.object({
 export type AbsensiSyncInput = z.infer<typeof absensiSyncSchema>;
 
 export const pengajuanCutiCreateSchema = z.object({
-  jenisCuti: z.enum(["tahunan", "sakit", "melahirkan", "menikah", "kematian", "lainnya"]),
+  jenisCuti: z.enum(["tahunan", "kompensasi", "sakit", "melahirkan", "menikah", "kematian", "lainnya"]),
   tanggalMulai: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid"),
   tanggalSelesai: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid"),
   jumlahHari: z.number().int().min(1, "Minimal 1 hari"),

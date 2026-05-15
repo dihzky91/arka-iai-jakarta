@@ -110,7 +110,7 @@ export function BatchTable({ initialBatches, programs, classTypes }: BatchTableP
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+      <div className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
           {/* Program */}
           <Select
@@ -202,7 +202,7 @@ export function BatchTable({ initialBatches, programs, classTypes }: BatchTableP
       </div>
 
       {/* Tabel */}
-      <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-[24px] border border-border/60 bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

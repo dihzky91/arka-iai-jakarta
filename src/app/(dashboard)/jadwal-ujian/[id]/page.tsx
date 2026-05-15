@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
+import { Button } from "@/components/ui/button";
 import { PenugasanManager } from "@/components/jadwal-ujian/PenugasanManager";
 import { getSession } from "@/server/actions/auth";
 import { getUjianById, listUjian } from "@/server/actions/jadwal-ujian/ujian";
@@ -39,6 +42,14 @@ export default async function Page({ params }: PageProps) {
       title={resolvedUjian.mataPelajaran.join(" & ")}
       description={`${resolvedUjian.namaKelas} - ${resolvedUjian.tanggalUjian} - ${resolvedUjian.jamMulai}-${resolvedUjian.jamSelesai}`}
     >
+      <div className="mb-5">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/jadwal-ujian">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Kembali ke Jadwal Ujian
+          </Link>
+        </Button>
+      </div>
       <PenugasanManager
         ujianId={resolvedUjian.id}
         mataPelajaran={resolvedUjian.mataPelajaran.join(" & ")}

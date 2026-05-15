@@ -1099,7 +1099,7 @@ export function AdminJagaView({
 
       {/* Beban Kerja Summary */}
       {beban.length > 0 && (
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="border-b border-border">
             <CardTitle>Rekap Beban Admin Jaga</CardTitle>
             <CardDescription>Total penugasan per admin.</CardDescription>
@@ -1120,7 +1120,7 @@ export function AdminJagaView({
       )}
 
       {/* Tabel */}
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>

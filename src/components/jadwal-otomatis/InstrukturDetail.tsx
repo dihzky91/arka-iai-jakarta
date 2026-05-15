@@ -283,7 +283,7 @@ export function InstrukturDetail({
 
   return (
     <div className="space-y-6">
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <div className="flex justify-between items-start">
             <div>
@@ -348,7 +348,7 @@ export function InstrukturDetail({
         )}
       </Card>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <CardTitle>Kelas Aktif & Beban Kerja</CardTitle>
           <CardDescription>Konteks alokasi instruktur untuk penjadwalan terbaru.</CardDescription>
@@ -405,7 +405,7 @@ export function InstrukturDetail({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <CardTitle>Keahlian (Expertise)</CardTitle>
         </CardHeader>
@@ -487,7 +487,7 @@ export function InstrukturDetail({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -624,7 +624,7 @@ export function InstrukturDetail({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <CardTitle>Ketidaktersediaan</CardTitle>
         </CardHeader>
@@ -674,7 +674,7 @@ export function InstrukturDetail({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <CardTitle>Histori Mengajar</CardTitle>
         </CardHeader>

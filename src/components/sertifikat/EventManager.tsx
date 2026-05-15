@@ -261,7 +261,7 @@ export function EventManager({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+      <div className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm">
         <div className="grid gap-3 lg:grid-cols-[1.2fr_repeat(7,minmax(0,1fr))_auto]">
           <Input
             placeholder="Cari kegiatan"
@@ -362,7 +362,7 @@ export function EventManager({
       {viewMode === "grid" ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {filteredEvents.map((event) => (
-            <Card key={event.id} className="rounded-xl transition-all hover:border-primary/20 hover:shadow-md">
+            <Card key={event.id} className="rounded-[24px] transition-all hover:border-primary/20 hover:shadow-md">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -426,7 +426,7 @@ export function EventManager({
           ))}
         </div>
       ) : (
-        <Card className="rounded-xl">
+        <Card className="rounded-[24px]">
           <CardContent>
             <Table>
               <TableHeader>
@@ -640,7 +640,7 @@ export function EventManager({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-3 rounded-xl border border-border/60 p-4">
+            <div className="space-y-3 rounded-[24px] border border-border/60 p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <Label>Penandatangan</Label>
                 <Select onValueChange={addSignatory}>

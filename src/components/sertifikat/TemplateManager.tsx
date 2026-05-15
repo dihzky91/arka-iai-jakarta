@@ -106,7 +106,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 rounded-[24px] border border-border/60 bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
           <SelectTrigger className="w-full md:w-64">
             <SelectValue placeholder="Filter kategori" />
@@ -128,7 +128,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visibleTemplates.map((template) => (
-          <Card key={template.id} className="rounded-xl transition-all hover:border-primary/20 hover:shadow-md">
+          <Card key={template.id} className="rounded-[24px] transition-all hover:border-primary/20 hover:shadow-md">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -194,7 +194,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
       ) : null}
 
       {editorTemplate ? (
-        <div className="space-y-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+        <div className="space-y-3 rounded-[24px] border border-border/60 bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Editor Template</h2>

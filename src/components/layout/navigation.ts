@@ -125,6 +125,21 @@ export const navigationSections: NavigationSection[] = [
         active: true,
         requiredCapability: "cuti:view",
       },
+      {
+        href: "/cuti/kelola",
+        label: "Kelola Saldo Cuti",
+        icon: CalendarOff,
+        active: true,
+        allowedRoles: ["admin"],
+        requiredCapability: "saldo_cuti:manage",
+      },
+      {
+        href: "/penilaian-kinerja",
+        label: "Penilaian Kinerja",
+        icon: ClipboardList,
+        active: true,
+        requiredCapability: "penilaian_kinerja:view_all",
+      },
     ],
   },
   {

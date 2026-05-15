@@ -7,7 +7,7 @@ import { requirePermission } from "@/server/actions/auth";
 import { writeAuditLog } from "@/server/lib/audit";
 import { getLeaveRecords, getLeaveStatus } from "@/lib/dingtalk/leave";
 
-const JENIS_CUTI_REVERSE: Record<string, "tahunan" | "sakit" | "melahirkan" | "menikah" | "kematian" | "lainnya"> = {
+const JENIS_CUTI_REVERSE: Record<string, "tahunan" | "kompensasi" | "sakit" | "melahirkan" | "menikah" | "kematian" | "lainnya"> = {
   "年假": "tahunan",
   "病假": "sakit",
   "产假": "melahirkan",
@@ -16,7 +16,7 @@ const JENIS_CUTI_REVERSE: Record<string, "tahunan" | "sakit" | "melahirkan" | "m
   "其他": "lainnya",
 };
 
-function mapDingtalkJenis(label: string): "tahunan" | "sakit" | "melahirkan" | "menikah" | "kematian" | "lainnya" {
+function mapDingtalkJenis(label: string): "tahunan" | "kompensasi" | "sakit" | "melahirkan" | "menikah" | "kematian" | "lainnya" {
   return JENIS_CUTI_REVERSE[label] ?? "lainnya";
 }
 

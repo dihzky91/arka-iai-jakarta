@@ -87,7 +87,7 @@ export function PejabatManager({
         <SummaryCard label="Terhubung ke Pegawai" value={String(initialData.filter((item) => item.userId).length)} hint="Sudah ditautkan ke akun internal" />
       </section>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>

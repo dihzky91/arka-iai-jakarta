@@ -108,7 +108,7 @@ export function SignatoryManager({ initialData }: { initialData: SignatoryRow[] 
         </Button>
       </div>
 
-      <Card className="rounded-xl">
+      <Card className="rounded-[24px]">
         <CardHeader>
           <CardTitle>Data Penandatangan</CardTitle>
         </CardHeader>

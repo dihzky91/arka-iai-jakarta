@@ -156,7 +156,7 @@ export function InstrukturTable({ initialData, canManage }: InstrukturTableProps
 
   return (
     <>
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <CardTitle>Daftar Instruktur</CardTitle>
         </CardHeader>

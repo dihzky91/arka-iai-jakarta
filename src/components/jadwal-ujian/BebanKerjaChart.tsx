@@ -65,7 +65,7 @@ export function BebanKerjaChart({ initialData }: BebanKerjaChartProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -160,7 +160,7 @@ export function BebanKerjaChart({ initialData }: BebanKerjaChartProps) {
         </CardContent>
       </Card>
 
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <CardTitle className="text-base">Tabel Detail</CardTitle>
         </CardHeader>

@@ -155,7 +155,7 @@ export function BatchDetailView({ batch, role }: BatchDetailViewProps) {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="rounded-xl shadow-sm">
+      <Card className="rounded-[24px] shadow-sm">
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -236,7 +236,7 @@ export function BatchDetailView({ batch, role }: BatchDetailViewProps) {
       </Card>
 
       {/* Tabel Nomor Sertifikat */}
-      <Card className="rounded-xl shadow-sm">
+      <Card className="rounded-[24px] shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">
             Daftar Nomor Sertifikat{" "}

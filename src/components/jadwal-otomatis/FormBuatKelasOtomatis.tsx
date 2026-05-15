@@ -118,7 +118,7 @@ export function FormBuatKelasOtomatis({
   }
 
   return (
-    <Card className="rounded-[28px]">
+    <Card className="rounded-[24px]">
       <CardHeader className="border-b border-border">
         <CardTitle>Form Kelas Baru</CardTitle>
         <CardDescription className="mt-1">

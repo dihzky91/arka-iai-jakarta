@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
+import { Button } from "@/components/ui/button";
 import { FormBuatKelasOtomatis } from "@/components/jadwal-otomatis/FormBuatKelasOtomatis";
 import { listPrograms } from "@/server/actions/jadwal-otomatis/programs";
 import { listClassTypes } from "@/server/actions/jadwal-otomatis/classTypes";
@@ -21,6 +24,14 @@ export default async function Page() {
       title="Buat Kelas Baru"
       description="Buat kelas pelatihan baru dan generate jadwal otomatis."
     >
+      <div className="mb-5">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/jadwal-otomatis">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Kembali ke Daftar Kelas
+          </Link>
+        </Button>
+      </div>
       <FormBuatKelasOtomatis
         programs={programs}
         classTypes={classTypeList}

@@ -246,7 +246,7 @@ export function ManajemenUserCard({
       </div>
 
       {/* Main card */}
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>

@@ -5,10 +5,10 @@ import { db } from "@/server/db";
 import { pengajuanCuti, users } from "@/server/db/schema";
 import { requirePermission } from "@/server/actions/auth";
 import { writeAuditLog } from "@/server/lib/audit";
-import { submitLeaveRequest } from "@/lib/dingtalk/leave";
 import { pengajuanCutiCreateSchema, pengajuanCutiUpdateSchema } from "@/lib/validators/dingtalk.schema";
 import { revalidateDashboardTag } from "@/server/actions/statistics";
 import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
+import { validasiSaldoCuti, kurangiSaldoCuti, kembalikanSaldoCuti } from "@/server/actions/saldoCuti";
 
 export async function ajukanCuti(
   input: unknown,
@@ -33,8 +33,24 @@ export async function ajukanCuti(
     return { ok: false as const, error: "User tidak ditemukan." };
   }
 
+  // Validasi saldo cuti jika jenis = tahunan atau kompensasi
+  const jenis = parsed.data.jenisCuti;
+  if (jenis === "tahunan" || jenis === "kompensasi") {
+    const tahun = new Date(parsed.data.tanggalMulai).getFullYear();
+    const validasi = await validasiSaldoCuti(
+      session.user.id,
+      jenis,
+      parsed.data.jumlahHari,
+      tahun,
+    );
+    if (!validasi.valid) {
+      return { ok: false as const, error: validasi.error! };
+    }
+  }
+
   const cutiId = crypto.randomUUID();
 
+  // Langsung set status "diajukan" (tanpa DingTalk)
   await db.insert(pengajuanCuti).values({
     id: cutiId,
     userId: session.user.id,
@@ -43,79 +59,20 @@ export async function ajukanCuti(
     tanggalSelesai: parsed.data.tanggalSelesai,
     jumlahHari: parsed.data.jumlahHari,
     alasan: parsed.data.alasan,
-    status: "draft",
+    status: "diajukan",
     lampiranUrl: parsed.data.lampiranUrl || null,
+  });
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "CUTI_DIAJUKAN",
+    entitasType: "pengajuan_cuti",
+    entitasId: cutiId,
+    detail: { jenisCuti: parsed.data.jenisCuti, jumlahHari: parsed.data.jumlahHari },
   });
 
   revalidateDashboardTag(DASHBOARD_TAGS.kepegawaian);
   return { ok: true as const, data: { id: cutiId } };
-}
-
-export async function kirimCutiKeDingTalk(pengajuanCutiId: string) {
-  const session = await requirePermission("cuti", "create");
-
-  const [cuti] = await db
-    .select({
-      id: pengajuanCuti.id,
-      userId: pengajuanCuti.userId,
-      jenisCuti: pengajuanCuti.jenisCuti,
-      tanggalMulai: pengajuanCuti.tanggalMulai,
-      tanggalSelesai: pengajuanCuti.tanggalSelesai,
-      jumlahHari: pengajuanCuti.jumlahHari,
-      alasan: pengajuanCuti.alasan,
-      status: pengajuanCuti.status,
-      dingtalkUserId: users.dingtalkUserId,
-    })
-    .from(pengajuanCuti)
-    .leftJoin(users, eq(pengajuanCuti.userId, users.id))
-    .where(eq(pengajuanCuti.id, pengajuanCutiId))
-    .limit(1);
-
-  if (!cuti) {
-    return { ok: false as const, error: "Data cuti tidak ditemukan." };
-  }
-
-  if (cuti.status !== "draft") {
-    return { ok: false as const, error: "Hanya cuti dengan status draft yang bisa dikirim." };
-  }
-
-  if (!cuti.dingtalkUserId) {
-    return { ok: false as const, error: "Akun DingTalk belum terhubung." };
-  }
-
-  try {
-    const processInstanceId = await submitLeaveRequest(cuti.dingtalkUserId, {
-      jenisCuti: cuti.jenisCuti,
-      tanggalMulai: cuti.tanggalMulai,
-      tanggalSelesai: cuti.tanggalSelesai,
-      jumlahHari: cuti.jumlahHari,
-      alasan: cuti.alasan ?? undefined,
-    });
-
-    await db
-      .update(pengajuanCuti)
-      .set({
-        dingtalkProcessId: processInstanceId,
-        status: "diajukan",
-        updatedAt: new Date(),
-      })
-      .where(eq(pengajuanCuti.id, pengajuanCutiId));
-
-    await writeAuditLog({
-      userId: session.user.id,
-      aksi: "DINGTALK_LEAVE_SUBMITTED",
-      entitasType: "pengajuan_cuti",
-      entitasId: pengajuanCutiId,
-      detail: { processInstanceId },
-    });
-
-    return { ok: true as const, data: { processInstanceId } };
-  } catch (e) {
-    return {
-      ok: false as const,
-      error: e instanceof Error ? e.message : "Gagal mengirim cuti ke DingTalk.",
-    };
-  }
 }
 
 export async function approveCuti(input: unknown) {
@@ -130,7 +87,14 @@ export async function approveCuti(input: unknown) {
   }
 
   const [cuti] = await db
-    .select({ id: pengajuanCuti.id, status: pengajuanCuti.status })
+    .select({
+      id: pengajuanCuti.id,
+      userId: pengajuanCuti.userId,
+      jenisCuti: pengajuanCuti.jenisCuti,
+      jumlahHari: pengajuanCuti.jumlahHari,
+      tanggalMulai: pengajuanCuti.tanggalMulai,
+      status: pengajuanCuti.status,
+    })
     .from(pengajuanCuti)
     .where(eq(pengajuanCuti.id, parsed.data.id))
     .limit(1);
@@ -139,10 +103,19 @@ export async function approveCuti(input: unknown) {
     return { ok: false as const, error: "Data cuti tidak ditemukan." };
   }
 
-  if (cuti.status !== "diajukan") {
-    return { ok: false as const, error: "Hanya cuti dengan status diajukan yang bisa diproses." };
+  // Untuk approve: status harus "diajukan"
+  // Untuk batal: status harus "disetujui"
+  if (parsed.data.status === "disetujui" || parsed.data.status === "ditolak") {
+    if (cuti.status !== "diajukan") {
+      return { ok: false as const, error: "Hanya cuti dengan status diajukan yang bisa diproses." };
+    }
+  } else if (parsed.data.status === "dibatalkan") {
+    if (cuti.status !== "disetujui") {
+      return { ok: false as const, error: "Hanya cuti yang sudah disetujui yang bisa dibatalkan." };
+    }
   }
 
+  // Update status pengajuan
   await db
     .update(pengajuanCuti)
     .set({
@@ -154,9 +127,25 @@ export async function approveCuti(input: unknown) {
     })
     .where(eq(pengajuanCuti.id, parsed.data.id));
 
+  // Update saldo cuti jika jenis = tahunan atau kompensasi
+  const jenis = cuti.jenisCuti as string;
+  if (jenis === "tahunan" || jenis === "kompensasi") {
+    const tahun = new Date(cuti.tanggalMulai).getFullYear();
+
+    if (parsed.data.status === "disetujui") {
+      await kurangiSaldoCuti(cuti.userId, jenis, cuti.jumlahHari, tahun);
+    } else if (parsed.data.status === "dibatalkan") {
+      await kembalikanSaldoCuti(cuti.userId, jenis, cuti.jumlahHari, tahun);
+    }
+  }
+
   await writeAuditLog({
     userId: session.user.id,
-    aksi: parsed.data.status === "disetujui" ? "CUTI_APPROVED" : "CUTI_REJECTED",
+    aksi: parsed.data.status === "disetujui"
+      ? "CUTI_APPROVED"
+      : parsed.data.status === "ditolak"
+        ? "CUTI_REJECTED"
+        : "CUTI_CANCELLED",
     entitasType: "pengajuan_cuti",
     entitasId: parsed.data.id,
     detail: { rejectedReason: parsed.data.rejectedReason },

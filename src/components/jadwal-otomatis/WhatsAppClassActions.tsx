@@ -430,7 +430,7 @@ export function WhatsAppClassActions({
 
   return (
     <>
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <CardTitle>Aksi WhatsApp</CardTitle>
           <CardDescription>

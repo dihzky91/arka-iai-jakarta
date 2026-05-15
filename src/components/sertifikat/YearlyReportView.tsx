@@ -30,7 +30,7 @@ import {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card px-5 py-4 shadow-sm">
+    <div className="rounded-[24px] border border-border/60 bg-card px-5 py-4 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-bold">{value}</p>
       {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
@@ -121,7 +121,7 @@ export function YearlyReportView({
       </div>
 
       {/* Tabel rincian */}
-      <Card className="rounded-xl shadow-sm">
+      <Card className="rounded-[24px] shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">
             Rincian per Program & Jenis Kelas — Tahun {selectedYear}

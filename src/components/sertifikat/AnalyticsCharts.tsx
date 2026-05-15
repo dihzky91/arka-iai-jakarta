@@ -39,7 +39,7 @@ export function AnalyticsCharts({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-xl xl:col-span-2">
+        <Card className="rounded-[24px] xl:col-span-2">
           <CardHeader>
             <CardTitle>Tren Peserta 12 Bulan</CardTitle>
           </CardHeader>
@@ -58,7 +58,7 @@ export function AnalyticsCharts({
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl">
+        <Card className="rounded-[24px]">
           <CardHeader>
             <CardTitle>Distribusi Kategori</CardTitle>
           </CardHeader>
@@ -86,7 +86,7 @@ export function AnalyticsCharts({
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl">
+        <Card className="rounded-[24px]">
           <CardHeader>
             <CardTitle>Top 5 Kegiatan</CardTitle>
           </CardHeader>
@@ -119,7 +119,7 @@ function StatCard({
   value: number;
 }) {
   return (
-    <Card className="rounded-xl">
+    <Card className="rounded-[24px]">
       <CardContent className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
@@ -127,7 +127,7 @@ function StatCard({
           </p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{value}</p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="flex h-11 w-11 items-center justify-center rounded-[24px] bg-primary/10 text-primary">
           <Icon className="h-5 w-5" />
         </div>
       </CardContent>

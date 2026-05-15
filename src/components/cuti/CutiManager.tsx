@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ListChecks } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listPengajuanCuti, type CutiRow } from "@/server/actions/cuti";
-import { kirimCutiKeDingTalk } from "@/server/actions/dingtalk/submit-leave";
+import { getSaldoCuti, type SaldoCutiResponse } from "@/server/actions/saldoCuti";
 import { APP_TIME_ZONE } from "@/lib/utils";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -33,6 +32,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 const JENIS_LABEL: Record<string, string> = {
   tahunan: "Cuti Tahunan",
+  kompensasi: "Cuti Kompensasi",
   sakit: "Cuti Sakit",
   melahirkan: "Cuti Melahirkan",
   menikah: "Cuti Menikah",
@@ -47,7 +47,7 @@ export function CutiManager({
 }) {
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [saldo, setSaldo] = useState<SaldoCutiResponse | null>(null);
   const [data, setData] = useState<{
     rows: CutiRow[];
     total: number;
@@ -71,25 +71,68 @@ export function CutiManager({
     fetchData();
   }, [fetchData]);
 
-  const handleKirim = async (id: string) => {
-    setSubmitting(id);
-    try {
-      const res = await kirimCutiKeDingTalk(id);
-      if (res.ok) {
-        toast.success("Cuti berhasil dikirim ke DingTalk.");
-        router.refresh();
-      } else {
-        toast.error(res.error);
-      }
-    } catch {
-      toast.error("Gagal mengirim cuti.");
-    } finally {
-      setSubmitting(null);
-    }
-  };
+  // Fetch saldo
+  useEffect(() => {
+    const tahun = new Date().getFullYear();
+    getSaldoCuti(currentUserId, tahun).then(setSaldo).catch(() => {});
+  }, [currentUserId]);
 
   return (
     <div className="space-y-4">
+      {/* Saldo Widget */}
+      {saldo && (saldo.tahunan || saldo.kompensasi) && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {saldo.tahunan && (
+            <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+              <p className="text-sm text-muted-foreground">Cuti Tahunan</p>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-2xl font-bold">{saldo.tahunan.sisaCuti}</span>
+                <span className="text-sm text-muted-foreground">/ {saldo.tahunan.kuotaAwal} hari</span>
+              </div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.min(100, (saldo.tahunan.sisaCuti / saldo.tahunan.kuotaAwal) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Terpakai: {saldo.tahunan.cutiTerpakai} · Cuti bersama: {saldo.tahunan.cutiBersamaTerpakai}
+              </p>
+            </div>
+          )}
+          {saldo.kompensasi && (
+            <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+              <p className="text-sm text-muted-foreground">Cuti Kompensasi</p>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-2xl font-bold">{saldo.kompensasi.sisa}</span>
+                <span className="text-sm text-muted-foreground">/ {saldo.kompensasi.kuota} hari</span>
+              </div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all"
+                  style={{ width: `${Math.min(100, (saldo.kompensasi.sisa / saldo.kompensasi.kuota) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Terpakai: {saldo.kompensasi.terpakai}
+              </p>
+            </div>
+          )}
+          {saldo.tahunan && (
+            <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+              <p className="text-sm text-muted-foreground">Cuti Bersama</p>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-2xl font-bold">{saldo.tahunan.cutiBersamaTerpakai}</span>
+                <span className="text-sm text-muted-foreground">hari</span>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Memotong saldo cuti tahunan
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <Tabs defaultValue="list">
         <TabsList>
           <TabsTrigger value="list">
@@ -121,13 +164,12 @@ export function CutiManager({
                     <TableHead>Hari</TableHead>
                     <TableHead>Alasan</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="p-6">
+                      <TableCell colSpan={6} className="p-6">
                         <EmptyState
                           icon={ListChecks}
                           title="Belum ada pengajuan cuti"
@@ -157,17 +199,6 @@ export function CutiManager({
                           <Badge className={STATUS_BADGE[row.status] ?? ""}>
                             {row.status}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {row.status === "draft" && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleKirim(row.id)}
-                              disabled={submitting === row.id}
-                            >
-                              {submitting === row.id ? "Mengirim..." : "Kirim"}
-                            </Button>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))

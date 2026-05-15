@@ -2506,6 +2506,7 @@ export const sumberAbsensiEnum = pgEnum("sumber_absensi", ["dingtalk", "manual"]
 
 export const jenisCutiEnum = pgEnum("jenis_cuti", [
   "tahunan",
+  "kompensasi",
   "sakit",
   "melahirkan",
   "menikah",
@@ -2603,6 +2604,232 @@ export const dingtalkConfig = pgTable("dingtalk_config", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// ─── SALDO CUTI KARYAWAN ──────────────────────────────────────────────────────
+
+export const saldoCutiTahunan = pgTable(
+  "saldo_cuti_tahunan",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tahun: integer("tahun").notNull(),
+    kuotaAwal: integer("kuota_awal").notNull().default(12),
+    cutiTerpakai: integer("cuti_terpakai").notNull().default(0),
+    cutiBersamaTerpakai: integer("cuti_bersama_terpakai").notNull().default(0),
+    sisaCuti: integer("sisa_cuti").notNull().default(12),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    uniqUserTahun: uniqueIndex("uniq_saldo_cuti_user_tahun").on(t.userId, t.tahun),
+    idxSaldoCutiTahun: index("idx_saldo_cuti_tahun").on(t.tahun),
+  }),
+);
+
+export const saldoCutiKompensasi = pgTable(
+  "saldo_cuti_kompensasi",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tahun: integer("tahun").notNull(),
+    kuota: integer("kuota").notNull().default(2),
+    terpakai: integer("terpakai").notNull().default(0),
+    sisa: integer("sisa").notNull().default(2),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    uniqUserTahun: uniqueIndex("uniq_cuti_kompensasi_user_tahun").on(t.userId, t.tahun),
+  }),
+);
+
+export const cutiBersama = pgTable(
+  "cuti_bersama",
+  {
+    id: serial("id").primaryKey(),
+    tahun: integer("tahun").notNull(),
+    tanggal: date("tanggal").notNull(),
+    keterangan: varchar("keterangan", { length: 200 }).notNull(),
+    memotongSaldo: boolean("memotong_saldo").notNull().default(true),
+    createdBy: text("created_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    uniqTanggal: uniqueIndex("uniq_cuti_bersama_tanggal").on(t.tanggal),
+    idxCutiBersamaTahun: index("idx_cuti_bersama_tahun").on(t.tahun),
+  }),
+);
+
+export const konfigurasiCuti = pgTable(
+  "konfigurasi_cuti",
+  {
+    id: serial("id").primaryKey(),
+    tahun: integer("tahun").notNull(),
+    kuotaCutiTahunan: integer("kuota_cuti_tahunan").notNull().default(12),
+    kuotaCutiKompensasi: integer("kuota_cuti_kompensasi").notNull().default(2),
+    maksimalPotongCutiBersama: integer("maksimal_potong_cuti_bersama").notNull().default(2),
+    updatedBy: text("updated_by").references(() => users.id),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    uniqTahun: uniqueIndex("uniq_konfigurasi_cuti_tahun").on(t.tahun),
+  }),
+);
+
+// ─── PENILAIAN KINERJA KARYAWAN ───────────────────────────────────────────────
+
+export const statusPenilaianEnum = pgEnum("status_penilaian", [
+  "draft",
+  "submitted",
+  "reviewed",
+  "finalized",
+]);
+
+export const tipePenilaianTemplateEnum = pgEnum("tipe_penilaian_template", [
+  "tugas",
+  "perilaku",
+]);
+
+export const statusPeriodePenilaianEnum = pgEnum("status_periode_penilaian", [
+  "open",
+  "closed",
+]);
+
+export const penilaianPeriode = pgTable("penilaian_periode", {
+  id: serial("id").primaryKey(),
+  nama: varchar("nama", { length: 100 }).notNull(),
+  tahun: integer("tahun").notNull(),
+  kuartal: integer("kuartal").notNull(), // 1-4
+  tanggalMulai: date("tanggal_mulai").notNull(),
+  tanggalSelesai: date("tanggal_selesai").notNull(),
+  status: statusPeriodePenilaianEnum("status").notNull().default("open"),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const penilaianTemplate = pgTable(
+  "penilaian_template",
+  {
+    id: serial("id").primaryKey(),
+    nama: varchar("nama", { length: 200 }).notNull(),
+    tipe: tipePenilaianTemplateEnum("tipe").notNull(),
+    divisiId: integer("divisi_id").references(() => divisi.id),
+    jabatan: varchar("jabatan", { length: 150 }),
+    isDefault: boolean("is_default").default(false).notNull(),
+    createdBy: text("created_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    idxTemplateTipe: index("idx_penilaian_template_tipe").on(t.tipe),
+    idxTemplateDivisi: index("idx_penilaian_template_divisi").on(t.divisiId),
+  }),
+);
+
+export const penilaianTemplateItem = pgTable(
+  "penilaian_template_item",
+  {
+    id: serial("id").primaryKey(),
+    templateId: integer("template_id")
+      .notNull()
+      .references(() => penilaianTemplate.id, { onDelete: "cascade" }),
+    nomor: integer("nomor").notNull(),
+    keterangan: text("keterangan").notNull(),
+    bobot: numeric("bobot", { precision: 4, scale: 3 }).notNull(), // e.g. 0.100
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    idxItemTemplate: index("idx_penilaian_template_item_template").on(
+      t.templateId,
+    ),
+  }),
+);
+
+export const penilaianKinerja = pgTable(
+  "penilaian_kinerja",
+  {
+    id: text("id").primaryKey(), // uuid
+    periodeId: integer("periode_id")
+      .notNull()
+      .references(() => penilaianPeriode.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    penilaiId: text("penilai_id")
+      .notNull()
+      .references(() => users.id),
+    templateTugasId: integer("template_tugas_id").references(
+      () => penilaianTemplate.id,
+    ),
+    templatePerilakuId: integer("template_perilaku_id").references(
+      () => penilaianTemplate.id,
+    ),
+    totalNilaiTugas: numeric("total_nilai_tugas", { precision: 5, scale: 2 }),
+    totalNilaiPerilaku: numeric("total_nilai_perilaku", {
+      precision: 5,
+      scale: 2,
+    }),
+    nilaiAkhir: numeric("nilai_akhir", { precision: 5, scale: 2 }),
+    status: statusPenilaianEnum("status").notNull().default("draft"),
+    catatan: text("catatan"),
+    reviewedBy: text("reviewed_by").references(() => users.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    idxPenilaianPeriode: index("idx_penilaian_kinerja_periode").on(t.periodeId),
+    idxPenilaianUser: index("idx_penilaian_kinerja_user").on(t.userId),
+    idxPenilaianStatus: index("idx_penilaian_kinerja_status").on(t.status),
+    uniqPenilaianPerUser: uniqueIndex("uniq_penilaian_per_user_periode").on(
+      t.userId,
+      t.periodeId,
+    ),
+  }),
+);
+
+export const penilaianKinerjaDetail = pgTable(
+  "penilaian_kinerja_detail",
+  {
+    id: serial("id").primaryKey(),
+    penilaianId: text("penilaian_id")
+      .notNull()
+      .references(() => penilaianKinerja.id, { onDelete: "cascade" }),
+    templateItemId: integer("template_item_id")
+      .notNull()
+      .references(() => penilaianTemplateItem.id),
+    tipe: tipePenilaianTemplateEnum("tipe").notNull(),
+    nilai: integer("nilai").notNull().default(0), // 0-100
+    bobot: numeric("bobot", { precision: 4, scale: 3 }).notNull(), // snapshot bobot
+    nilaiTerbobot: numeric("nilai_terbobot", { precision: 5, scale: 2 }).notNull(),
+    keterangan: text("keterangan"),
+  },
+  (t) => ({
+    idxDetailPenilaian: index("idx_penilaian_detail_penilaian").on(
+      t.penilaianId,
+    ),
+    idxDetailTipe: index("idx_penilaian_detail_tipe").on(t.tipe),
+  }),
+);
+
+// ─── TYPE EXPORTS (Penilaian Kinerja) ────────────────────────────────────────
+
+export type PenilaianPeriode = typeof penilaianPeriode.$inferSelect;
+export type NewPenilaianPeriode = typeof penilaianPeriode.$inferInsert;
+export type PenilaianTemplate = typeof penilaianTemplate.$inferSelect;
+export type NewPenilaianTemplate = typeof penilaianTemplate.$inferInsert;
+export type PenilaianTemplateItem = typeof penilaianTemplateItem.$inferSelect;
+export type NewPenilaianTemplateItem = typeof penilaianTemplateItem.$inferInsert;
+export type PenilaianKinerja = typeof penilaianKinerja.$inferSelect;
+export type NewPenilaianKinerja = typeof penilaianKinerja.$inferInsert;
+export type PenilaianKinerjaDetail = typeof penilaianKinerjaDetail.$inferSelect;
+export type NewPenilaianKinerjaDetail = typeof penilaianKinerjaDetail.$inferInsert;
+
 // ─── TYPE EXPORTS (DingTalk) ──────────────────────────────────────────────────
 
 export type AbsensiKaryawan = typeof absensiKaryawan.$inferSelect;
@@ -2611,6 +2838,17 @@ export type PengajuanCuti = typeof pengajuanCuti.$inferSelect;
 export type NewPengajuanCuti = typeof pengajuanCuti.$inferInsert;
 export type DingtalkConfig = typeof dingtalkConfig.$inferSelect;
 export type NewDingtalkConfig = typeof dingtalkConfig.$inferInsert;
+
+// ─── TYPE EXPORTS (Saldo Cuti) ────────────────────────────────────────────────
+
+export type SaldoCutiTahunan = typeof saldoCutiTahunan.$inferSelect;
+export type NewSaldoCutiTahunan = typeof saldoCutiTahunan.$inferInsert;
+export type SaldoCutiKompensasi = typeof saldoCutiKompensasi.$inferSelect;
+export type NewSaldoCutiKompensasi = typeof saldoCutiKompensasi.$inferInsert;
+export type CutiBersama = typeof cutiBersama.$inferSelect;
+export type NewCutiBersama = typeof cutiBersama.$inferInsert;
+export type KonfigurasiCuti = typeof konfigurasiCuti.$inferSelect;
+export type NewKonfigurasiCuti = typeof konfigurasiCuti.$inferInsert;
 
 // ─── TYPE EXPORTS (Penomoran Sertifikat) ─────────────────────────────────────
 

@@ -668,7 +668,7 @@ export function ParticipantManager({
         <StatCard label="Sudah Download" value={`${stats.sudahDownload} (${pctDownload}%)`} />
       </div>
 
-      <Card className="rounded-xl">
+      <Card className="rounded-[24px]">
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
@@ -688,7 +688,7 @@ export function ParticipantManager({
         </CardContent>
       </Card>
 
-      <Card className="rounded-xl">
+      <Card className="rounded-[24px]">
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -1187,7 +1187,7 @@ function StatCard({
   className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+    <div className="rounded-[24px] border border-border bg-card p-3 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`mt-1 text-xl font-semibold ${className ?? ""}`}>{value}</p>
     </div>

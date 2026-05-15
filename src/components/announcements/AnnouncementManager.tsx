@@ -372,7 +372,7 @@ export function AnnouncementManager({
   return (
     <div className="space-y-6">
       {/* Inbox */}
-      <Card className="rounded-[28px]">
+      <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -483,7 +483,7 @@ export function AnnouncementManager({
 
       {/* Kelola */}
       {canManage ? (
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="border-b border-border/60">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>

@@ -46,7 +46,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
     return (
       <div className="grid gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 rounded-[28px]" />
+          <Skeleton key={i} className="h-28 rounded-[24px]" />
         ))}
       </div>
     );
@@ -87,7 +87,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Hadir</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -98,7 +98,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Terlambat</CardTitle>
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -109,7 +109,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Alpha</CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
@@ -120,7 +120,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[28px]">
+        <Card className="rounded-[24px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />

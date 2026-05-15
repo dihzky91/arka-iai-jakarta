@@ -95,7 +95,7 @@ export function FormBuatInstruktur({ programs, programBlocks }: FormBuatInstrukt
   }
 
   return (
-    <Card className="rounded-[28px] max-w-4xl">
+    <Card className="rounded-[24px] max-w-4xl">
       <CardHeader>
         <CardTitle>Form Instruktur</CardTitle>
       </CardHeader>
