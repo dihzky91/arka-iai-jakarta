@@ -29,7 +29,7 @@ export function QuickActionButton({
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-foreground">{label}</span>
+        <span className="block text-sm font-medium text-foreground">{label}</span>
         {description && (
           <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
             {description}

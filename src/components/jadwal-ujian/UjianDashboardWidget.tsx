@@ -176,7 +176,7 @@ function ScheduleSummaryItem({
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/25 p-4">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+      <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
         {value}
       </p>
     </div>

@@ -80,7 +80,7 @@ export function KeuanganWidget({
       <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground sm:text-lg">
+            <h2 className="text-base font-medium text-foreground sm:text-lg">
               Antrian Pembayaran
             </h2>
             <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
@@ -116,7 +116,7 @@ export function KeuanganWidget({
                       {formatTanggalPendek(item.periodEnd)}
                     </span>
                   </div>
-                  <p className="mt-1 line-clamp-1 text-sm font-semibold text-foreground">
+                  <p className="mt-1 line-clamp-1 text-sm font-medium text-foreground">
                     {item.documentNumber}
                   </p>
                   {item.submittedAt && (
@@ -137,7 +137,7 @@ export function KeuanganWidget({
       </section>
 
       <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="text-lg font-medium text-foreground">
           Status Batch Honorarium
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">

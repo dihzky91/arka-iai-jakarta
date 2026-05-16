@@ -32,7 +32,7 @@ export function DashboardSection({
             </span>
           )}
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground sm:text-lg">
+            <h2 className="text-base font-medium text-foreground sm:text-lg">
               {title}
             </h2>
             {description && (

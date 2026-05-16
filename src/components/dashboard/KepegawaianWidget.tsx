@@ -67,7 +67,7 @@ export function KepegawaianWidget({
       <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground sm:text-lg">
+            <h2 className="text-base font-medium text-foreground sm:text-lg">
               Pengajuan Cuti Menunggu
             </h2>
             <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
@@ -106,7 +106,7 @@ export function KepegawaianWidget({
                       {formatTanggalPendek(item.tanggalSelesai)}
                     </span>
                   </div>
-                  <p className="mt-1 line-clamp-1 text-sm font-semibold text-foreground">
+                  <p className="mt-1 line-clamp-1 text-sm font-medium text-foreground">
                     {item.userName ?? "(Tanpa nama)"}
                   </p>
                   {item.alasan && (

@@ -126,6 +126,12 @@
 
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-heading: var(--font-outfit), system-ui, sans-serif;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 700;
 }
 
 @layer base {
@@ -138,11 +144,12 @@
   }
 
   body {
-    font-weight: 300;
+    font-weight: var(--font-weight-normal);
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 500;
+    font-weight: var(--font-weight-semibold);
   }
 
   ::selection {
@@ -169,14 +176,14 @@
 .announcement-editor-content h1 {
   font-size: 1.25rem;
   line-height: 1.4;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin: 0.5rem 0;
 }
 
 .announcement-editor-content h2 {
   font-size: 1.1rem;
   line-height: 1.45;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin: 0.45rem 0;
 }
 

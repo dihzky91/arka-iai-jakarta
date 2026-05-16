@@ -167,7 +167,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                   }`}
                 >
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
                       emailProvider === "mailjet" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
                     }`}
                   >
@@ -190,7 +190,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                   }`}
                 >
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
                       emailProvider === "brevo" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
                     }`}
                   >

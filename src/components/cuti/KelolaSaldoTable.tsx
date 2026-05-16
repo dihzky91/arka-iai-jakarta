@@ -105,7 +105,7 @@ export function KelolaSaldoTable() {
                       <TableCell className="text-center">{row.cutiTerpakai}</TableCell>
                       <TableCell className="text-center">{row.cutiBersamaTerpakai}</TableCell>
                       <TableCell className="text-center">
-                        <span className={row.sisaCuti <= 2 ? "font-bold text-destructive" : "font-semibold"}>
+                        <span className={row.sisaCuti <= 2 ? "font-semibold text-destructive" : "font-medium"}>
                           {row.sisaCuti}
                         </span>
                       </TableCell>

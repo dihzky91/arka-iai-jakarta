@@ -47,7 +47,7 @@ export function BatchAuditTrail({
               <div key={log.id} className="rounded-lg border border-border/60 p-4 transition-colors hover:bg-muted/30">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-medium">
                       {actionLabel(log.action)}
                     </p>
                     <p className="text-xs text-muted-foreground">

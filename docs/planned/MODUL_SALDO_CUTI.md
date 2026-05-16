@@ -552,55 +552,103 @@ Arsitektur saldo cuti dirancang **agnostik terhadap sumber approval** — baik a
 
 ---
 
-## 15. Export PDF Surat Cuti (Fase Lanjutan)
+## 15. Export PDF Surat Cuti
 
 ### 15.1 Konsep
 
-Setiap pengajuan cuti yang berstatus **disetujui** dapat di-export menjadi dokumen PDF resmi (surat keterangan cuti / formulir cuti). PDF di-generate berdasarkan template yang dikonfigurasi admin, lengkap dengan header dan footer organisasi.
+Setiap pengajuan cuti yang berstatus **disetujui** dapat di-export menjadi dokumen PDF surat cuti resmi. PDF di-generate langsung dari data sistem tanpa perlu upload template — layout surat di-hardcode sesuai format standar organisasi.
 
-### 15.2 Komponen Template
+Approver juga dapat **preview surat** sebelum menyetujui pengajuan.
 
-| Bagian | Keterangan |
-|--------|------------|
-| **Header** | Logo, kop surat organisasi (gambar/upload) |
-| **Body** | Data cuti: nama karyawan, jabatan, jenis cuti, tanggal, jumlah hari, alasan |
-| **Footer** | Tanda tangan atasan, nomor surat, tanggal persetujuan |
+### 15.2 Format Surat
 
-### 15.3 Alur
+Berdasarkan template fisik yang digunakan saat ini:
 
-1. Admin upload template header & footer (gambar/PDF) di halaman konfigurasi
-2. Karyawan/admin klik "Export PDF" pada pengajuan cuti yang sudah disetujui
-3. Sistem generate PDF dengan:
-   - Header dari template
-   - Body berisi data cuti (dinamis)
-   - Footer dari template + tanda tangan approver
-4. PDF di-download langsung oleh user
+```
+Jakarta, [tanggal pengajuan]
 
-### 15.4 Tabel Pendukung
+Kepada Yth.
+[Nama Approver]
+[Jabatan Approver]
+Ikatan Akuntan Indonesia
+Wilayah DKI Jakarta
+Di Tempat
 
-```typescript
-export const templateCuti = pgTable("template_cuti", {
-  id: serial("id").primaryKey(),
-  nama: varchar("nama", { length: 100 }).notNull(),
-  headerImageUrl: text("header_image_url"),   // URL gambar header (Cloudinary)
-  footerImageUrl: text("footer_image_url"),   // URL gambar footer (Cloudinary)
-  bodyTemplate: text("body_template"),         // Template teks body (opsional, untuk custom layout)
-  isActive: boolean("is_active").notNull().default(true),
-  createdBy: text("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+Dengan hormat,
+Saya yang bertanda tangan dibawah ini :
+
+Nama            : [nama karyawan]
+Dept.           : [nama divisi]
+Tahun Bergabung : [tahun dari tanggalMasuk]
+
+Mengajukan cuti tanggal [tanggal mulai - selesai] untuk keperluan [alasan]
+
+Berikut rangkuman cuti saya :
+
+Cuti tahun [X]                    : [kuotaAwal] hari
+Cuti bersama tahun [X]            : [cutiBersamaTerpakai] hari
+Cuti yg sudah diambil tahun [X]   : [cutiTerpakai sebelumnya] hari
+Cuti yg diambil bulan [bulan ini] : [jumlahHari] hari
+Sisa cuti tahun [X]               : [sisaCuti setelah] hari
+
+Demikian saya sampaikan, atas perhatiannya saya ucapkan terima kasih.
+
+Hormat saya,                              Menyetujui,
+
+( [Nama Karyawan] )                       ( [Nama Approver] )
+                                          [Jabatan Approver]
+                                          ─────────────────────────
+                                          Disetujui digital via ARKA
+                                          [tanggal approve] · [ID Approval]
+
+Catatan :
+No. Telepon yang dapat dihubungi selama cuti : [noHp]
 ```
 
-### 15.5 Implementasi
+### 15.3 Sumber Data
 
-- [ ] Tabel `template_cuti` di schema
-- [ ] Halaman admin: upload header/footer template
-- [ ] Server action: `generatePdfCuti(pengajuanCutiId)`
-- [ ] PDF generator menggunakan `pdf-lib` atau `jspdf` (sudah ada di project)
-- [ ] Tombol "Export PDF" di daftar cuti (hanya untuk status `disetujui`)
-- [ ] Preview PDF sebelum download (opsional)
+| Field di Surat | Sumber di ARKA |
+|----------------|----------------|
+| Nama karyawan | `users.namaLengkap` |
+| Dept | `divisi.nama` |
+| Tahun Bergabung | `users.tanggalMasuk` (ambil tahun) |
+| Tanggal cuti | `pengajuanCuti.tanggalMulai` / `tanggalSelesai` |
+| Alasan | `pengajuanCuti.alasan` |
+| Rangkuman saldo | `saldoCutiTahunan` |
+| Nama Approver | `users.namaLengkap` (dari `approvedBy`) |
+| Jabatan Approver | `users.jabatan` (dari `approvedBy`) |
+| Tanggal approve | `pengajuanCuti.approvedAt` |
+| ID Approval | Format: `APR-[tahun]-[5 digit sequential]` |
+| No HP | `users.noHp` |
 
-### 15.6 Status
+### 15.4 Validasi Persetujuan (Stempel Digital)
 
-> ⏳ **Menunggu template dari kantor.** Implementasi akan dilakukan setelah contoh template (header + footer) tersedia. Struktur kode dan tabel sudah disiapkan agar tinggal plug-in saat template siap.
+Tidak menggunakan tanda tangan gambar. Sebagai gantinya, di area "Menyetujui" tercetak **stempel digital otomatis**:
+
+- Nama & jabatan approver
+- Keterangan "Disetujui digital via ARKA"
+- Tanggal & waktu persetujuan
+- ID Approval unik (bisa di-cross check di sistem)
+
+Approver tidak perlu melakukan langkah tambahan — cukup klik "Setujui" dan stempel otomatis ter-generate.
+
+### 15.5 Alur
+
+1. Karyawan ajukan cuti → status `diajukan`
+2. Approver buka halaman approval → klik **"Lihat Surat"** → preview surat cuti di browser
+3. Approver review → klik **Setujui** atau **Tolak**
+4. Setelah disetujui → tombol **"Cetak PDF"** muncul (bisa diakses karyawan & approver)
+5. PDF di-generate dengan stempel digital approval
+
+### 15.6 Implementasi
+
+- [x] Server action: `getDataSuratCuti(pengajuanCutiId)` — kumpulkan semua data untuk surat
+- [x] Komponen `PreviewSuratCuti.tsx` — render surat di browser (untuk preview approver)
+- [x] PDF generator: `generatePdfSuratCuti(pengajuanCutiId)` — generate PDF via `jspdf`
+- [x] Tombol "Lihat Surat" di `CutiApproval.tsx`
+- [x] Tombol "Cetak PDF" di `CutiManager.tsx` (hanya status `disetujui`)
+- [x] Generate ID Approval unik saat approve (format: `APR-2026-00001`)
+
+### 15.7 Status
+
+> ✅ **Selesai diimplementasi.**

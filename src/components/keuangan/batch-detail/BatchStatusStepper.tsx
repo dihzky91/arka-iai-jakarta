@@ -17,7 +17,7 @@ export function BatchStatusStepper({
 
   return (
     <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm">
-      <div className="mb-4 text-sm font-semibold">Alur Status Batch</div>
+      <div className="mb-4 text-sm font-medium">Alur Status Batch</div>
       <div className="grid gap-3 sm:grid-cols-5">
         {steps.map((step, index) => {
           const isCompleted = index <= activeIndex;
@@ -43,10 +43,10 @@ export function BatchStatusStepper({
                 {isCompleted ? (
                   <CheckCircle2 className="h-4 w-4" />
                 ) : (
-                  <span className="text-xs font-semibold">{index + 1}</span>
+                  <span className="text-xs font-medium">{index + 1}</span>
                 )}
               </div>
-              <p className="text-sm font-semibold">{step.label}</p>
+              <p className="text-sm font-medium">{step.label}</p>
               <p className="text-xs text-muted-foreground">
                 {isCurrent ? "Aktif" : isCompleted ? "Selesai" : "Menunggu"}
               </p>

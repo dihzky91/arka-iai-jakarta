@@ -191,7 +191,7 @@ export function SuratMouManager({
                   <CardContent className="space-y-4 p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-mono text-sm font-semibold text-primary">{row.nomorMOU}</p>
+                        <p className="font-mono text-sm font-medium text-primary">{row.nomorMOU}</p>
                         <p className="mt-2 font-medium text-foreground">{row.perihal}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{formatTanggal(row.tanggalMOU)}</p>
                       </div>
@@ -326,7 +326,7 @@ function SummaryCard({ label, value, hint }: { label: string; value: string; hin
   return (
     <Card className="rounded-[24px] py-5">
       <CardContent className="space-y-2">
-        <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">{label}</p>
+        <p className="text-xs font-normal tracking-[0.2em] text-muted-foreground uppercase">{label}</p>
         <p className="text-3xl font-semibold text-foreground">{value}</p>
         <p className="text-sm text-muted-foreground">{hint}</p>
       </CardContent>

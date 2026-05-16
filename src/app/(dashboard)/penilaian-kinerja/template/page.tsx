@@ -9,7 +9,7 @@ export default async function TemplatePenilaianPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-2xl font-medium tracking-tight">
           Template Penilaian Kinerja
         </h1>
         <p className="text-muted-foreground">

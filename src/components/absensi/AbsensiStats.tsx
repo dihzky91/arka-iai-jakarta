@@ -93,7 +93,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.hadir}</p>
+            <p className="text-2xl font-semibold">{stats.hadir}</p>
             <p className="text-xs text-muted-foreground">{hadirPct}% kehadiran</p>
           </CardContent>
         </Card>
@@ -104,7 +104,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.terlambat}</p>
+            <p className="text-2xl font-semibold">{stats.terlambat}</p>
             <p className="text-xs text-muted-foreground">{terlambatPct}% dari total</p>
           </CardContent>
         </Card>
@@ -115,7 +115,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.alpha}</p>
+            <p className="text-2xl font-semibold">{stats.alpha}</p>
             <p className="text-xs text-muted-foreground">{alphaPct}% dari total</p>
           </CardContent>
         </Card>
@@ -126,7 +126,7 @@ export function AbsensiStats({ refreshKey = 0 }: { refreshKey?: number }) {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-2xl font-semibold">{stats.total}</p>
             <p className="text-xs text-muted-foreground">records bulan ini</p>
           </CardContent>
         </Card>

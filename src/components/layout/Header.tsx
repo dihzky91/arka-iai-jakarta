@@ -59,7 +59,7 @@ export function Header({ userName, userId, onOpenSidebar }: HeaderProps) {
           </Button>
           <div className="min-w-0">
             <h1 className="truncate text-lg font-medium text-foreground">
-            {currentItem?.label ?? "Workspace"}
+              {currentItem?.label ?? "Workspace"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{todayLabel}</p>
           </div>
@@ -71,7 +71,7 @@ export function Header({ userName, userId, onOpenSidebar }: HeaderProps) {
           </Button>
           {userId && <NotificationBell userId={userId} />}
           <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
-          <p className="hidden text-sm font-medium text-foreground sm:block">{userName || "Pengguna"}</p>
+          <p className="hidden text-sm font-normal text-foreground sm:block">{userName || "Pengguna"}</p>
           <Button variant="outline" size="sm" onClick={handleLogout} className="shrink-0">
             <LogOut className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Keluar</span>

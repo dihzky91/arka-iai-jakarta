@@ -6,16 +6,24 @@ import { getSystemSettings } from "@/server/actions/systemSettings";
 import "@/styles/globals.css";
 
 const inter = localFont({
-  src: "../assets/fonts/inter-latin-variable.woff2",
+  src: [
+    { path: "../assets/fonts/inter-latin-400.ttf", weight: "400", style: "normal" },
+    { path: "../assets/fonts/inter-latin-500.ttf", weight: "500", style: "normal" },
+    { path: "../assets/fonts/inter-latin-600.ttf", weight: "600", style: "normal" },
+    { path: "../assets/fonts/inter-latin-700.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-inter",
-  weight: "100 900",
   display: "swap",
 });
 
 const outfit = localFont({
-  src: "../assets/fonts/outfit-latin-variable.woff2",
+  src: [
+    { path: "../assets/fonts/outfit-latin-400.ttf", weight: "400", style: "normal" },
+    { path: "../assets/fonts/outfit-latin-500.ttf", weight: "500", style: "normal" },
+    { path: "../assets/fonts/outfit-latin-600.ttf", weight: "600", style: "normal" },
+    { path: "../assets/fonts/outfit-latin-700.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-outfit",
-  weight: "100 900",
   display: "swap",
 });
 

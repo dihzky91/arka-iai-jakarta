@@ -66,7 +66,7 @@ export function BatchDeductions({
                       {deduction.description}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold">
+                  <p className="text-sm font-medium">
                     {formatCurrency(deduction.amount)}
                   </p>
                 </div>

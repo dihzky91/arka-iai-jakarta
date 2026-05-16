@@ -237,7 +237,7 @@ function AntreanPersuratanCard({ items }: { items: RecentSuratMasukItem[] }) {
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${info.className}`}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase ${info.className}`}
                 >
                   {info.label}
                 </span>
@@ -282,26 +282,26 @@ function ProfileCard({
 
   return (
     <div className="rounded-3xl bg-linear-to-br from-blue-600 to-blue-700 p-5 text-white shadow-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-blue-200">
         Profil Saya
       </p>
       <div className="mt-3 flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">
           {initials}
         </div>
         <div className="min-w-0">
-          <p className="truncate font-semibold">{name}</p>
+          <p className="truncate font-medium">{name}</p>
           <p className="text-xs text-blue-200">IAI Jakarta</p>
         </div>
       </div>
       <div className="mt-4 space-y-2.5 border-t border-white/10 pt-4 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-blue-200">Peran</span>
-          <span className="font-semibold">{roleLabel}</span>
+          <span className="font-medium">{roleLabel}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-blue-200">Status</span>
-          <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
+          <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
             TERVERIFIKASI
           </span>
         </div>
@@ -337,7 +337,7 @@ function QuickActionsCard({ data }: { data: RoleDashboardData }) {
     <section className="rounded-3xl border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <UserCheck className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">Aksi Cepat</h3>
+        <h3 className="text-sm font-medium text-foreground">Aksi Cepat</h3>
       </div>
       <div className="space-y-0.5">
         {actions.map((action) => (

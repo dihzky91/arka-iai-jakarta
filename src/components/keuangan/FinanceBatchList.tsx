@@ -760,7 +760,7 @@ function FinanceKanban({ batches }: { batches: HonorariumBatchRow[] }) {
             className="min-h-44 rounded-lg border border-border/60 bg-muted/20 p-3"
           >
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">{statusLabel(status)}</h3>
+              <h3 className="text-sm font-medium">{statusLabel(status)}</h3>
               <Badge variant="outline">{rows.length}</Badge>
             </div>
             <div className="space-y-2">

@@ -100,7 +100,7 @@ export function BatchQuantityEditor({
           {/* Info jumlah saat ini */}
           <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
             <p className="text-xs text-muted-foreground">Jumlah saat ini</p>
-            <p className="mt-1 text-2xl font-bold">{currentQuantity}</p>
+            <p className="mt-1 text-2xl font-semibold">{currentQuantity}</p>
           </div>
 
           {/* Input jumlah baru */}
@@ -147,7 +147,7 @@ export function BatchQuantityEditor({
             <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">Perhatian</p>
+                <p className="font-medium">Perhatian</p>
                 <p>
                   Pengurangan hanya diizinkan untuk batch dengan serial tertinggi. Jika
                   batch ini bukan yang terakhir, server akan menolak permintaan ini.

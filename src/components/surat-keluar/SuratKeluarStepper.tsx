@@ -533,7 +533,7 @@ export function SuratKeluarStepper({
           {row.nomorSurat ? (
             <div className="col-span-2">
               <span className="text-muted-foreground">Nomor Surat</span>
-              <p className="font-mono font-semibold text-primary">
+              <p className="font-mono font-medium text-primary">
                 {row.nomorSurat}
               </p>
             </div>
@@ -766,7 +766,7 @@ export function SuratKeluarStepper({
                 <div className="space-y-2">
                   <div className="space-y-3 rounded-md border bg-muted/30 p-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                         1
                       </div>
                       <p className="text-sm font-medium text-foreground">Nomor Surat</p>
@@ -775,7 +775,7 @@ export function SuratKeluarStepper({
                       <>
                       <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
                         <Hash className="h-4 w-4 text-primary" />
-                        <span className="font-mono text-sm font-semibold">
+                        <span className="font-mono text-sm font-medium">
                           {row.nomorSurat}
                         </span>
                         <Badge
@@ -901,7 +901,7 @@ export function SuratKeluarStepper({
 
                   <div className="space-y-3 rounded-md border bg-muted/30 p-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                         2
                       </div>
                       <p className="text-sm font-medium text-foreground">QR Verifikasi</p>
@@ -979,7 +979,7 @@ export function SuratKeluarStepper({
 
                   <div className="space-y-2 rounded-md border bg-muted/30 p-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                         3
                       </div>
                       <p className="text-sm font-medium text-foreground">File Final</p>

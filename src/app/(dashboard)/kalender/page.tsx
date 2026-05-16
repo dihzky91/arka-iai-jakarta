@@ -25,7 +25,7 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Kalender</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Kalender</h1>
         <p className="text-muted-foreground">
           Jadwal ujian, deadline disposisi, jadwal pengawas, dan event lainnya.
         </p>

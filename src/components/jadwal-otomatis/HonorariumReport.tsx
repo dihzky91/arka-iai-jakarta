@@ -306,7 +306,7 @@ function PelatihanKanban({ batches }: { batches: HonorariumBatchRow[] }) {
         const rows = batches.filter((b) => b.status === status);
         return (
           <section key={status} className="min-h-44 rounded-xl border border-border/60 bg-muted/20 p-3">
-            <div className="mb-3 flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">{statusLabel(status)}</h3><Badge variant="outline">{rows.length}</Badge></div>
+            <div className="mb-3 flex items-center justify-between gap-2"><h3 className="text-sm font-medium">{statusLabel(status)}</h3><Badge variant="outline">{rows.length}</Badge></div>
             <div className="space-y-2">{rows.length > 0 ? rows.map((b) => <Link key={b.id} href={`/jadwal-otomatis/honorarium/${b.id}`} className="block rounded-lg border border-border/60 bg-card p-3 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/40 hover:shadow-md"><div className="flex items-start justify-between gap-2"><p className="line-clamp-1 font-medium">{b.documentNumber}</p>{status === "dikirim_ke_keuangan" ? <Badge variant={slaVariant(b.waitingDays)}>{b.waitingDays}h</Badge> : null}</div><p className="mt-2 text-xs text-muted-foreground">{formatTanggalPendek(b.periodStart)} s.d. {formatTanggalPendek(b.periodEnd)}</p><p className="mt-2 font-medium">{fmtCurrency(b.netAmount)}</p></Link>) : <EmptyState icon={Kanban} description={`Belum ada batch ${statusLabel(status).toLowerCase()}.`} className="min-h-28 rounded-lg px-3 py-5 text-xs" />}</div>
           </section>
         );

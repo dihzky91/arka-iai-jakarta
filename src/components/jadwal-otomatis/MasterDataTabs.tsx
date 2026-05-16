@@ -528,7 +528,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
                     {/* Template Section */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold">Template Sesi</h3>
+                        <h3 className="text-sm font-medium">Template Sesi</h3>
                         {canManage && (
                           <div className="flex gap-2">
                             <Button size="sm" variant="outline" onClick={handleAddTemplateRow}>
@@ -603,7 +603,7 @@ export function MasterDataTabs({ programs, classTypes, canManage }: MasterDataTa
                     {/* Exam Points Section */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold">Titik Ujian</h3>
+                        <h3 className="text-sm font-medium">Titik Ujian</h3>
                         {canManage && (
                           <div className="flex gap-2">
                             <Button size="sm" variant="outline" onClick={handleAddExamPointRow}>

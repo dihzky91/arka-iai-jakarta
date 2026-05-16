@@ -95,7 +95,7 @@ export function PenilaianDetail({ data }: PenilaianDetailProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-medium tracking-tight">
             Penilaian: {data.namaKaryawan}
           </h1>
           <p className="text-muted-foreground">
@@ -118,7 +118,7 @@ export function PenilaianDetail({ data }: PenilaianDetailProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Nilai Tugas</p>
-              <p className="text-xl font-bold font-mono">
+              <p className="text-xl font-semibold font-mono">
                 {data.totalNilaiTugas
                   ? parseFloat(data.totalNilaiTugas).toFixed(1)
                   : "-"}
@@ -126,7 +126,7 @@ export function PenilaianDetail({ data }: PenilaianDetailProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Nilai Perilaku</p>
-              <p className="text-xl font-bold font-mono">
+              <p className="text-xl font-semibold font-mono">
                 {data.totalNilaiPerilaku
                   ? parseFloat(data.totalNilaiPerilaku).toFixed(1)
                   : "-"}
@@ -134,7 +134,7 @@ export function PenilaianDetail({ data }: PenilaianDetailProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Nilai Akhir</p>
-              <p className="text-2xl font-bold font-mono text-primary">
+              <p className="text-2xl font-semibold font-mono text-primary">
                 {data.nilaiAkhir
                   ? parseFloat(data.nilaiAkhir).toFixed(1)
                   : "-"}

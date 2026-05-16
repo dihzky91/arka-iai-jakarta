@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { listPengajuanCuti, type CutiRow } from "@/server/actions/cuti";
 import { approveCuti } from "@/server/actions/dingtalk/submit-leave";
+import { PreviewSuratCuti } from "./PreviewSuratCuti";
 import { APP_TIME_ZONE } from "@/lib/utils";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -61,6 +62,7 @@ export function CutiApproval() {
     id: string;
     action: "disetujui" | "ditolak";
   } | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [rejectedReason, setRejectedReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState<{
@@ -181,6 +183,14 @@ export function CutiApproval() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
+                            variant="outline"
+                            onClick={() => setPreviewId(row.id)}
+                          >
+                            <FileText className="mr-1 h-4 w-4" />
+                            Surat
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="default"
                             onClick={() =>
                               setSelectedCuti({
@@ -285,6 +295,24 @@ export function CutiApproval() {
                 : selectedCuti?.action === "disetujui"
                   ? "Setujui"
                   : "Tolak"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Preview Surat */}
+      <Dialog open={!!previewId} onOpenChange={() => setPreviewId(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preview Surat Cuti</DialogTitle>
+            <DialogDescription>
+              Tampilan surat cuti yang akan dicetak setelah disetujui.
+            </DialogDescription>
+          </DialogHeader>
+          {previewId && <PreviewSuratCuti pengajuanCutiId={previewId} />}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewId(null)}>
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -24,7 +24,7 @@ export function ModuleTabContent({
     <div className={cn("space-y-5 sm:space-y-6", className)}>
       {(title || description) && (
         <div>
-          {title && <h2 className="text-lg font-semibold text-foreground">{title}</h2>}
+          {title && <h2 className="text-lg font-medium text-foreground">{title}</h2>}
           {description && (
             <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
               {description}

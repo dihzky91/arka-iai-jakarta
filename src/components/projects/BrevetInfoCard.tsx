@@ -93,7 +93,7 @@ export function BrevetInfoCard({
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-violet-50 text-[10px] font-bold text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-violet-50 text-[10px] font-semibold text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
             B
           </span>
           Info Brevet

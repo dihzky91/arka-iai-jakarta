@@ -146,7 +146,7 @@ export function RekapDashboard({ periodes }: RekapDashboardProps) {
                 <CardDescription>Karyawan Dinilai</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-semibold">
                   {statistik.totalKaryawanDinilai}
                 </p>
               </CardContent>
@@ -156,7 +156,7 @@ export function RekapDashboard({ periodes }: RekapDashboardProps) {
                 <CardDescription>Penilaian Final</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-semibold">
                   {statistik.totalPenilaianFinalized}
                 </p>
               </CardContent>
@@ -166,7 +166,7 @@ export function RekapDashboard({ periodes }: RekapDashboardProps) {
                 <CardDescription>Rata-rata Nilai</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold font-mono">
+                <p className="text-2xl font-semibold font-mono">
                   {statistik.rataRataNilaiAkhir.toFixed(1)}
                 </p>
               </CardContent>
@@ -176,7 +176,7 @@ export function RekapDashboard({ periodes }: RekapDashboardProps) {
                 <CardDescription>Tertinggi</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold font-mono text-green-600">
+                <p className="text-2xl font-semibold font-mono text-green-600">
                   {statistik.nilaiTertinggi.toFixed(1)}
                 </p>
               </CardContent>
@@ -186,7 +186,7 @@ export function RekapDashboard({ periodes }: RekapDashboardProps) {
                 <CardDescription>Terendah</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold font-mono text-red-600">
+                <p className="text-2xl font-semibold font-mono text-red-600">
                   {statistik.nilaiTerendah.toFixed(1)}
                 </p>
               </CardContent>
@@ -258,7 +258,7 @@ export function RekapDashboard({ periodes }: RekapDashboardProps) {
                           <TableCell className="text-center font-mono">
                             {row.totalNilaiPerilaku.toFixed(1)}
                           </TableCell>
-                          <TableCell className="text-center font-mono font-bold">
+                          <TableCell className="text-center font-mono font-semibold">
                             <Badge
                               variant={
                                 row.nilaiAkhir >= 80

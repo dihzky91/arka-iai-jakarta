@@ -155,7 +155,7 @@ export function ResetPasswordClient({
               </span>
             </div>
           )}
-          <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">
+          <h1 className="mt-4 text-xl font-medium tracking-tight text-foreground">
             {appName}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -167,7 +167,7 @@ export function ResetPasswordClient({
           {success ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <CheckCircle2 className="h-12 w-12 text-success" />
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="text-lg font-medium text-foreground">
                 {isInvite ? "Akun Aktif" : "Kata Sandi Diperbarui"}
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -177,7 +177,7 @@ export function ResetPasswordClient({
           ) : (
             <>
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-lg font-medium text-foreground">
                   {heading}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">

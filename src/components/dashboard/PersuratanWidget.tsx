@@ -117,7 +117,7 @@ export function PersuratanWidget({
                   {formatTanggalPendek(item.tanggalDiterima)}
                 </span>
               </div>
-              <p className="line-clamp-1 text-sm font-semibold text-foreground">
+              <p className="line-clamp-1 text-sm font-medium text-foreground">
                 {item.perihal}
               </p>
               <p className="line-clamp-1 text-xs text-muted-foreground">
@@ -162,7 +162,7 @@ export function PersuratanWidget({
                     : "-"}
                 </span>
               </div>
-              <p className="line-clamp-1 text-sm font-semibold text-foreground">
+              <p className="line-clamp-1 text-sm font-medium text-foreground">
                 {item.perihal}
               </p>
               {item.dariUserName && (
@@ -176,7 +176,7 @@ export function PersuratanWidget({
       </section>
 
       <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-foreground">Aksi Cepat</h2>
+        <h2 className="text-lg font-medium text-foreground">Aksi Cepat</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Jalur singkat ke pekerjaan yang paling sering dipakai.
         </p>

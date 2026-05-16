@@ -36,7 +36,7 @@ export default async function Page() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Batch</p>
-            <p className="text-2xl font-bold">{stats.totalBatches}</p>
+            <p className="text-2xl font-semibold">{stats.totalBatches}</p>
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm flex items-center gap-4">
@@ -45,7 +45,7 @@ export default async function Page() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Batch Aktif</p>
-            <p className="text-2xl font-bold">{stats.activeBatches}</p>
+            <p className="text-2xl font-semibold">{stats.activeBatches}</p>
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm flex items-center gap-4">
@@ -54,7 +54,7 @@ export default async function Page() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Sertifikat</p>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-semibold">
               {stats.totalCertificates.toLocaleString("id-ID")}
             </p>
           </div>

@@ -432,7 +432,7 @@ function SummaryCard({
   return (
     <Card className="gap-4 rounded-[24px] py-4 sm:py-5">
       <CardContent className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="text-xs font-normal uppercase tracking-[0.2em] text-muted-foreground">
           {label}
         </p>
         <p className="text-2xl font-semibold text-foreground sm:text-3xl">{value}</p>

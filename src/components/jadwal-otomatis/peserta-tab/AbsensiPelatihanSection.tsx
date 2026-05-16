@@ -107,7 +107,7 @@ export function AbsensiPelatihanSection({
               <tr className="border-b border-border/60">
                 <th rowSpan={2} className="sticky left-0 z-20 min-w-48 bg-background px-3 py-2 text-left align-middle font-medium text-muted-foreground">Nama Peserta</th>
                 {absensiMonthGroups.map((group) => (
-                  <th key={group.key} colSpan={group.sessions.length} className="border-l bg-muted/30 px-2 py-2 text-center text-xs font-semibold text-foreground">{group.label}</th>
+                  <th key={group.key} colSpan={group.sessions.length} className="border-l bg-muted/30 px-2 py-2 text-center text-xs font-medium text-foreground">{group.label}</th>
                 ))}
                 <th rowSpan={2} className="sticky right-0 z-20 min-w-24 bg-background px-3 py-2 text-center align-middle font-medium text-muted-foreground">Kehadiran</th>
               </tr>
@@ -117,7 +117,7 @@ export function AbsensiPelatihanSection({
                     const { day, isValid } = getIsoDateParts(s.scheduledDate);
                     const title = [s.sessionNumber ? `Sesi ${s.sessionNumber}` : "Sesi", formatSessionDate(s.scheduledDate), s.materiName].filter(Boolean).join(" - ");
                     return (
-                      <th key={s.id} title={title} className="min-w-10 border-l px-2 py-2 text-center text-xs font-semibold text-foreground">
+                        <th key={s.id} title={title} className="min-w-10 border-l px-2 py-2 text-center text-xs font-medium text-foreground">
                         {isValid ? day : s.scheduledDate}
                       </th>
                     );
@@ -144,7 +144,7 @@ export function AbsensiPelatihanSection({
                         return (
                           <td key={s.id} className="border-l px-2 py-1.5 text-center">
                             <button
-                              className={`inline-flex h-6 w-6 items-center justify-center rounded text-xs font-bold tabular-nums ${present ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} ${canManage ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
+                              className={`inline-flex h-6 w-6 items-center justify-center rounded text-xs font-semibold tabular-nums ${present ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} ${canManage ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
                               disabled={!canManage}
                               onClick={() => onAbsensiToggle(p.id, s.id, a?.hadir)}
                               title={`${present ? "Hadir" : "Tidak hadir"} - ${formatSessionDate(s.scheduledDate)}${s.sessionNumber ? ` - Sesi ${s.sessionNumber}` : ""}`}

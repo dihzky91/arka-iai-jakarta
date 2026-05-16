@@ -2576,6 +2576,7 @@ export const pengajuanCuti = pgTable(
     jumlahHari: integer("jumlah_hari").notNull(),
     alasan: text("alasan"),
     status: statusCutiEnum("status").notNull().default("draft"),
+    approvalCode: varchar("approval_code", { length: 20 }),
     dingtalkProcessId: text("dingtalk_process_id"),
     dingtalkFormCode: text("dingtalk_form_code"),
     approvedBy: text("approved_by").references(() => users.id),

@@ -197,7 +197,7 @@ export function TemplateManager({ templates }: { templates: TemplateRow[] }) {
         <div className="space-y-3 rounded-[24px] border border-border/60 bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Editor Template</h2>
+              <h2 className="text-lg font-medium">Editor Template</h2>
               <p className="text-sm text-muted-foreground">{editorTemplate.nama}</p>
             </div>
             <Button type="button" variant="outline" onClick={() => setEditorTemplate(null)}>

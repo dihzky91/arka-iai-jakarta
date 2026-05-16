@@ -21,7 +21,7 @@ export default function DashboardError({
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
           <AlertTriangle className="h-8 w-8 text-destructive" />
         </div>
-        <h2 className="mt-5 text-xl font-semibold text-foreground">
+        <h2 className="mt-5 text-xl font-medium text-foreground">
           Terjadi Kesalahan
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">

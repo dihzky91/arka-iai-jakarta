@@ -289,7 +289,7 @@ export function CalendarDashboard({
                 >
                   <div className="flex w-full justify-start">
                     <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
                         isTodayDate 
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
                           : isCurrentMonth ? "text-foreground" : "text-muted-foreground/60"

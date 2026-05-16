@@ -53,7 +53,7 @@ export function SertifikatWidget({ metrics }: SertifikatWidgetProps) {
         <section className="rounded-[24px] border border-border/60 bg-card p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="text-lg font-medium text-foreground">
                 Kegiatan Mendatang
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">

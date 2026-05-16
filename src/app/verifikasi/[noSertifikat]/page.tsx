@@ -49,7 +49,7 @@ export default async function Page({ params }: PageProps) {
 
         <div className="mb-6 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white shadow-md">
           <CheckCircle2 className="h-6 w-6" />
-          <h1 className="text-center text-lg font-bold tracking-wide md:text-xl">
+          <h1 className="text-center text-lg font-medium tracking-wide md:text-xl">
             Verifikasi Dokumen
           </h1>
         </div>
@@ -74,19 +74,19 @@ export default async function Page({ params }: PageProps) {
                   <div className="space-y-8 p-6 md:p-8">
                     <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                       <div>
-                        <p className="mb-2 text-sm font-bold tracking-wider text-slate-400 uppercase">
+                        <p className="mb-2 text-sm font-normal tracking-wider text-slate-400 uppercase">
                           Pemilik Sertifikat
                         </p>
-                        <h2 className="text-3xl font-extrabold tracking-tight text-slate-950 md:text-4xl">
+                        <h2 className="text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
                           {result.data.nama}
                         </h2>
-                        <p className="mt-2 font-mono text-lg font-bold text-blue-600">
+                        <p className="mt-2 font-mono text-lg font-medium text-blue-600">
                           {result.data.noSertifikat}
                         </p>
                       </div>
                       <div className="inline-flex w-fit flex-col items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 p-3">
                         <CheckCircle2 className="mb-1 h-8 w-8 text-emerald-600" />
-                        <span className="text-xs font-bold tracking-wide text-emerald-700 uppercase">
+                        <span className="text-xs font-medium tracking-wide text-emerald-700 uppercase">
                           Terverifikasi
                         </span>
                       </div>
@@ -102,7 +102,7 @@ export default async function Page({ params }: PageProps) {
                           strong
                         />
                         <div>
-                          <p className="mb-2 text-xs font-bold tracking-wide text-slate-400 uppercase">
+                          <p className="mb-2 text-xs font-normal tracking-wide text-slate-400 uppercase">
                             Kategori
                           </p>
                           <Badge className="border-blue-100 bg-blue-50 px-3 py-1 text-blue-700">
@@ -110,7 +110,7 @@ export default async function Page({ params }: PageProps) {
                           </Badge>
                         </div>
                         <div>
-                          <p className="mb-2 text-xs font-bold tracking-wide text-slate-400 uppercase">
+                          <p className="mb-2 text-xs font-normal tracking-wide text-slate-400 uppercase">
                             Sebagai
                           </p>
                           <Badge variant="secondary" className="px-3 py-1">
@@ -148,14 +148,14 @@ export default async function Page({ params }: PageProps) {
                     </div>
 
                     <section className="border-t border-slate-100 pt-6">
-                      <p className="mb-4 text-xs font-bold tracking-wide text-slate-400 uppercase">
+                      <p className="mb-4 text-xs font-normal tracking-wide text-slate-400 uppercase">
                         Penandatangan
                       </p>
                       {result.data.signatories.length > 0 ? (
                         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                           {result.data.signatories.map((signatory) => (
                             <div key={signatory.id}>
-                              <p className="inline-block min-w-48 border-b-2 border-slate-200 pb-1 text-lg font-bold leading-tight text-slate-950">
+                              <p className="inline-block min-w-48 border-b-2 border-slate-200 pb-1 text-lg font-medium leading-tight text-slate-950">
                                 {signatory.nama}
                               </p>
                               {signatory.jabatan ? (
@@ -173,7 +173,7 @@ export default async function Page({ params }: PageProps) {
 
                     {result.data.kegiatan.keterangan ? (
                       <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
-                        <span className="font-semibold">Keterangan:</span>{" "}
+                        <span className="font-medium">Keterangan:</span>{" "}
                         {result.data.kegiatan.keterangan}
                       </div>
                     ) : null}
@@ -183,7 +183,7 @@ export default async function Page({ params }: PageProps) {
             ) : (
               <div className="p-10 text-center text-slate-500">
                 <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
-                <h2 className="text-lg font-bold text-slate-700">
+                <h2 className="text-lg font-medium text-slate-700">
                   Dokumen tidak ditemukan
                 </h2>
                 <p className="mt-2">
@@ -219,12 +219,12 @@ function Detail({
 }) {
   return (
     <div>
-      <p className="mb-1 text-xs font-bold tracking-wide text-slate-400 uppercase">
+      <p className="mb-1 text-xs font-normal tracking-wide text-slate-400 uppercase">
         {label}
       </p>
       <p
         className={
-          strong ? "text-lg font-bold text-slate-950" : "text-slate-800"
+          strong ? "text-lg font-medium text-slate-950" : "text-slate-800"
         }
       >
         {value}

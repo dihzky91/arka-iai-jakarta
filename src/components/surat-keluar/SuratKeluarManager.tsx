@@ -105,7 +105,7 @@ function NomorSuratCell({
 }) {
   if (row.nomorSurat) {
     return (
-      <span className="font-mono text-xs font-semibold text-primary">
+      <span className="font-mono text-xs font-medium text-primary">
         {row.nomorSurat}
       </span>
     );

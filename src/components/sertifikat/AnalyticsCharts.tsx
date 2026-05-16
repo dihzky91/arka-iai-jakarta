@@ -122,7 +122,7 @@ function StatCard({
     <Card className="rounded-[24px]">
       <CardContent className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+          <p className="text-xs font-normal tracking-[0.2em] text-muted-foreground uppercase">
             {label}
           </p>
           <p className="mt-3 text-3xl font-semibold text-foreground">{value}</p>

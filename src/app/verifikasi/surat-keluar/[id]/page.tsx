@@ -76,7 +76,7 @@ export default async function VerificationSuratKeluarPage({
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <BrandMark />
-          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-5 text-3xl font-medium tracking-tight text-slate-950 sm:text-4xl">
             Verifikasi Surat Elektronik
           </h1>
         </div>
@@ -84,10 +84,10 @@ export default async function VerificationSuratKeluarPage({
         <section className="mt-8 rounded-[28px] border border-border bg-white p-6 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.18)] sm:p-8">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
+              <p className="text-xs font-normal tracking-[0.24em] text-muted-foreground uppercase">
                 Status Verifikasi
               </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
+              <p className="mt-2 text-2xl font-medium text-slate-950">
                 {verification.label}
               </p>
             </div>
@@ -158,7 +158,7 @@ function InfoItem({
     <div
       className={`rounded-2xl border border-border bg-background px-4 py-4 ${className ?? ""}`}
     >
-      <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+      <p className="text-xs font-normal tracking-[0.2em] text-muted-foreground uppercase">
         {label}
       </p>
       <p className={`mt-2 text-sm text-foreground ${mono ? "font-mono" : ""}`}>
@@ -171,7 +171,7 @@ function InfoItem({
 function BrandMark() {
   return (
     <div className="mx-auto flex h-18 w-18 items-center justify-center rounded-[26px] border border-slate-200 bg-white shadow-sm">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/8 text-lg font-semibold text-primary">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/8 text-lg font-medium text-primary">
         IAI
       </div>
     </div>
@@ -191,7 +191,7 @@ function DetailRow({
     <div className="border-b border-slate-200 pb-4 last:border-b-0 last:pb-0 sm:grid sm:grid-cols-[170px_1fr] sm:gap-4">
       <p className="text-sm text-slate-500">{label}</p>
       <p
-        className={`mt-1 text-base text-slate-950 sm:mt-0 ${mono ? "font-mono font-semibold" : "font-medium"}`}
+        className={`mt-1 text-base text-slate-950 sm:mt-0 ${mono ? "font-mono font-medium" : "font-medium"}`}
       >
         {value}
       </p>

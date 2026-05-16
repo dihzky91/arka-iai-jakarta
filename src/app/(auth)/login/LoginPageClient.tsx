@@ -161,7 +161,7 @@ export function LoginPageClient({
               </span>
             </div>
           )}
-          <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">
+          <h1 className="mt-4 text-xl font-medium tracking-tight text-foreground">
             {appName}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -172,7 +172,7 @@ export function LoginPageClient({
         {/* Card */}
         <div className="rounded-2xl border border-border bg-card p-7 shadow-xl shadow-primary/5 sm:p-8">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-medium text-foreground">
               Masuk ke akun Anda
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">

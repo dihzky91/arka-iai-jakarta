@@ -27,7 +27,7 @@ export function EmptyState({
       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-muted-foreground shadow-sm ring-1 ring-border/60">
         <Icon className="h-5 w-5" />
       </div>
-      {title ? <h3 className="mt-4 text-sm font-semibold text-foreground">{title}</h3> : null}
+      {title ? <h3 className="mt-4 text-sm font-medium text-foreground">{title}</h3> : null}
       <p className={cn("max-w-md text-sm leading-6 text-muted-foreground", title && "mt-1")}>
         {description}
       </p>

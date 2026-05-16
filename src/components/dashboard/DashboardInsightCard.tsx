@@ -81,9 +81,9 @@ export function DashboardInsightCard({
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <h3 className="text-sm font-medium text-foreground">{title}</h3>
           {value && (
-            <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
               {value}
             </p>
           )}

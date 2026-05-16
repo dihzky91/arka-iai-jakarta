@@ -79,20 +79,20 @@ export function MetricCard({
           <Icon className={cn("h-5 w-5", styles.fg)} />
         </div>
         {delta && (
-          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
             {delta}
           </span>
         )}
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="text-xs font-normal uppercase tracking-[0.18em] text-muted-foreground">
           {label}
         </p>
-        <p className="mt-1 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           {value}
         </p>
         {hint && (
-          <p className="mt-1.5 text-sm font-medium leading-5 text-muted-foreground">{hint}</p>
+          <p className="mt-1.5 text-sm font-normal leading-5 text-muted-foreground">{hint}</p>
         )}
       </div>
     </div>
@@ -102,7 +102,7 @@ export function MetricCard({
       <div className="flex items-start justify-between gap-3">
         <p
           className={cn(
-            "font-semibold tracking-[0.18em] text-muted-foreground uppercase",
+            "font-normal tracking-[0.18em] text-muted-foreground uppercase",
             compact ? "text-[10px]" : "text-xs tracking-[0.2em]",
           )}
         >
@@ -119,7 +119,7 @@ export function MetricCard({
             <Icon className={cn(compact ? "h-4 w-4" : "h-5 w-5", styles.fg)} />
           </div>
           {delta && (
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
               {delta}
             </span>
           )}
@@ -128,7 +128,7 @@ export function MetricCard({
       <div>
         <p
           className={cn(
-            "font-bold text-foreground tracking-tight",
+            "font-semibold text-foreground tracking-tight",
             compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl",
           )}
         >
@@ -137,7 +137,7 @@ export function MetricCard({
         {hint && (
           <p
             className={cn(
-              "mt-1.5 leading-5 text-muted-foreground font-medium",
+              "mt-1.5 leading-5 text-muted-foreground font-normal",
               compact ? "text-xs" : "text-sm",
             )}
           >

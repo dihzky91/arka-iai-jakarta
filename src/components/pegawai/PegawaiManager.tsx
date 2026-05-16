@@ -229,7 +229,7 @@ export function PegawaiManager({
                         isSelected && "bg-primary/5",
                       )}
                     >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-semibold text-primary">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-medium text-primary">
                         {getInitials(row.namaLengkap)}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -323,7 +323,7 @@ export function PegawaiManager({
                         <div className="max-w-xl">
                           <div className="flex items-center gap-2">
                             <QrCode className="h-4 w-4 text-primary" />
-                            <p className="text-sm font-semibold text-foreground">
+                            <p className="text-sm font-medium text-foreground">
                               QR Contact Pegawai
                             </p>
                           </div>
@@ -488,8 +488,8 @@ function SummaryCard({ label, value, hint }: { label: string; value: string; hin
   return (
     <Card className="rounded-[24px] py-5">
       <CardContent className="space-y-2">
-        <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">{label}</p>
-        <p className="text-3xl font-semibold text-foreground">{value}</p>
+        <p className="text-xs font-normal tracking-[0.2em] text-muted-foreground uppercase">{label}</p>
+        <p className="text-3xl font-medium text-foreground">{value}</p>
         <p className="text-sm text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>

@@ -32,7 +32,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   return (
     <div className="rounded-[24px] border border-border/60 bg-card px-5 py-4 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
+      <p className="mt-1 text-2xl font-semibold">{value}</p>
       {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
@@ -82,7 +82,7 @@ export function YearlyReportView({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <BarChart2 className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Rekap Tahunan Sertifikat</h2>
+          <h2 className="text-lg font-medium">Rekap Tahunan Sertifikat</h2>
         </div>
         <div className="flex items-center gap-2">
           {isPending && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -136,7 +136,7 @@ export function YearlyReportView({
                   <TableHead>Jenis Kelas</TableHead>
                   <TableHead className="text-center">Aktif</TableHead>
                   <TableHead className="text-center">Dibatalkan</TableHead>
-                  <TableHead className="text-center font-semibold">Total</TableHead>
+                  <TableHead className="text-center font-medium">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -175,17 +175,17 @@ export function YearlyReportView({
                     ))}
 
                     {/* Baris total */}
-                    <TableRow className="border-t-2 bg-muted/30 font-semibold">
-                      <TableCell colSpan={2} className="font-semibold">
+                    <TableRow className="border-t-2 bg-muted/30 font-medium">
+                      <TableCell colSpan={2} className="font-medium">
                         TOTAL
                       </TableCell>
-                      <TableCell className="text-center text-emerald-700 font-bold dark:text-emerald-300">
+                      <TableCell className="text-center text-emerald-700 font-semibold dark:text-emerald-300">
                         {totalActive}
                       </TableCell>
-                      <TableCell className="text-center text-red-600 font-bold dark:text-red-300">
+                      <TableCell className="text-center text-red-600 font-semibold dark:text-red-300">
                         {totalCancelled}
                       </TableCell>
-                      <TableCell className="text-center font-bold">
+                      <TableCell className="text-center font-semibold">
                         {grandTotal}
                       </TableCell>
                     </TableRow>

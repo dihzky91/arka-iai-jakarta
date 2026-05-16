@@ -26,7 +26,7 @@ export default async function VerificationSuratMouPage({ params }: PageProps) {
       <div className="mx-auto max-w-3xl rounded-[32px] border border-border bg-card shadow-sm">
         <section className="border-b border-border bg-linear-to-r from-primary/10 via-primary/5 to-transparent px-6 py-8 sm:px-8">
           <Badge>Valid</Badge>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight">
+          <h1 className="mt-4 text-3xl font-medium tracking-tight">
             Verifikasi Surat MOU
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -80,7 +80,7 @@ function InfoItem({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-background px-4 py-4">
-      <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+      <p className="text-xs font-normal tracking-[0.2em] text-muted-foreground uppercase">
         {label}
       </p>
       <p className={`mt-2 text-sm text-foreground ${mono ? "font-mono" : ""}`}>

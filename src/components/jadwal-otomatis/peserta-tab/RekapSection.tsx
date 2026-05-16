@@ -37,26 +37,26 @@ export function RekapSection({ pesertaList, rekapSummary, exportPending, onExpor
       <CardContent className="pt-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="rounded-xl border border-border/60 p-4 text-center">
-            <p className="text-2xl font-bold">{rekapSummary.total}</p>
+            <p className="text-2xl font-semibold">{rekapSummary.total}</p>
             <p className="text-xs text-muted-foreground">Total Peserta</p>
           </div>
           <div className="rounded-xl border p-4 text-center border-green-200 bg-green-50">
-            <p className="text-2xl font-bold text-green-700">{rekapSummary.lulus}</p>
+            <p className="text-2xl font-semibold text-green-700">{rekapSummary.lulus}</p>
             <p className="text-xs text-muted-foreground">Lulus</p>
           </div>
           <div className="rounded-xl border p-4 text-center border-red-200 bg-red-50">
-            <p className="text-2xl font-bold text-red-600">{rekapSummary.telahMengikuti}</p>
+            <p className="text-2xl font-semibold text-red-600">{rekapSummary.telahMengikuti}</p>
             <p className="text-xs text-muted-foreground">Telah Mengikuti</p>
           </div>
           <div className="rounded-xl border p-4 text-center border-amber-200 bg-amber-50">
-            <p className="text-2xl font-bold text-amber-600">{rekapSummary.belumFinal}</p>
+            <p className="text-2xl font-semibold text-amber-600">{rekapSummary.belumFinal}</p>
             <p className="text-xs text-muted-foreground">Dalam Proses</p>
           </div>
         </div>
 
         {rekapSummary.tm.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm font-medium mb-2">Detail Telah Mengikuti:</p>
+            <p className="text-sm font-normal mb-2">Detail Telah Mengikuti:</p>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60">

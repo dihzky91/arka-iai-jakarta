@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import { pengajuanCuti, users } from "@/server/db/schema";
 import { requirePermission } from "@/server/actions/auth";
@@ -9,6 +9,17 @@ import { pengajuanCutiCreateSchema, pengajuanCutiUpdateSchema } from "@/lib/vali
 import { revalidateDashboardTag } from "@/server/actions/statistics";
 import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { validasiSaldoCuti, kurangiSaldoCuti, kembalikanSaldoCuti } from "@/server/actions/saldoCuti";
+
+/** Generate approval code: APR-2026-00001 */
+async function generateApprovalCode(tahun: number): Promise<string> {
+  const prefix = `APR-${tahun}-`;
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(pengajuanCuti)
+    .where(sql`${pengajuanCuti.approvalCode} LIKE ${prefix + '%'}`);
+  const seq = (row?.total ?? 0) + 1;
+  return `${prefix}${String(seq).padStart(5, "0")}`;
+}
 
 export async function ajukanCuti(
   input: unknown,
@@ -116,10 +127,15 @@ export async function approveCuti(input: unknown) {
   }
 
   // Update status pengajuan
+  const approvalCode = parsed.data.status === "disetujui"
+    ? await generateApprovalCode(new Date().getFullYear())
+    : null;
+
   await db
     .update(pengajuanCuti)
     .set({
       status: parsed.data.status,
+      approvalCode,
       approvedBy: session.user.id,
       approvedAt: new Date(),
       rejectedReason: parsed.data.rejectedReason ?? null,

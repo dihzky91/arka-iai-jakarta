@@ -25,7 +25,7 @@ export default function Page() {
 
         <div className="mb-6 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white shadow-md">
           <CheckCircle2 className="h-6 w-6" />
-          <h1 className="text-center text-lg font-bold tracking-wide md:text-xl">
+          <h1 className="text-center text-lg font-medium tracking-wide md:text-xl">
             Verifikasi Dokumen
           </h1>
         </div>
@@ -44,7 +44,7 @@ export default function Page() {
           </CardContent>
         </Card>
 
-        <footer className="mt-20 text-center text-sm font-medium text-slate-500">
+        <footer className="mt-20 text-center text-sm font-normal text-slate-500">
           &copy; {new Date().getFullYear()} IAI Wilayah Jakarta.
         </footer>
       </div>

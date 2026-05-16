@@ -27,7 +27,7 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
 
   return (
     <header className="flex flex-col gap-1">
-      <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
+      <h1 className="text-xl font-medium tracking-tight text-foreground sm:text-2xl">
         {greeting}
         {firstName ? `, ${firstName}!` : "!"}
       </h1>

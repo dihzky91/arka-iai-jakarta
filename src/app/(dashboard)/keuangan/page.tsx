@@ -87,7 +87,7 @@ export default async function Page() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-amber-950">
+                <p className="font-medium text-amber-950">
                   {metrics.agingAlerts.length} batch melewati SLA 7 hari
                 </p>
                 <p className="mt-1 text-sm text-amber-900">
@@ -153,12 +153,12 @@ export default async function Page() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold">{stage.label}</p>
+                      <p className="text-sm font-medium">{stage.label}</p>
                       <p className="mt-1 text-xs opacity-80">
                         {stage.description}
                       </p>
                     </div>
-                    <span className="text-2xl font-bold">{count}</span>
+                    <span className="text-2xl font-semibold">{count}</span>
                   </div>
                 </Link>
               );
@@ -204,7 +204,7 @@ export default async function Page() {
                     >
                       {metrics.oldestPending.waitingDays} hari
                     </Badge>
-                    <p className="mt-2 line-clamp-1 font-semibold">
+                    <p className="mt-2 line-clamp-1 font-medium">
                       {metrics.oldestPending.documentNumber}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -319,7 +319,7 @@ function MetricTile({
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-bold tracking-normal">{value}</p>
+        <p className="text-2xl font-semibold tracking-normal">{value}</p>
         <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>

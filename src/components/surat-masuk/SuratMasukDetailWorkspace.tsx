@@ -254,7 +254,7 @@ export function SuratMasukDetailWorkspace({
             <CardContent className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-lg font-semibold text-foreground">
+                  <p className="text-lg font-medium text-foreground">
                     {localRow.perihal}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -486,7 +486,7 @@ export function SuratMasukDetailWorkspace({
 
                 {selectedTimelineId ? (
                   <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 sm:p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
                       Parent Terpilih
                     </p>
                     <p className="mt-2 text-sm font-medium text-foreground">
@@ -573,7 +573,7 @@ function DetailItem({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <p className="text-xs font-normal uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </p>
       <p

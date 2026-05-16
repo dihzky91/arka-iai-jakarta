@@ -954,7 +954,7 @@ export function ParticipantManager({
           </form>
           {editingParticipant ? (
             <div className="mt-4 border-t border-border pt-4">
-              <h4 className="mb-3 text-sm font-semibold">Riwayat Perubahan</h4>
+              <h4 className="mb-3 text-sm font-medium">Riwayat Perubahan</h4>
               <ParticipantRevisionsTimeline participantId={editingParticipant.id} />
             </div>
           ) : null}

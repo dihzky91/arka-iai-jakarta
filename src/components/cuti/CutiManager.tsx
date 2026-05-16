@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ListChecks } from "lucide-react";
+import { Plus, ListChecks, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,7 +86,7 @@ export function CutiManager({
             <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
               <p className="text-sm text-muted-foreground">Cuti Tahunan</p>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-2xl font-bold">{saldo.tahunan.sisaCuti}</span>
+                <span className="text-2xl font-semibold">{saldo.tahunan.sisaCuti}</span>
                 <span className="text-sm text-muted-foreground">/ {saldo.tahunan.kuotaAwal} hari</span>
               </div>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -104,7 +104,7 @@ export function CutiManager({
             <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
               <p className="text-sm text-muted-foreground">Cuti Kompensasi</p>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-2xl font-bold">{saldo.kompensasi.sisa}</span>
+                <span className="text-2xl font-semibold">{saldo.kompensasi.sisa}</span>
                 <span className="text-sm text-muted-foreground">/ {saldo.kompensasi.kuota} hari</span>
               </div>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -122,7 +122,7 @@ export function CutiManager({
             <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
               <p className="text-sm text-muted-foreground">Cuti Bersama</p>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-2xl font-bold">{saldo.tahunan.cutiBersamaTerpakai}</span>
+                <span className="text-2xl font-semibold">{saldo.tahunan.cutiBersamaTerpakai}</span>
                 <span className="text-sm text-muted-foreground">hari</span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
@@ -164,12 +164,13 @@ export function CutiManager({
                     <TableHead>Hari</TableHead>
                     <TableHead>Alasan</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="p-6">
+                      <TableCell colSpan={7} className="p-6">
                         <EmptyState
                           icon={ListChecks}
                           title="Belum ada pengajuan cuti"
@@ -199,6 +200,18 @@ export function CutiManager({
                           <Badge className={STATUS_BADGE[row.status] ?? ""}>
                             {row.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {row.status === "disetujui" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(`/api/cuti/${row.id}/pdf`, "_blank")}
+                            >
+                              <FileDown className="mr-1 h-4 w-4" />
+                              PDF
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
