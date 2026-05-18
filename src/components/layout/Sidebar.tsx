@@ -26,6 +26,8 @@ import type { Capability } from "@/lib/rbac/capabilities";
 
 const SIDEBAR_COLLAPSED_KEY = "iai-sidebar-collapsed";
 const EMPTY_CAPABILITIES: Capability[] = [];
+const MODULE_STRIP_WIDTH = 80;
+const SUBMENU_PANEL_WIDTH = 220;
 
 interface SidebarProps {
   unreadDisposisiCount?: number;
@@ -135,10 +137,12 @@ export function Sidebar({
       {/* DESKTOP SIDEBAR - DUAL TIER */}
       <aside className="relative sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card lg:flex">
         <div
-          className={cn(
-            "flex h-full transition-[width] duration-300 ease-in-out",
-            desktopCollapsed ? "w-[80px]" : "w-[300px]"
-          )}
+          className="flex h-full transition-[width] duration-300 ease-in-out"
+          style={{
+            width: desktopCollapsed
+              ? MODULE_STRIP_WIDTH
+              : MODULE_STRIP_WIDTH + SUBMENU_PANEL_WIDTH,
+          }}
         >
           {/* TIER 1: Module Strip */}
           <div className="flex w-[80px] shrink-0 flex-col items-center border-r border-slate-100 bg-slate-50/60 py-6 z-10 backdrop-blur-xl">
@@ -181,8 +185,14 @@ export function Sidebar({
             <div className="mt-4 px-3">
               <button
                 onClick={() => setDesktopCollapsed(!desktopCollapsed)}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl text-slate-400 hover:bg-slate-200/60 hover:text-slate-900 transition-colors"
-                title={desktopCollapsed ? "Expand" : "Collapse"}
+                className={cn(
+                  "flex h-12 w-12 items-center justify-center rounded-2xl transition-colors",
+                  desktopCollapsed
+                    ? "bg-white text-primary shadow-sm ring-1 ring-slate-200 hover:bg-primary hover:text-white"
+                    : "text-slate-400 hover:bg-slate-200/60 hover:text-slate-900",
+                )}
+                title={desktopCollapsed ? "Tampilkan sub-menu" : "Sembunyikan sub-menu"}
+                aria-label={desktopCollapsed ? "Tampilkan sub-menu" : "Sembunyikan sub-menu"}
               >
                 {desktopCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
               </button>
@@ -194,12 +204,12 @@ export function Sidebar({
             {!desktopCollapsed && (
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 220, opacity: 1 }}
+                animate={{ width: SUBMENU_PANEL_WIDTH, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="flex h-full flex-col overflow-hidden bg-white z-0"
               >
-                <div className="w-[220px] flex h-full flex-col">
+                <div className="flex h-full w-[220px] flex-col">
                   <div className="px-6 py-8">
                     <h2 className="font-outfit text-xl font-medium text-slate-900 tracking-tight">
                       {activeSection?.title}

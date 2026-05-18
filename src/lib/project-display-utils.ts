@@ -37,15 +37,21 @@ export function canContribute(role: ProjectMemberRole | "admin") {
 export function getCaretPixelPos(el: HTMLTextAreaElement, pos: number): { top: number; left: number } {
   const style = window.getComputedStyle(el);
   const div = document.createElement("div");
+  const elRect = el.getBoundingClientRect();
+  const dropdownWidth = 224;
+
   Object.assign(div.style, {
-    position: "absolute",
-    top: "0",
-    left: "0",
+    position: "fixed",
+    top: `${elRect.top}px`,
+    left: `${elRect.left}px`,
     visibility: "hidden",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
+    overflowWrap: "break-word",
+    overflow: "hidden",
     boxSizing: style.boxSizing,
     width: style.width,
+    height: style.height,
     paddingTop: style.paddingTop,
     paddingRight: style.paddingRight,
     paddingBottom: style.paddingBottom,
@@ -59,18 +65,27 @@ export function getCaretPixelPos(el: HTMLTextAreaElement, pos: number): { top: n
     fontWeight: style.fontWeight,
     lineHeight: style.lineHeight,
     letterSpacing: style.letterSpacing,
+    textTransform: style.textTransform,
+    textIndent: style.textIndent,
+    tabSize: style.tabSize,
   });
+
   document.body.appendChild(div);
   div.textContent = el.value.slice(0, pos);
+
   const span = document.createElement("span");
-  span.textContent = "​";
+  span.textContent = "\u200b";
   div.appendChild(span);
-  const elRect = el.getBoundingClientRect();
+
   const spanRect = span.getBoundingClientRect();
   document.body.removeChild(div);
+
   return {
-    top: spanRect.bottom - elRect.top + el.scrollTop,
-    left: Math.min(Math.max(0, spanRect.left - elRect.left), elRect.width - 232),
+    top: spanRect.bottom - elRect.top - el.scrollTop,
+    left: Math.min(
+      Math.max(0, spanRect.left - elRect.left - el.scrollLeft),
+      Math.max(0, elRect.width - dropdownWidth),
+    ),
   };
 }
 

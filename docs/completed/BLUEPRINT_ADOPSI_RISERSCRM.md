@@ -9,7 +9,7 @@ Ringkasan progres setelah eksekusi Fase 0:
 | Fase 0 - Fondasi Akses | Selesai secara implementasi codebase |
 | Fase 1 - Announcement | Selesai (MVP + enhancement) |
 | Fase 2 - Invitation Lifecycle | Selesai secara implementasi codebase |
-| Fase 3 - Dashboard Preference | Belum dimulai (di-defer) |
+| Fase 3 - Dashboard Preference | Dipindah ke `docs/planned/DASHBOARD_PREFERENCE_PROJECT_CENTRIC.md` |
 | Fase 4 - Menu Dinamis + Extension | Selesai (capability-based nav live) |
 
 Fase 0 yang sudah live:
@@ -316,22 +316,16 @@ Catatan: RisersCRM menggunakan tabel `verification` dengan `type="invitation"` u
 
 ## Fase 3 — Dashboard Preference Per User
 
-### Fitur Utama
-
-1. Simpan preferensi widget per user:
-   - show/hide
-   - urutan widget
-2. Fallback default untuk user baru.
-
-### Desain UI/UX
-
-1. Tambah mode "Atur Dashboard" di halaman dashboard existing.
-2. Tetap gunakan struktur card saat ini, tidak mengubah gaya visual.
-
-### Kriteria Selesai
-
-1. Preferensi tersimpan persisten.
-2. Tidak mengganggu performa initial dashboard render.
+> **⚠️ DIPINDAHKAN**: Fase ini telah diperluas dan dipindahkan ke dokumen terpisah:  
+> **`docs/planned/DASHBOARD_PREFERENCE_PROJECT_CENTRIC.md`**  
+> 
+> Dokumen baru mencakup:
+> - Dashboard Preference (show/hide, reorder widget) — scope asli Fase 3
+> - Project-Centric Default View untuk staff (terinspirasi Rise CRM)
+> - Role-based dashboard preset (admin bisa set default per role)
+> - Logika penentuan default view berdasarkan capability
+>
+> Lihat dokumen tersebut untuk detail implementasi lengkap.
 
 ---
 

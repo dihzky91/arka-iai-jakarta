@@ -17,6 +17,10 @@ import {
   honorariumItems,
   jadwalUjian,
   pengawas,
+  projectTasks,
+  projects,
+  projectMembers,
+  calendarEvents,
 } from "@/server/db/schema";
 import {
   count,
@@ -1087,4 +1091,288 @@ async function getStatistikUjianInternal() {
     totalBulanIni: bulanIni[0]?.count ?? 0,
     totalPengawasAktif: pengawasAktif[0]?.count ?? 0,
   };
+}
+
+// ─── PROJECT-CENTRIC DASHBOARD DATA ──────────────────────────────────────────
+
+export interface ProjectCentricData {
+  // Quick Stats
+  overdueTasks: number;
+  myOpenTasks: number;
+  eventsToday: number;
+  unreadAnnouncements: number;
+
+  // Projects Overview
+  projectStats: {
+    open: number;
+    completed: number;
+    hold: number;
+    totalProgress: number;
+  };
+
+  // Tasks Overview
+  taskStats: {
+    todo: number;
+    inProgress: number;
+    done: number;
+    overdue: number;
+  };
+
+  // My Tasks (5 terbaru)
+  myTasks: {
+    id: string;
+    title: string;
+    projectId: string;
+    projectTitle: string;
+    status: "todo" | "in_progress" | "done";
+    dueDate: string | null;
+    isOverdue: boolean;
+  }[];
+
+  // Upcoming Events (7 hari ke depan)
+  upcomingEvents: {
+    id: string;
+    title: string;
+    startDate: string;
+    type: string;
+  }[];
+}
+
+async function getProjectCentricDataInternal(
+  userId: string,
+): Promise<ProjectCentricData> {
+  const todayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  const now = new Date();
+  const sevenDaysLater = new Date(now);
+  sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+
+  const todayStart = new Date(`${todayStr}T00:00:00+07:00`);
+  const todayEnd = new Date(`${todayStr}T23:59:59+07:00`);
+
+  const [
+    overdueResult,
+    openTasksResult,
+    eventsTodayResult,
+    projectStatusResult,
+    taskStatusResult,
+    overdueCountResult,
+    myTasksResult,
+    upcomingCalendarResult,
+    upcomingProjectsResult,
+  ] = await Promise.all([
+    // Overdue tasks count
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(projectTasks)
+      .where(
+        and(
+          eq(projectTasks.assigneeId, userId),
+          sql`${projectTasks.status} != 'done'`,
+          sql`${projectTasks.dueDate} < ${todayStr}`,
+        ),
+      ),
+    // Open tasks count
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(projectTasks)
+      .where(
+        and(
+          eq(projectTasks.assigneeId, userId),
+          sql`${projectTasks.status} != 'done'`,
+        ),
+      ),
+    // Events today
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(calendarEvents)
+      .where(
+        and(
+          gte(calendarEvents.startDate, todayStart),
+          lte(calendarEvents.startDate, todayEnd),
+        ),
+      ),
+    // Project stats (user's projects)
+    db
+      .select({
+        status: projects.status,
+        count: sql<number>`count(*)::int`,
+        avgProgress: sql<number>`COALESCE(AVG(${projects.progress}), 0)::int`,
+      })
+      .from(projects)
+      .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))
+      .where(eq(projectMembers.userId, userId))
+      .groupBy(projects.status),
+    // Task stats by status
+    db
+      .select({
+        status: projectTasks.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(projectTasks)
+      .where(eq(projectTasks.assigneeId, userId))
+      .groupBy(projectTasks.status),
+    // Overdue count for task stats
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(projectTasks)
+      .where(
+        and(
+          eq(projectTasks.assigneeId, userId),
+          sql`${projectTasks.status} != 'done'`,
+          sql`${projectTasks.dueDate} < ${todayStr}`,
+        ),
+      ),
+    // My tasks (5 terbaru, open, sorted by due date)
+    db
+      .select({
+        id: projectTasks.id,
+        title: projectTasks.title,
+        projectId: projectTasks.projectId,
+        projectTitle: projects.title,
+        status: projectTasks.status,
+        dueDate: projectTasks.dueDate,
+      })
+      .from(projectTasks)
+      .innerJoin(projects, eq(projectTasks.projectId, projects.id))
+      .where(
+        and(
+          eq(projectTasks.assigneeId, userId),
+          sql`${projectTasks.status} != 'done'`,
+        ),
+      )
+      .orderBy(
+        sql`CASE WHEN ${projectTasks.dueDate} IS NULL THEN 1 ELSE 0 END`,
+        asc(projectTasks.dueDate),
+        desc(projectTasks.createdAt),
+      )
+      .limit(5),
+    // Upcoming calendar events (7 days)
+    db
+      .select({
+        id: calendarEvents.id,
+        title: calendarEvents.title,
+        startDate: calendarEvents.startDate,
+        eventType: calendarEvents.eventType,
+      })
+      .from(calendarEvents)
+      .where(
+        and(
+          gte(calendarEvents.startDate, todayStart),
+          lte(calendarEvents.startDate, sevenDaysLater),
+        ),
+      )
+      .orderBy(asc(calendarEvents.startDate))
+      .limit(5),
+    // Upcoming project start dates (7 days)
+    db
+      .select({
+        id: projects.id,
+        title: projects.title,
+        startDate: projects.startDate,
+      })
+      .from(projects)
+      .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))
+      .where(
+        and(
+          eq(projectMembers.userId, userId),
+          gte(projects.startDate, todayStr),
+          lte(projects.startDate, sevenDaysLater.toISOString().slice(0, 10)),
+        ),
+      )
+      .orderBy(asc(projects.startDate))
+      .limit(5),
+  ]);
+
+  // Process project stats
+  const statusMap = new Map(
+    projectStatusResult.map((r) => [r.status, { count: r.count, avg: r.avgProgress }]),
+  );
+  const openStatuses = ["not_started", "in_progress"];
+  const openCount = openStatuses.reduce(
+    (sum, s) => sum + (statusMap.get(s)?.count ?? 0),
+    0,
+  );
+  const completedCount = statusMap.get("completed")?.count ?? 0;
+  const holdCount = statusMap.get("on_hold")?.count ?? 0;
+
+  // Calculate average progress across all active projects
+  const allCounts = projectStatusResult.reduce((sum, r) => sum + r.count, 0);
+  const weightedProgress =
+    allCounts > 0
+      ? Math.round(
+          projectStatusResult.reduce((sum, r) => sum + r.avgProgress * r.count, 0) /
+            allCounts,
+        )
+      : 0;
+
+  // Process task stats
+  const taskMap = new Map(taskStatusResult.map((r) => [r.status, r.count]));
+
+  // Process my tasks
+  const myTasks = myTasksResult.map((t) => ({
+    id: t.id,
+    title: t.title,
+    projectId: t.projectId,
+    projectTitle: t.projectTitle,
+    status: t.status as "todo" | "in_progress" | "done",
+    dueDate: t.dueDate,
+    isOverdue: t.dueDate ? t.dueDate < todayStr : false,
+  }));
+
+  // Merge upcoming events
+  const upcomingEvents: ProjectCentricData["upcomingEvents"] = [
+    ...upcomingCalendarResult.map((e) => ({
+      id: e.id,
+      title: e.title,
+      startDate: e.startDate.toISOString(),
+      type: e.eventType ?? "calendar",
+    })),
+    ...upcomingProjectsResult.map((p) => ({
+      id: p.id,
+      title: p.title,
+      startDate: p.startDate ? new Date(`${p.startDate}T00:00:00+07:00`).toISOString() : "",
+      type: "project",
+    })),
+  ]
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, 5);
+
+  return {
+    overdueTasks: overdueResult[0]?.count ?? 0,
+    myOpenTasks: openTasksResult[0]?.count ?? 0,
+    eventsToday: eventsTodayResult[0]?.count ?? 0,
+    unreadAnnouncements: 0, // Will be filled from layout-level count
+    projectStats: {
+      open: openCount,
+      completed: completedCount,
+      hold: holdCount,
+      totalProgress: weightedProgress,
+    },
+    taskStats: {
+      todo: taskMap.get("todo") ?? 0,
+      inProgress: taskMap.get("in_progress") ?? 0,
+      done: taskMap.get("done") ?? 0,
+      overdue: overdueCountResult[0]?.count ?? 0,
+    },
+    myTasks,
+    upcomingEvents,
+  };
+}
+
+const cachedProjectCentricData = unstable_cache(
+  (userId: string) => getProjectCentricDataInternal(userId),
+  [DASHBOARD_TAGS.projects],
+  { tags: [DASHBOARD_TAGS.projects], revalidate: 60 },
+);
+
+export async function getProjectCentricData(
+  userId: string,
+): Promise<ProjectCentricData> {
+  return cachedProjectCentricData(userId);
 }

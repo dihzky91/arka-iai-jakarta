@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUserAccess, getSession } from "@/server/actions/auth";
-import { getRoleDashboardData } from "@/server/actions/statistics";
+import { getRoleDashboardData, getProjectCentricData } from "@/server/actions/statistics";
+import { getUserDashboardPreferences } from "@/server/actions/dashboard-preferences";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
 
 export const metadata: Metadata = {
@@ -17,7 +18,23 @@ export default async function DashboardPage() {
   const userName = session?.user.name ?? null;
   const userId = session?.user.id ?? null;
 
-  const data = await getRoleDashboardData(capabilities, isSuperAdmin, userId);
+  const isProjectCentric =
+    !isSuperAdmin && capabilities.includes("projects:view");
 
-  return <DashboardContent data={data} userName={userName} />;
+  const [data, projectData, preferences] = await Promise.all([
+    getRoleDashboardData(capabilities, isSuperAdmin, userId),
+    isProjectCentric && userId
+      ? getProjectCentricData(userId)
+      : Promise.resolve(null),
+    getUserDashboardPreferences(),
+  ]);
+
+  return (
+    <DashboardContent
+      data={data}
+      projectData={projectData}
+      preferences={preferences}
+      userName={userName}
+    />
+  );
 }

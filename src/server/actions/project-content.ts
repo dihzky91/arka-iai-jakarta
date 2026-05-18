@@ -267,7 +267,7 @@ export async function updateComment(commentId: string, content: string) {
     .where(eq(projectComments.id, parsedCommentId))
     .limit(1);
   if (!existing) return { ok: false as const, error: "Komentar tidak ditemukan." };
-  if (existing.userId !== session.user.id && !isAdminSession(session)) {
+  if (existing.userId !== session.user.id) {
     return { ok: false as const, error: "Hanya author yang bisa mengubah komentar." };
   }
 
@@ -292,7 +292,10 @@ export async function deleteComment(commentId: string) {
 
   const role = await getProjectRole(existing.projectId, session.user.id);
   const canDelete =
-    existing.userId === session.user.id || isAdminSession(session) || role === "owner";
+    existing.userId === session.user.id ||
+    isAdminSession(session) ||
+    role === "owner" ||
+    role === "manager";
   if (!canDelete) return { ok: false as const, error: "Tidak boleh menghapus komentar." };
 
   await db.delete(projectComments).where(eq(projectComments.id, parsedCommentId));

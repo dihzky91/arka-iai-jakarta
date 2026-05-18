@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
+  Award,
+  CalendarDays,
   CheckCircle2,
   Clock,
   Copy,
@@ -167,6 +169,7 @@ export function ProjectDetail({
   const [honorariumSummary, setHonorariumSummary] = useState<HonorariumSummary | null | undefined>(initialHonorariumSummary);
   const [invoiceKuitansiSummary, setInvoiceKuitansiSummary] = useState<InvoiceKuitansiSummary | undefined>(initialInvoiceKuitansiSummary);
   const [certificateInfo, setCertificateInfo] = useState<ProjectCertificateInfo | null | undefined>(initialCertificateInfo);
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [isPending, startTransition] = useTransition();
   const role = project.currentUserProjectRole;
 
@@ -254,11 +257,48 @@ export function ProjectDetail({
     { value: "activity", icon: Clock, label: "Activity", count: null },
   ];
 
+  const summaryItems = [
+    {
+      label: `${formatTanggal(project.startDate)} - ${formatTanggal(project.endDate)}`,
+      icon: CalendarDays,
+      muted: false,
+    },
+    {
+      label: formatSKP(project.skp),
+      icon: Award,
+      muted: false,
+    },
+    {
+      label: `${members.length} anggota`,
+      icon: Users,
+      tab: "members",
+      muted: members.length === 0,
+    },
+    {
+      label: `${files.length} file`,
+      icon: Paperclip,
+      tab: "files",
+      muted: files.length === 0,
+    },
+    {
+      label: `${comments.length} komentar`,
+      icon: MessageSquare,
+      tab: "comments",
+      muted: comments.length === 0,
+    },
+    {
+      label: `${tasks.length} task`,
+      icon: CheckCircle2,
+      tab: "tasks",
+      muted: tasks.length === 0,
+    },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{PROJECT_TYPE_LABELS[project.type] ?? project.type}</Badge>
               <Badge variant="outline">{statusLabel(status)}</Badge>
@@ -275,24 +315,53 @@ export function ProjectDetail({
             <h1 className="mt-3 text-2xl font-semibold tracking-normal text-foreground">
               {project.title}
             </h1>
-            <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <span>{formatTanggal(project.startDate)} - {formatTanggal(project.endDate)}</span>
-              <span>{formatSKP(project.skp)}</span>
-              <span>{members.length} anggota</span>
-              <span>{files.length} file</span>
-              <span>{comments.length} komentar</span>
-              <span>{tasks.length} task</span>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {summaryItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.tab === activeTab;
+                const className = [
+                  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors",
+                  isActive
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : item.muted
+                      ? "border-border bg-muted/40 text-muted-foreground"
+                      : "border-border bg-background text-foreground",
+                  item.tab ? "hover:border-primary/40 hover:bg-primary/5 hover:text-primary" : "",
+                ].join(" ");
+
+                if (item.tab) {
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={className}
+                      onClick={() => setActiveTab(item.tab)}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <span key={item.label} className={className}>
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </span>
+                );
+              })}
             </div>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="h-2 w-40 overflow-hidden rounded-full bg-muted">
+            <div className="mt-4 max-w-xl">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                <span>Progress</span>
+                <span>{project.progress}% selesai</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
                   style={{ width: `${project.progress}%` }}
                 />
               </div>
-              <span className="text-sm font-medium text-muted-foreground">
-                {project.progress}%
-              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -353,7 +422,7 @@ export function ProjectDetail({
                 disabled={isPending}
               >
                 <Save className="h-4 w-4" />
-                {isTemplate ? "Template ✓" : "Jadikan Template"}
+                {isTemplate ? "Template aktif" : "Jadikan Template"}
               </Button>
             ) : null}
             <Button asChild variant="outline">
@@ -369,7 +438,7 @@ export function ProjectDetail({
         </div>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList
           variant="line"
           className="flex h-auto w-full justify-start gap-1 overflow-x-auto border-b border-border/60 bg-transparent pb-px"
@@ -486,6 +555,8 @@ export function ProjectDetail({
             projectId={project.id}
             comments={comments}
             members={members}
+            currentUserId={currentUserId}
+            canModerateComments={canManage(role)}
             canComment={canContribute(role)}
             onRefresh={refreshAll}
             pending={isPending}

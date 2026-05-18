@@ -1,36 +1,46 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
-import { Bold, Copy, Download, ExternalLink, File, FileImage, FileText, FileSpreadsheet, Archive, Italic, List, Loader2, MessageSquare, MoreHorizontal, Paperclip, UserPlus } from "lucide-react";
+import { Bold, Edit3, FileImage, Italic, List, Loader2, MessageSquare, Paperclip, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { splitMentions } from "@/lib/mention-parser";
-import { formatTanggalWaktuJakarta } from "@/lib/utils";
 import {
   createComment,
+  deleteComment,
+  updateComment,
   uploadProjectFile,
   type ProjectCommentRow,
   type ProjectMemberRow,
-  type ProjectFileRow,
 } from "@/server/actions/projects";
 import { Avatar } from "./ProjectAvatar";
 import { EmptyText } from "./shared-ui";
-import { getCaretPixelPos, getMentionContext, fileTypeIcon, fileSize } from "@/lib/project-display-utils";
+import { getCaretPixelPos, getMentionContext, fileSize } from "@/lib/project-display-utils";
 
 function CommentItem({
   comment,
   replies,
   members,
+  currentUserId,
+  canModerateComments,
   onReply,
+  onRefresh,
 }: {
   comment: ProjectCommentRow;
   replies: ProjectCommentRow[];
   members: ProjectMemberRow[];
+  currentUserId: string;
+  canModerateComments: boolean;
   onReply: () => void;
+  onRefresh: () => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [isPending, startTransition] = useTransition();
+  const canEdit = comment.authorId === currentUserId;
+  const canDelete = canEdit || canModerateComments;
   const memberMap = useMemo(() => {
     const map = new Map<string, ProjectMemberRow>();
     for (const m of members) map.set(m.userId, m);
@@ -51,6 +61,32 @@ function CommentItem({
 
   const parts = useMemo(() => splitMentions(comment.content), [comment.content]);
 
+  function saveEdit() {
+    startTransition(async () => {
+      const result = await updateComment(comment.id, editContent);
+      if (result.ok) {
+        setIsEditing(false);
+        toast.success("Komentar berhasil diperbarui.");
+        onRefresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function removeComment() {
+    if (!window.confirm("Hapus komentar ini?")) return;
+    startTransition(async () => {
+      const result = await deleteComment(comment.id);
+      if (result.ok) {
+        toast.success("Komentar berhasil dihapus.");
+        onRefresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   return (
     <article className="rounded-xl border border-border/60 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -65,32 +101,94 @@ function CommentItem({
             </p>
           </div>
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={onReply}>
-          Reply
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button type="button" variant="ghost" size="sm" onClick={onReply}>
+            Reply
+          </Button>
+          {canEdit ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              disabled={isPending}
+              onClick={() => {
+                setEditContent(comment.content);
+                setIsEditing(true);
+              }}
+              title="Edit komentar"
+            >
+              <Edit3 className="h-4 w-4" />
+            </Button>
+          ) : null}
+          {canDelete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              disabled={isPending}
+              onClick={removeComment}
+              title="Hapus komentar"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
       </div>
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
-        {parts.map((part, index) => {
-          if (part.mention) {
-            const mentionedName = part.text.replace("@", "");
-            const mentionedMember = Array.from(memberMap.values()).find(
-              (m) => m.namaLengkap === mentionedName,
-            );
-            return (
-              <span
-                key={index}
-                className="inline-flex items-center gap-1 rounded bg-primary/10 px-1 font-medium text-primary"
-              >
-                {mentionedMember ? (
-                  <Avatar name={mentionedMember.namaLengkap} avatarUrl={mentionedMember.avatarUrl} />
-                ) : null}
-                {part.text}
-              </span>
-            );
-          }
-          return <span key={index}>{part.text}</span>;
-        })}
-      </div>
+      {isEditing ? (
+        <div className="mt-3 space-y-2">
+          <Textarea
+            value={editContent}
+            onChange={(event) => setEditContent(event.target.value)}
+            className="min-h-24"
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={!editContent.trim() || isPending}
+              onClick={saveEdit}
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Simpan
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isPending}
+              onClick={() => setIsEditing(false)}
+            >
+              <X className="h-4 w-4" />
+              Batal
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
+          {parts.map((part, index) => {
+            if (part.mention) {
+              const mentionedName = part.text.replace("@", "");
+              const mentionedMember = Array.from(memberMap.values()).find(
+                (m) => m.namaLengkap === mentionedName,
+              );
+              return (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 rounded bg-primary/10 px-1 font-medium text-primary"
+                >
+                  {mentionedMember ? (
+                    <Avatar name={mentionedMember.namaLengkap} avatarUrl={mentionedMember.avatarUrl} />
+                  ) : null}
+                  {part.text}
+                </span>
+              );
+            }
+            return <span key={index}>{part.text}</span>;
+          })}
+        </div>
+      )}
       {comment.attachments.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {comment.attachments.map((attachment) => {
@@ -118,7 +216,16 @@ function CommentItem({
       {replies.length ? (
         <div className="mt-4 space-y-3 border-l-2 border-border/60 pl-4">
           {replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} replies={[]} members={members} onReply={onReply} />
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              replies={[]}
+              members={members}
+              currentUserId={currentUserId}
+              canModerateComments={canModerateComments}
+              onReply={onReply}
+              onRefresh={onRefresh}
+            />
           ))}
         </div>
       ) : null}
@@ -130,6 +237,8 @@ export function CommentSection({
   projectId,
   comments,
   members,
+  currentUserId,
+  canModerateComments,
   canComment,
   onRefresh,
   pending,
@@ -137,6 +246,8 @@ export function CommentSection({
   projectId: string;
   comments: ProjectCommentRow[];
   members: ProjectMemberRow[];
+  currentUserId: string;
+  canModerateComments: boolean;
   canComment: boolean;
   onRefresh: () => void;
   pending: boolean;
@@ -438,7 +549,10 @@ export function CommentSection({
             comment={comment}
             replies={repliesByParent.get(comment.id) ?? []}
             members={members}
+            currentUserId={currentUserId}
+            canModerateComments={canModerateComments}
             onReply={() => setReplyTo(comment.id)}
+            onRefresh={onRefresh}
           />
         ))}
         {comments.length === 0 ? (

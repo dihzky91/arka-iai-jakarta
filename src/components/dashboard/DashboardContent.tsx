@@ -27,20 +27,36 @@ import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardActivityList } from "@/components/dashboard/DashboardActivityList";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { ProjectCentricRingkasan } from "@/components/dashboard/ProjectCentricRingkasan";
+import { DashboardCustomizeDrawer } from "@/components/dashboard/DashboardCustomizeDrawer";
 import { useDashboard } from "@/components/dashboard/DashboardContext";
-import type { RoleDashboardData, RecentSuratMasukItem } from "@/server/actions/statistics";
+import type { RoleDashboardData, RecentSuratMasukItem, ProjectCentricData } from "@/server/actions/statistics";
+import type { UserWidgetPreference } from "@/lib/dashboard-widgets";
 
 interface DashboardContentProps {
   data: RoleDashboardData;
+  projectData?: ProjectCentricData | null;
+  preferences?: UserWidgetPreference[] | null;
   userName: string | null;
 }
 
-export function DashboardContent({ data, userName }: DashboardContentProps) {
+export function DashboardContent({ data, projectData, preferences, userName }: DashboardContentProps) {
+  const { capabilities, isSuperAdmin } = useDashboard();
+  const isProjectCentric = !!projectData;
+
   return (
     <div className="space-y-5 sm:space-y-6">
-      <DashboardHeader userName={userName} />
+      <div className="flex items-start justify-between gap-4">
+        <DashboardHeader userName={userName} />
+        <DashboardCustomizeDrawer
+          preferences={preferences ?? null}
+          capabilities={capabilities}
+          isSuperAdmin={isSuperAdmin}
+          isProjectCentric={isProjectCentric}
+        />
+      </div>
       <DashboardTabs
-        ringkasan={<RingkasanTab data={data} userName={userName} />}
+        ringkasan={<RingkasanTab data={data} projectData={projectData ?? null} userName={userName} />}
         persuratan={
           data.persuratan ? (
             <PersuratanWidget
@@ -93,13 +109,38 @@ export function DashboardContent({ data, userName }: DashboardContentProps) {
 
 function RingkasanTab({
   data,
+  projectData,
   userName,
 }: {
   data: RoleDashboardData;
+  projectData: ProjectCentricData | null;
   userName: string | null;
 }) {
   const { userRole, isSuperAdmin } = useDashboard();
 
+  // Staff/Pejabat with projects:view → project-centric dashboard
+  if (projectData) {
+    return (
+      <div className="space-y-6">
+        <ProjectCentricRingkasan data={projectData} userName={userName} />
+
+        {/* Keep Profile + Quick Actions in a sidebar section below */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+          <div />
+          <div className="space-y-4">
+            <ProfileCard
+              userName={userName}
+              userRole={userRole}
+              isSuperAdmin={isSuperAdmin}
+            />
+            <QuickActionsCard data={data} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin/SuperAdmin → existing overview layout
   return (
     <div className="space-y-6">
       {/* Hero 4 metric cards */}

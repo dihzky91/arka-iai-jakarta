@@ -189,6 +189,27 @@ export const roleCapabilities = pgTable(
   }),
 );
 
+// ─── DASHBOARD PREFERENCES ───────────────────────────────────────────────────
+
+export const userDashboardPreferences = pgTable(
+  "user_dashboard_preferences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    widgetKey: varchar("widget_key", { length: 50 }).notNull(),
+    visible: boolean("visible").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("user_dashboard_pref_user_idx").on(t.userId),
+    uniq: uniqueIndex("user_dashboard_pref_unique").on(t.userId, t.widgetKey),
+  }),
+);
+
 // ─── USERS (akun login + data dasar pegawai) ─────────────────────────────────
 
 export const users = pgTable("users", {
