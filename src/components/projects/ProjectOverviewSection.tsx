@@ -45,6 +45,7 @@ export function Overview({
   honorariumSummary,
   invoiceKuitansiSummary,
   certificateInfo,
+  pplSummary,
   canManage,
   projectId,
   onRefresh,
@@ -58,6 +59,7 @@ export function Overview({
   honorariumSummary?: HonorariumSummary | null;
   invoiceKuitansiSummary?: InvoiceKuitansiSummary;
   certificateInfo?: ProjectCertificateInfo | null;
+  pplSummary?: { kegiatanId: number; namaKegiatan: string; kategoriPpl: string; tanggalMulai: string; tanggalSelesai: string; skp: number; pendaftar: number; realisasiHadir: number; conversionRate: number | null; responseCount: number; narasumberCount: number } | null;
   canManage?: boolean;
   projectId?: string;
   onRefresh?: () => void;
@@ -137,6 +139,50 @@ export function Overview({
             canManage={canManage ?? false}
             onRefresh={onRefresh}
           />
+        ) : null}
+        {pplSummary ? (
+          <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-primary text-xs font-bold">P</span>
+              PPL Evaluasi
+            </h3>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Kategori</dt>
+                <dd className="font-medium">{pplSummary.kategoriPpl}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">SKP</dt>
+                <dd className="font-medium">{pplSummary.skp}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Pendaftar</dt>
+                <dd className="font-medium">{pplSummary.pendaftar}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Hadir</dt>
+                <dd className="font-medium">{pplSummary.realisasiHadir}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Conversion</dt>
+                <dd className="font-medium">{pplSummary.conversionRate != null ? `${pplSummary.conversionRate.toFixed(1)}%` : "N/A"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Respons</dt>
+                <dd className="font-medium">{pplSummary.responseCount}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Narasumber</dt>
+                <dd className="font-medium">{pplSummary.narasumberCount}</dd>
+              </div>
+            </dl>
+            <a
+              href={`/ppl-evaluasi/${pplSummary.kegiatanId}`}
+              className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Lihat detail kegiatan →
+            </a>
+          </div>
         ) : null}
         {projectId ? (
           <HonorariumCard

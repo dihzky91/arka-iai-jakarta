@@ -23,6 +23,7 @@ import {
   listProjectMilestones,
   listProjectTimesheets,
 } from "@/server/actions/projects";
+import { getPplSummaryByProject } from "@/server/actions/ppl-evaluasi/project-sync";
 
 export const metadata: Metadata = {
   title: "Detail Project | ARKA",
@@ -58,6 +59,7 @@ export default async function Page({
     honorariumSummary,
     invoiceKuitansiSummary,
     certificateInfo,
+    pplSummary,
   ] = await Promise.all([
     getProjectMembers(id),
     listComments(id),
@@ -76,6 +78,7 @@ export default async function Page({
     getHonorariumSummaryByProject(id).catch(() => null),
     getInvoicesByProject(id),
     getProjectCertificateInfo(id).catch(() => null),
+    getPplSummaryByProject(id).catch(() => null),
   ]);
 
   return (
@@ -100,6 +103,7 @@ export default async function Page({
         initialHonorariumSummary={honorariumSummary}
         initialInvoiceKuitansiSummary={invoiceKuitansiSummary}
         initialCertificateInfo={certificateInfo}
+        initialPplSummary={pplSummary}
         defaultTab={tab ?? "overview"}
       />
     </PageWrapper>

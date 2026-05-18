@@ -11,7 +11,7 @@ import {
 } from "@/server/db/schema";
 import { createKegiatanSchema } from "@/lib/validators/ppl-evaluasi";
 import { computeConversionRate } from "@/lib/ppl-conversion-rate";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import type {
   ActionResult,
   CreateKegiatanInput,
@@ -36,7 +36,7 @@ function calculateSkp(tanggalMulai: string, tanggalSelesai: string): number {
 export async function createKegiatan(
   data: CreateKegiatanInput,
 ): Promise<ActionResult<{ id: number }>> {
-  const session = await requireSession();
+  const session = await requirePermission("pplEvaluasi", "create");
 
   const parsed = createKegiatanSchema.safeParse(data);
   if (!parsed.success) {
@@ -70,6 +70,23 @@ export async function createKegiatan(
     return { ok: false, error: "Gagal membuat kegiatan" };
   }
 
+  // Auto-create linked project for collaboration
+  try {
+    const { createProjectForKegiatan } = await import("./project-sync");
+    await createProjectForKegiatan(row.id, {
+      namaKegiatan: input.namaKegiatan,
+      kategoriPpl: input.kategoriPpl,
+      tipePelaksanaan: input.tipePelaksanaan,
+      tanggalMulai: input.tanggalMulai,
+      tanggalSelesai: input.tanggalSelesai,
+      lokasi: input.lokasi,
+      skp,
+    }, session.user.id);
+  } catch (err) {
+    // Project creation failure should not block kegiatan creation
+    console.error("[createKegiatan] Auto-create project failed:", err);
+  }
+
   revalidatePath("/ppl-evaluasi");
   return { ok: true, data: { id: row.id } };
 }
@@ -80,7 +97,7 @@ export async function updateKegiatan(
   id: number,
   data: UpdateKegiatanInput,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "update");
 
   // Check if kegiatan exists and is not archived
   const [existing] = await db
@@ -138,6 +155,20 @@ export async function updateKegiatan(
 
   await db.update(pplKegiatan).set(updateSet).where(eq(pplKegiatan.id, id));
 
+  // Sync changes to linked project
+  try {
+    const { syncKegiatanToProject } = await import("./project-sync");
+    await syncKegiatanToProject(id, {
+      namaKegiatan: data.namaKegiatan,
+      tanggalMulai: data.tanggalMulai,
+      tanggalSelesai: data.tanggalSelesai,
+      lokasi: data.lokasi,
+      tipePelaksanaan: data.tipePelaksanaan,
+    });
+  } catch (err) {
+    console.error("[updateKegiatan] Sync to project failed:", err);
+  }
+
   revalidatePath("/ppl-evaluasi");
   revalidatePath(`/ppl-evaluasi/${id}`);
   return { ok: true };
@@ -146,7 +177,7 @@ export async function updateKegiatan(
 // ─── DELETE KEGIATAN ─────────────────────────────────────────────────────────
 
 export async function deleteKegiatan(id: number): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "delete");
 
   const [existing] = await db
     .select({ id: pplKegiatan.id })
@@ -185,6 +216,14 @@ export async function deleteKegiatan(id: number): Promise<ActionResult> {
       .set({ statusEvent: "archived", updatedAt: new Date() })
       .where(eq(pplKegiatan.id, id));
 
+    // Sync: set linked project status to "completed"
+    try {
+      const { archiveLinkedProject } = await import("./project-sync");
+      await archiveLinkedProject(id);
+    } catch (err) {
+      console.error("[deleteKegiatan] Archive project sync failed:", err);
+    }
+
     revalidatePath("/ppl-evaluasi");
     return { ok: true };
   }
@@ -201,7 +240,7 @@ export async function deleteKegiatan(id: number): Promise<ActionResult> {
 export async function listKegiatan(
   opts: ListKegiatanOpts = {},
 ): Promise<PaginatedResult<KegiatanRow>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const page = opts.page ?? 1;
   const pageSize = opts.pageSize ?? 10;
@@ -268,7 +307,7 @@ export async function listKegiatan(
 // ─── GET KEGIATAN ────────────────────────────────────────────────────────────
 
 export async function getKegiatan(id: number): Promise<KegiatanDetail | null> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const [row] = await db
     .select({

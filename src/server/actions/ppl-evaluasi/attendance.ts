@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { pplKegiatan } from "@/server/db/schema";
 import { attendanceSchema } from "@/lib/validators/ppl-evaluasi";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import type { ActionResult, AttendanceInput } from "./types";
 
 // ─── UPDATE ATTENDANCE ───────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ export async function updateAttendance(
   kegiatanId: number,
   data: AttendanceInput,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Validate input
   const parsed = attendanceSchema.safeParse(data);

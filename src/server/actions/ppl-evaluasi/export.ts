@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
@@ -8,7 +8,7 @@ import {
   pplKuesionerResponse,
   pplKuesionerTemplate,
 } from "@/server/db/schema";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import type { FormField } from "@/components/ppl-evaluasi/form-builder/types";
 import type { ActionResult, DashboardFilter } from "./types";
 import {
@@ -22,7 +22,7 @@ import {
 import { computeConversionRate } from "@/lib/ppl-conversion-rate";
 import { computePopularityScore } from "@/server/lib/ppl-analytics";
 
-// ─── TYPES ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ TYPES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ExportFileResult {
   fileName: string;
@@ -30,7 +30,7 @@ export interface ExportFileResult {
   mimeType: string;
 }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function fetchResponsesForKegiatan(kegiatanId: number): Promise<{
   fields: FormField[];
@@ -96,7 +96,7 @@ async function fetchResponsesForKegiatan(kegiatanId: number): Promise<{
   return { fields, responses, kegiatanNama: kegiatan.namaKegiatan };
 }
 
-// ─── EXPORT RESPONSES CSV ────────────────────────────────────────────────────
+// â”€â”€â”€ EXPORT RESPONSES CSV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Export kuesioner responses for a Kegiatan as CSV with UTF-8 BOM.
@@ -106,7 +106,7 @@ async function fetchResponsesForKegiatan(kegiatanId: number): Promise<{
 export async function exportResponsesCsv(
   kegiatanId: number,
 ): Promise<ActionResult<ExportFileResult>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "export");
 
   const data = await fetchResponsesForKegiatan(kegiatanId);
 
@@ -136,7 +136,7 @@ export async function exportResponsesCsv(
   };
 }
 
-// ─── EXPORT RESPONSES XLSX ───────────────────────────────────────────────────
+// â”€â”€â”€ EXPORT RESPONSES XLSX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Export kuesioner responses for a Kegiatan as XLSX with summary sheet.
@@ -146,7 +146,7 @@ export async function exportResponsesCsv(
 export async function exportResponsesXlsx(
   kegiatanId: number,
 ): Promise<ActionResult<ExportFileResult>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "export");
 
   const data = await fetchResponsesForKegiatan(kegiatanId);
 
@@ -176,7 +176,7 @@ export async function exportResponsesXlsx(
   };
 }
 
-// ─── EXPORT PROGRAM TAHUNAN ──────────────────────────────────────────────────
+// â”€â”€â”€ EXPORT PROGRAM TAHUNAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Export Program Tahunan recommendations as PDF or XLSX.
@@ -187,7 +187,7 @@ export async function exportProgramTahunan(
   filter: DashboardFilter,
   format: "pdf" | "xlsx",
 ): Promise<ActionResult<ExportFileResult>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "export");
 
   // Fetch all kegiatan within the filter range
   const allKegiatan = await db

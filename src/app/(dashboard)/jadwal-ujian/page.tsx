@@ -14,6 +14,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  // getSession() and getSystemSettings() use React cache() so they
+  // deduplicate with the layout calls within the same request.
   const [
     session,
     ujianResult,

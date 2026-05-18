@@ -4,6 +4,7 @@ import {
   computeGridAnalytics,
   computeChoiceAnalytics,
   computePopularityScore,
+  type GridResponse,
 } from "@/server/lib/ppl-analytics";
 import { computeConversionRate } from "@/lib/ppl-conversion-rate";
 
@@ -116,7 +117,7 @@ describe("computeGridAnalytics", () => {
 
   it("handles missing row values gracefully", () => {
     // Respondent 2 didn't answer "Penyampaian baik"
-    const responses = [
+    const responses: GridResponse[] = [
       { "Materi jelas": 3, "Penyampaian baik": 4 },
       { "Materi jelas": 2 },
     ];

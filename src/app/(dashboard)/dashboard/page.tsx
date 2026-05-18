@@ -9,6 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
+  // getSession() and getCurrentUserAccess() use React cache(),
+  // so they deduplicate with the layout calls within the same request.
   const [access, session] = await Promise.all([
     getCurrentUserAccess(),
     getSession(),

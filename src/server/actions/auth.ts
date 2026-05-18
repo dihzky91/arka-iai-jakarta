@@ -39,7 +39,8 @@ export type PermissionModule =
   | "saldoCuti"
   | "invoice"
   | "kuitansi"
-  | "penilaianKinerja";
+  | "penilaianKinerja"
+  | "pplEvaluasi";
 
 export type PermissionAction =
   | "view"
@@ -238,6 +239,14 @@ const PERMISSION_TO_CAPABILITY: Record<
     approve: "penilaian_kinerja:approve",
     manage: "penilaian_kinerja:manage",
     export: "penilaian_kinerja:export",
+  },
+  pplEvaluasi: {
+    view: "ppl_evaluasi:view",
+    create: "ppl_evaluasi:manage",
+    update: "ppl_evaluasi:manage",
+    delete: "ppl_evaluasi:manage",
+    manage: "ppl_evaluasi:manage",
+    export: "ppl_evaluasi:export",
   },
 };
 

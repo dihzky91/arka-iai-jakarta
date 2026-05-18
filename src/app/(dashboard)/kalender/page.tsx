@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { CalendarDashboard } from "@/components/calendar/CalendarDashboard";
-import {
-  getCalendarEvents,
-  backfillCalendarEvents,
-} from "@/server/actions/calendar";
+import { getCalendarEvents } from "@/server/actions/calendar";
 import { getSession } from "@/server/actions/auth";
 
 export const metadata: Metadata = {
@@ -14,12 +11,19 @@ export default async function CalendarPage() {
   const session = await getSession();
   const userId = session?.user?.id as string | undefined;
 
-  // Backfill data ujian/pengawas yang sudah ada ke calendar (hanya sekali)
-  await backfillCalendarEvents();
+  // Only fetch events within a reasonable range (3 months back + 3 months ahead)
+  // instead of loading ALL events from the database
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setMonth(startDate.getMonth() - 3);
+  const endDate = new Date(now);
+  endDate.setMonth(endDate.getMonth() + 3);
 
   const events = await getCalendarEvents({
     userId,
     includePublic: true,
+    startDate,
+    endDate,
   });
 
   return (

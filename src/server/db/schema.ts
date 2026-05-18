@@ -839,6 +839,9 @@ export const projects = pgTable(
     kelasUjianId: text("kelas_ujian_id").references(() => kelasUjian.id, {
       onDelete: "set null",
     }),
+    pplKegiatanId: integer("ppl_kegiatan_id").references(() => pplKegiatan.id, {
+      onDelete: "set null",
+    }),
     progress: integer("progress").notNull().default(0),
     isTemplate: boolean("is_template").notNull().default(false),
     templateSourceId: uuid("template_source_id").references((): AnyPgColumn => projects.id, {
@@ -858,6 +861,10 @@ export const projects = pgTable(
     kelasUjianUniq: uniqueIndex("projects_kelas_ujian_unique_idx")
       .on(t.kelasUjianId)
       .where(sql`kelas_ujian_id IS NOT NULL`),
+    pplKegiatanIdx: index("projects_ppl_kegiatan_idx").on(t.pplKegiatanId),
+    pplKegiatanUniq: uniqueIndex("projects_ppl_kegiatan_unique_idx")
+      .on(t.pplKegiatanId)
+      .where(sql`ppl_kegiatan_id IS NOT NULL`),
   }),
 );
 

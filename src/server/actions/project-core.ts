@@ -30,6 +30,7 @@ import {
   attachProjectMeta,
   mapProjectBase,
   assertKelasUjianUnique,
+  assertPplKegiatanUnique,
   logProjectActivity,
   notifyProjectUser,
   requireProjectMember,
@@ -249,6 +250,11 @@ export async function createProject(data: unknown) {
       if (conflict) return { ok: false as const, error: conflict };
     }
 
+    if (parsed.pplKegiatanId) {
+      const conflict = await assertPplKegiatanUnique(parsed.pplKegiatanId);
+      if (conflict) return { ok: false as const, error: conflict };
+    }
+
     const [row] = await db
       .insert(projects)
       .values({
@@ -272,6 +278,7 @@ export async function createProject(data: unknown) {
         halfDaySkp: parsed.halfDaySkp ?? null,
         eventId: parsed.eventId ?? null,
         kelasUjianId: parsed.kelasUjianId ?? null,
+        pplKegiatanId: parsed.pplKegiatanId ?? null,
         createdBy: session.user.id,
         updatedAt: new Date(),
       })
@@ -320,6 +327,11 @@ export async function updateProject(id: string, data: unknown) {
       if (conflict) return { ok: false as const, error: conflict };
     }
 
+    if (parsed.pplKegiatanId) {
+      const conflict = await assertPplKegiatanUnique(parsed.pplKegiatanId, projectId);
+      if (conflict) return { ok: false as const, error: conflict };
+    }
+
     const [row] = await db
       .update(projects)
       .set({
@@ -343,6 +355,7 @@ export async function updateProject(id: string, data: unknown) {
         halfDaySkp: parsed.halfDaySkp ?? null,
         eventId: parsed.eventId ?? null,
         kelasUjianId: parsed.kelasUjianId ?? null,
+        pplKegiatanId: parsed.pplKegiatanId ?? null,
         updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId))

@@ -55,7 +55,9 @@ export function Sidebar({
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [hasLoadedCollapsedState, setHasLoadedCollapsedState] = useState(false);
   const pathnameFromHook = usePathname();
-  const pathname = pathnameProp ?? pathnameFromHook;
+  // Always prefer the client-side pathname (usePathname) as it's always accurate.
+  // The prop is only used as SSR fallback but can be stale (defaults to /dashboard).
+  const pathname = pathnameFromHook ?? pathnameProp ?? "/dashboard";
   const appName =
     systemIdentity?.namaSistem ??
     process.env.NEXT_PUBLIC_APP_NAME ??
@@ -91,7 +93,13 @@ export function Sidebar({
   );
 
   // Tier 1 Active Section State
-  const [activeSectionTitle, setActiveSectionTitle] = useState<string | null>(null);
+  const [activeSectionTitle, setActiveSectionTitle] = useState<string | null>(() => {
+    // Initialize from pathname to avoid flash on refresh
+    const match = visibleSections.find((s) =>
+      s.items.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
+    );
+    return match?.title ?? visibleSections[0]?.title ?? null;
+  });
 
   // Auto-select active section based on pathname
   useEffect(() => {
@@ -100,8 +108,6 @@ export function Sidebar({
     );
     if (match) {
       setActiveSectionTitle(match.title);
-    } else if (visibleSections.length > 0 && !activeSectionTitle) {
-      setActiveSectionTitle(visibleSections[0]!.title);
     }
   }, [pathname, visibleSections]);
 
@@ -216,16 +222,33 @@ export function Sidebar({
                     </h2>
                   </div>
                   <nav className="flex-1 overflow-y-auto px-4 pb-6">
-                    <ul className="space-y-2">
-                      {activeSection?.items.map((item) => {
-                        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                        const unreadCount =
-                          (item.href === "/disposisi" ? unreadDisposisiCount : 0) +
-                          (item.href === "/pengumuman" ? unreadAnnouncementCount : 0);
+                    <ul className="space-y-1">
+                      {(() => {
+                        // Compute best matching item once (longest href match)
+                        const matchingItems = (activeSection?.items ?? []).filter(
+                          (i) => i.active && (pathname === i.href || pathname.startsWith(`${i.href}/`))
+                        );
+                        const bestMatchHref = [...matchingItems].sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+
+                        let lastGroup: string | undefined;
+                        return activeSection?.items.map((item) => {
+                          const isActive = bestMatchHref !== null && bestMatchHref === item.href;
+                          const unreadCount =
+                            (item.href === "/disposisi" ? unreadDisposisiCount : 0) +
+                            (item.href === "/pengumuman" ? unreadAnnouncementCount : 0);
+
+                          // Render group separator if group changed
+                          const showGroupLabel = item.group && item.group !== lastGroup;
+                          if (item.group) lastGroup = item.group;
 
                         if (!item.active) {
                           return (
                             <li key={item.href}>
+                              {showGroupLabel && (
+                                <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">
+                                  {item.group}
+                                </p>
+                              )}
                               <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-slate-400 opacity-80">
                                 <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
                                 <span className="flex-1 font-normal">{item.label}</span>
@@ -237,6 +260,11 @@ export function Sidebar({
 
                         return (
                           <li key={item.href}>
+                            {showGroupLabel && (
+                              <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">
+                                {item.group}
+                              </p>
+                            )}
                             <Link
                               href={item.href}
                               className={cn(
@@ -268,7 +296,8 @@ export function Sidebar({
                             </Link>
                           </li>
                         );
-                      })}
+                      });
+                      })()}
                     </ul>
                   </nav>
                   
@@ -324,10 +353,24 @@ export function Sidebar({
                      {section.title}
                   </h3>
                   <ul className="space-y-1">
-                    {section.items.map((item) => {
-                      const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    {(() => {
+                      const matchingItems = section.items.filter(
+                        (i) => i.active && (pathname === i.href || pathname.startsWith(`${i.href}/`))
+                      );
+                      const bestMatchHref = matchingItems.sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
+                      let lastGroup: string | undefined;
+                      return section.items.map((item) => {
+                      const isActive = bestMatchHref === item.href;
+                      const showGroupLabel = item.group && item.group !== lastGroup;
+                      if (item.group) lastGroup = item.group;
                       return (
                         <li key={item.href}>
+                          {showGroupLabel && (
+                            <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">
+                              {item.group}
+                            </p>
+                          )}
                           <Link
                             href={item.href}
                             onClick={() => onMobileOpenChange?.(false)}
@@ -342,7 +385,8 @@ export function Sidebar({
                           </Link>
                         </li>
                       );
-                    })}
+                    });
+                    })()}
                   </ul>
                 </div>
               ))}

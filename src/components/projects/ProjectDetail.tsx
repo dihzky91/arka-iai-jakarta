@@ -127,6 +127,7 @@ export function ProjectDetail({
   initialHonorariumSummary,
   initialInvoiceKuitansiSummary,
   initialCertificateInfo,
+  initialPplSummary,
   defaultTab = "overview",
 }: {
   project: ProjectDetailRow;
@@ -148,6 +149,7 @@ export function ProjectDetail({
   initialHonorariumSummary?: HonorariumSummary | null;
   initialInvoiceKuitansiSummary?: InvoiceKuitansiSummary;
   initialCertificateInfo?: ProjectCertificateInfo | null;
+  initialPplSummary?: { kegiatanId: number; namaKegiatan: string; kategoriPpl: string; tanggalMulai: string; tanggalSelesai: string; skp: number; pendaftar: number; realisasiHadir: number; conversionRate: number | null; responseCount: number; narasumberCount: number } | null;
   defaultTab?: string;
 }) {
   const [status, setStatus] = useState(project.status);
@@ -470,6 +472,7 @@ export function ProjectDetail({
             honorariumSummary={honorariumSummary}
             invoiceKuitansiSummary={invoiceKuitansiSummary}
             certificateInfo={certificateInfo}
+            pplSummary={initialPplSummary}
             canManage={canManage(role)}
             projectId={project.id}
             onRefresh={refreshAll}

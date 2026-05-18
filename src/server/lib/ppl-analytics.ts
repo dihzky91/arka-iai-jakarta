@@ -98,8 +98,8 @@ export function computeScaleAnalytics(values: number[]): {
   const mid = Math.floor(sorted.length / 2);
   const median =
     sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+      ? (sorted[mid - 1]! + sorted[mid]!) / 2
+      : sorted[mid]!;
 
   // Population standard deviation
   const meanExact = sum / values.length;
@@ -216,7 +216,7 @@ export function computeChoiceAnalytics(
   for (const response of responses) {
     for (const selected of response) {
       if (selected in counts) {
-        counts[selected]++;
+        counts[selected]!++;
       }
     }
   }

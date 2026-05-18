@@ -41,6 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   createNarasumber,
   updateNarasumber,
@@ -48,9 +49,28 @@ import {
   listNarasumber,
 } from "@/server/actions/ppl-evaluasi/narasumber";
 import type {
+  KategoriPpl,
   NarasumberRow,
   PaginatedResult,
 } from "@/server/actions/ppl-evaluasi/types";
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const KATEGORI_PPL_OPTIONS: KategoriPpl[] = [
+  "Perpajakan",
+  "Sistem Informasi & Softskill",
+  "Akuntansi Keuangan",
+  "Audit",
+  "Akuntansi Syariah",
+  "Akuntansi Manajemen",
+  "Akuntansi Manajemen dan Manajemen Keuangan",
+  "Akuntansi Perpajakan",
+  "Manajemen Keuangan",
+  "Akuntansi Keuangan & Softskill",
+  "Akuntansi Keuangan dan Manajemen Keuangan",
+  "Manajemen Strategik",
+  "SAK & PSAK",
+];
 
 // ─── Form Schema ─────────────────────────────────────────────────────────────
 
@@ -59,6 +79,7 @@ const narasumberFormSchema = z.object({
   email: z.string().email("Format email tidak valid").max(150, "Email maksimal 150 karakter"),
   noTelepon: z.string().max(30, "No. telepon maksimal 30 karakter").regex(/^[0-9+\-]*$/, "Hanya angka, +, dan - yang diperbolehkan").optional().or(z.literal("")),
   feePerSkp: z.coerce.number().int("Fee harus bilangan bulat").min(0, "Fee minimal 0").max(99_999_999, "Fee maksimal 99.999.999"),
+  expertise: z.array(z.string()).optional(),
 });
 
 type NarasumberFormValues = z.infer<typeof narasumberFormSchema>;
@@ -88,6 +109,7 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
       email: "",
       noTelepon: "",
       feePerSkp: 0,
+      expertise: [],
     },
   });
 
@@ -141,7 +163,7 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
 
   function openCreateDialog() {
     setEditingNarasumber(null);
-    form.reset({ nama: "", email: "", noTelepon: "", feePerSkp: 0 });
+    form.reset({ nama: "", email: "", noTelepon: "", feePerSkp: 0, expertise: [] });
     setDialogOpen(true);
   }
 
@@ -152,6 +174,7 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
       email: row.email,
       noTelepon: row.noTelepon ?? "",
       feePerSkp: row.feePerSkp,
+      expertise: row.expertise ?? [],
     });
     setDialogOpen(true);
   }
@@ -159,12 +182,14 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
   async function onSubmit(values: NarasumberFormValues) {
     setIsSubmitting(true);
     try {
+      const expertise = (values.expertise ?? []) as KategoriPpl[];
       if (editingNarasumber) {
         const result = await updateNarasumber(editingNarasumber.id, {
           nama: values.nama,
           email: values.email,
           noTelepon: values.noTelepon || undefined,
           feePerSkp: values.feePerSkp,
+          expertise,
         });
         if (!result.ok) {
           toast.error(result.error ?? "Gagal memperbarui narasumber");
@@ -177,6 +202,7 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
           email: values.email,
           noTelepon: values.noTelepon || undefined,
           feePerSkp: values.feePerSkp,
+          expertise,
         });
         if (!result.ok) {
           toast.error(result.error ?? "Gagal membuat narasumber");
@@ -223,13 +249,35 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
         id: "expertise",
         header: "Kategori Keahlian",
         cell: ({ row }) => {
-          // Expertise categories are not included in the basic list query
-          // We show fee per SKP as a useful indicator instead
+          const expertise = row.original.expertise ?? [];
+          if (expertise.length === 0) {
+            return <span className="text-sm text-muted-foreground">-</span>;
+          }
+          return (
+            <div className="flex flex-wrap gap-1">
+              {expertise.slice(0, 2).map((k) => (
+                <Badge key={k} variant="secondary" className="text-xs">
+                  {k}
+                </Badge>
+              ))}
+              {expertise.length > 2 && (
+                <Badge variant="outline" className="text-xs">
+                  +{expertise.length - 2}
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "feePerSkp",
+        header: "Fee/SKP",
+        cell: ({ row }) => {
           const fee = row.original.feePerSkp;
           return (
             <span className="text-sm tabular-nums">
               {fee > 0
-                ? `Rp ${fee.toLocaleString("id-ID")}/SKP`
+                ? `Rp ${fee.toLocaleString("id-ID")}`
                 : "-"}
             </span>
           );
@@ -281,7 +329,21 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
     [],
   );
 
+
+  // ─── Expertise Toggle Helper ─────────────────────────────────────────────
+
+  function toggleExpertise(kategori: string) {
+    const current = form.getValues("expertise") ?? [];
+    if (current.includes(kategori)) {
+      form.setValue("expertise", current.filter((k) => k !== kategori), { shouldDirty: true });
+    } else {
+      form.setValue("expertise", [...current, kategori], { shouldDirty: true });
+    }
+  }
+
   // ─── Render ──────────────────────────────────────────────────────────────
+
+  const watchedExpertise = form.watch("expertise") ?? [];
 
   return (
     <>
@@ -373,7 +435,7 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingNarasumber ? "Edit Narasumber" : "Tambah Narasumber"}
@@ -440,6 +502,29 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
               {form.formState.errors.feePerSkp && (
                 <p className="text-sm text-destructive">
                   {form.formState.errors.feePerSkp.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Kategori Keahlian</Label>
+              <div className="grid grid-cols-1 gap-2 rounded-md border p-3 max-h-48 overflow-y-auto">
+                {KATEGORI_PPL_OPTIONS.map((kategori) => (
+                  <label
+                    key={kategori}
+                    className="flex items-center gap-2 cursor-pointer text-sm"
+                  >
+                    <Checkbox
+                      checked={watchedExpertise.includes(kategori)}
+                      onCheckedChange={() => toggleExpertise(kategori)}
+                    />
+                    <span>{kategori}</span>
+                  </label>
+                ))}
+              </div>
+              {watchedExpertise.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {watchedExpertise.length} kategori dipilih
                 </p>
               )}
             </div>

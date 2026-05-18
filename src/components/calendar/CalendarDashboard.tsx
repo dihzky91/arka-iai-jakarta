@@ -87,6 +87,7 @@ export function CalendarDashboard({
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startDayOffset = monthStart.getDay(); // 0=Sunday, 1=Monday, etc.
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
 
@@ -266,6 +267,10 @@ export function CalendarDashboard({
 
           {/* Calendar Days */}
           <div className="grid grid-cols-7 gap-2">
+            {/* Empty cells for offset */}
+            {Array.from({ length: startDayOffset }).map((_, i) => (
+              <div key={`empty-${i}`} className="min-h-[5.5rem]" />
+            ))}
             {daysInMonth.map((date, index) => {
               const dateEvents = getEventsForDate(date);
               const isSelected =

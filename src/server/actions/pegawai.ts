@@ -137,6 +137,114 @@ export async function listPegawai(options?: {
   return { rows: data, nextCursor, total };
 }
 
+/**
+ * Optimized version: fetches pegawai list WITH biodata in a single query
+ * instead of N+1 individual getPegawaiById calls.
+ */
+export async function listPegawaiWithBiodata(options?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<{
+  rows: (PegawaiListRow & { biodata: typeof pegawaiBiodata.$inferSelect | null })[];
+  nextCursor: string | null;
+  total: number;
+}> {
+  await requireSession();
+
+  const limit = options?.limit ?? 200;
+  const cursorDate = options?.cursor ? new Date(options.cursor) : undefined;
+
+  const totalRows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(users);
+  const total = Number(totalRows[0]?.count ?? 0);
+
+  const rows = await db
+    .select({
+      id: users.id,
+      namaLengkap: users.namaLengkap,
+      email: users.email,
+      emailPribadi: users.emailPribadi,
+      noHp: users.noHp,
+      qrContactUrl: users.qrContactUrl,
+      role: users.role,
+      divisiId: users.divisiId,
+      divisiNama: divisi.nama,
+      jabatan: users.jabatan,
+      levelJabatan: users.levelJabatan,
+      jenisPegawai: users.jenisPegawai,
+      tanggalMasuk: users.tanggalMasuk,
+      isActive: users.isActive,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      biodataUpdatedAt: pegawaiBiodata.updatedAt,
+      // Biodata fields
+      biodataId: pegawaiBiodata.id,
+      biodataUserId: pegawaiBiodata.userId,
+      noKtp: pegawaiBiodata.noKtp,
+      gender: pegawaiBiodata.gender,
+      statusPernikahan: pegawaiBiodata.statusPernikahan,
+      tempatLahir: pegawaiBiodata.tempatLahir,
+      tanggalLahir: pegawaiBiodata.tanggalLahir,
+      alamatTinggal: pegawaiBiodata.alamatTinggal,
+      kodePos: pegawaiBiodata.kodePos,
+      provinsi: pegawaiBiodata.provinsi,
+      kotaKabupaten: pegawaiBiodata.kotaKabupaten,
+      alamatKtp: pegawaiBiodata.alamatKtp,
+    })
+    .from(users)
+    .leftJoin(divisi, eq(users.divisiId, divisi.id))
+    .leftJoin(pegawaiBiodata, eq(pegawaiBiodata.userId, users.id))
+    .where(cursorDate ? lt(users.createdAt, cursorDate) : undefined)
+    .orderBy(desc(users.createdAt))
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const data = hasMore ? rows.slice(0, -1) : rows;
+  const nextCursor = hasMore
+    ? (data[data.length - 1]!.createdAt?.toISOString() ?? null)
+    : null;
+
+  const result = data.map((row) => ({
+    id: row.id,
+    namaLengkap: row.namaLengkap,
+    email: row.email,
+    emailPribadi: row.emailPribadi,
+    noHp: row.noHp,
+    qrContactUrl: row.qrContactUrl,
+    role: row.role,
+    divisiId: row.divisiId,
+    divisiNama: row.divisiNama,
+    jabatan: row.jabatan,
+    levelJabatan: row.levelJabatan,
+    jenisPegawai: row.jenisPegawai,
+    tanggalMasuk: row.tanggalMasuk,
+    isActive: row.isActive,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    biodataUpdatedAt: row.biodataUpdatedAt,
+    biodata: row.biodataId
+      ? {
+          id: row.biodataId,
+          userId: row.biodataUserId!,
+          noKtp: row.noKtp,
+          gender: row.gender,
+          statusPernikahan: row.statusPernikahan,
+          tempatLahir: row.tempatLahir,
+          tanggalLahir: row.tanggalLahir,
+          alamatTinggal: row.alamatTinggal,
+          kodePos: row.kodePos,
+          provinsi: row.provinsi,
+          kotaKabupaten: row.kotaKabupaten,
+          alamatKtp: row.alamatKtp,
+          updatedAt: row.biodataUpdatedAt,
+        }
+      : null,
+  }));
+
+  return { rows: result, nextCursor, total };
+}
+
 export async function getPegawaiById(id: string) {
   await requireSession();
   const [user] = await db

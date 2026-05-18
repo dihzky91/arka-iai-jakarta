@@ -36,6 +36,7 @@ import type {
   AttendanceDashboardData,
   CategoryMonthData,
   DashboardFilter,
+  YoYComparison,
 } from "@/server/actions/ppl-evaluasi/types";
 
 // ─── Color palette for chart lines ──────────────────────────────────────────
@@ -474,45 +475,7 @@ export function AttendanceDashboardClient({ initialData }: Props) {
                     </TableHeader>
                     <TableBody>
                       {data.yoyComparison.map((row) => (
-                        <TableRow key={row.kategori}>
-                          <TableCell className="text-foreground font-medium">
-                            {row.kategori}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {row.previousTotalHadir.toLocaleString("id-ID")}
-                          </TableCell>
-                          <TableCell className="text-right text-foreground">
-                            {row.currentTotalHadir.toLocaleString("id-ID")}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ChangeIndicator value={row.hadirChangePercent} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {row.previousKegiatanCount}
-                          </TableCell>
-                          <TableCell className="text-right text-foreground">
-                            {row.currentKegiatanCount}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ChangeIndicator value={row.kegiatanChangePercent} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {row.previousAvgConversion !== null
-                              ? `${row.previousAvgConversion}%`
-                              : "–"}
-                          </TableCell>
-                          <TableCell className="text-right text-foreground">
-                            {row.currentAvgConversion !== null
-                              ? `${row.currentAvgConversion}%`
-                              : "–"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ChangeIndicator
-                              value={row.conversionChange}
-                              suffix="pp"
-                            />
-                          </TableCell>
-                        </TableRow>
+                        <YoYCategoryRow key={row.kategori} row={row} />
                       ))}
                     </TableBody>
                   </Table>
@@ -523,6 +486,107 @@ export function AttendanceDashboardClient({ initialData }: Props) {
         </>
       )}
     </div>
+  );
+}
+
+// ─── YoY Category Row with Monthly Breakdown ────────────────────────────────
+
+const MONTH_LABELS = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+];
+
+function YoYCategoryRow({ row }: { row: YoYComparison }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <>
+      <TableRow
+        className="cursor-pointer hover:bg-muted/50"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <TableCell className="text-foreground font-medium">
+          <span className="flex items-center gap-1">
+            <span className="text-muted-foreground text-xs">
+              {expanded ? "▼" : "▶"}
+            </span>
+            {row.kategori}
+          </span>
+        </TableCell>
+        <TableCell className="text-right">
+          {row.previousTotalHadir.toLocaleString("id-ID")}
+        </TableCell>
+        <TableCell className="text-right text-foreground">
+          {row.currentTotalHadir.toLocaleString("id-ID")}
+        </TableCell>
+        <TableCell className="text-right">
+          <ChangeIndicator value={row.hadirChangePercent} />
+        </TableCell>
+        <TableCell className="text-right">
+          {row.previousKegiatanCount}
+        </TableCell>
+        <TableCell className="text-right text-foreground">
+          {row.currentKegiatanCount}
+        </TableCell>
+        <TableCell className="text-right">
+          <ChangeIndicator value={row.kegiatanChangePercent} />
+        </TableCell>
+        <TableCell className="text-right">
+          {row.previousAvgConversion !== null
+            ? `${row.previousAvgConversion}%`
+            : "–"}
+        </TableCell>
+        <TableCell className="text-right text-foreground">
+          {row.currentAvgConversion !== null
+            ? `${row.currentAvgConversion}%`
+            : "–"}
+        </TableCell>
+        <TableCell className="text-right">
+          <ChangeIndicator value={row.conversionChange} suffix="pp" />
+        </TableCell>
+      </TableRow>
+      {expanded && row.monthlyDetails.length > 0 && (
+        <>
+          {row.monthlyDetails.map((detail) => (
+            <TableRow
+              key={`${row.kategori}-month-${detail.month}`}
+              className="bg-muted/30"
+            >
+              <TableCell className="pl-8 text-muted-foreground text-sm">
+                {MONTH_LABELS[detail.month - 1]}
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                {detail.previousHadir.toLocaleString("id-ID")}
+              </TableCell>
+              <TableCell className="text-right text-sm">
+                {detail.currentHadir.toLocaleString("id-ID")}
+              </TableCell>
+              <TableCell className="text-right text-sm">
+                <ChangeIndicator value={detail.hadirChangePercent} />
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                {detail.previousKegiatanCount}
+              </TableCell>
+              <TableCell className="text-right text-sm">
+                {detail.currentKegiatanCount}
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                –
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                –
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                –
+              </TableCell>
+              <TableCell className="text-right text-sm text-muted-foreground">
+                –
+              </TableCell>
+            </TableRow>
+          ))}
+        </>
+      )}
+    </>
   );
 }
 

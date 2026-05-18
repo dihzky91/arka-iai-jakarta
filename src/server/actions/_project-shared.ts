@@ -59,6 +59,7 @@ export const projectSchema = z
     halfDaySkp: z.enum(["2", "4"]).optional().nullable(),
     eventId: eventIdSchema,
     kelasUjianId: z.string().optional().nullable(),
+    pplKegiatanId: z.coerce.number().int().positive().optional().nullable(),
     labelIds: z.array(uuidSchema).optional(),
   })
   .refine(
@@ -316,6 +317,18 @@ export async function assertKelasUjianUnique(kelasUjianId: string, excludeProjec
     .limit(1);
   if (existing && existing.id !== excludeProjectId) {
     return "Kelas ujian ini sudah terhubung ke project lain.";
+  }
+  return null;
+}
+
+export async function assertPplKegiatanUnique(pplKegiatanId: number, excludeProjectId?: string) {
+  const [existing] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.pplKegiatanId, pplKegiatanId))
+    .limit(1);
+  if (existing && existing.id !== excludeProjectId) {
+    return "Kegiatan PPL ini sudah terhubung ke project lain.";
   }
   return null;
 }

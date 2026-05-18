@@ -180,8 +180,49 @@ export async function listAnnouncementInbox(): Promise<AnnouncementInboxRow[]> {
 }
 
 export const countUnreadAnnouncements = cache(async (): Promise<number> => {
-  const rows = await listAnnouncementInbox();
-  return rows.filter((row) => !row.isRead || row.needsAcknowledgement).length;
+  try {
+    const session = await requirePermission("announcement", "view");
+    const today = getTodayJakarta();
+    const userRole = (session.user as { role?: string }).role ?? null;
+
+    const [userRow] = await db
+      .select({ divisiId: users.divisiId })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    // Lightweight query: only fetch fields needed for count logic
+    const rows = await db
+      .select({
+        audience: announcements.audience,
+        requiresAck: announcements.requiresAck,
+        readAt: announcementReads.readAt,
+        acknowledgedAt: announcementReads.acknowledgedAt,
+      })
+      .from(announcements)
+      .leftJoin(
+        announcementReads,
+        and(
+          eq(announcementReads.announcementId, announcements.id),
+          eq(announcementReads.userId, session.user.id),
+        ),
+      )
+      .where(
+        and(
+          eq(announcements.status, "published"),
+          lte(announcements.startDate, today),
+          gte(announcements.endDate, today),
+        ),
+      );
+
+    return rows.filter(
+      (row) =>
+        canAccessAnnouncement(row.audience, userRole, userRow?.divisiId ?? null) &&
+        (!row.readAt || (row.requiresAck && !row.acknowledgedAt)),
+    ).length;
+  } catch {
+    return 0;
+  }
 });
 
 export async function listAnnouncementManage(): Promise<AnnouncementManageRow[]> {

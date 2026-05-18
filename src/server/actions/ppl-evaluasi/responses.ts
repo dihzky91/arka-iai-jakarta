@@ -9,7 +9,7 @@ import {
   pplKuesionerTemplate,
 } from "@/server/db/schema";
 import { submitResponseSchema } from "@/lib/validators/ppl-evaluasi";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import type { FormField } from "@/components/ppl-evaluasi/form-builder/types";
 import type {
   ActionResult,
@@ -202,7 +202,7 @@ export async function listResponses(
   kegiatanId: number,
   opts: PaginationOpts = {},
 ): Promise<PaginatedResult<ResponseRow>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const page = opts.page ?? 1;
   const pageSize = opts.pageSize ?? 10;

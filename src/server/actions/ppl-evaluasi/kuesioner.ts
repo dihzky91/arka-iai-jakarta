@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { count, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -9,7 +9,7 @@ import {
   pplKuesionerResponse,
 } from "@/server/db/schema";
 import { templateSchema } from "@/lib/validators/ppl-evaluasi";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import { generateQRDataURL } from "@/lib/qr/generateQR";
 import type {
   ActionResult,
@@ -17,7 +17,7 @@ import type {
   UpdateTemplateInput,
 } from "./types";
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function generateAccessToken(): string {
   // Generate a 32-character hex token (64 chars max allowed by schema)
@@ -34,12 +34,12 @@ function buildAccessUrl(token: string): string {
   return `${baseUrl.replace(/\/$/, "")}/evaluasi/${token}`;
 }
 
-// ─── CREATE TEMPLATE ─────────────────────────────────────────────────────────
+// â”€â”€â”€ CREATE TEMPLATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function createTemplate(
   data: CreateTemplateInput,
 ): Promise<ActionResult<{ id: number }>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   const parsed = templateSchema.safeParse(data);
   if (!parsed.success) {
@@ -68,13 +68,13 @@ export async function createTemplate(
   return { ok: true, data: { id: row.id } };
 }
 
-// ─── UPDATE TEMPLATE ─────────────────────────────────────────────────────────
+// â”€â”€â”€ UPDATE TEMPLATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function updateTemplate(
   id: number,
   data: UpdateTemplateInput,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Check if template exists
   const [existing] = await db
@@ -129,13 +129,13 @@ export async function updateTemplate(
   return { ok: true };
 }
 
-// ─── DUPLICATE TEMPLATE ──────────────────────────────────────────────────────
+// â”€â”€â”€ DUPLICATE TEMPLATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function duplicateTemplate(
   id: number,
   newName: string,
 ): Promise<ActionResult<{ id: number }>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Validate new name
   if (!newName || newName.trim().length === 0) {
@@ -176,13 +176,13 @@ export async function duplicateTemplate(
   return { ok: true, data: { id: row.id } };
 }
 
-// ─── LINK TEMPLATE TO KEGIATAN ───────────────────────────────────────────────
+// â”€â”€â”€ LINK TEMPLATE TO KEGIATAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function linkTemplateToKegiatan(
   templateId: number,
   kegiatanId: number,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Verify template exists
   const [template] = await db
@@ -224,12 +224,12 @@ export async function linkTemplateToKegiatan(
   return { ok: true };
 }
 
-// ─── ACTIVATE KUESIONER ──────────────────────────────────────────────────────
+// â”€â”€â”€ ACTIVATE KUESIONER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function activateKuesioner(
   kegiatanId: number,
 ): Promise<ActionResult<{ url: string; qrDataUrl: string }>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Find the link for this kegiatan
   const [link] = await db
@@ -250,7 +250,7 @@ export async function activateKuesioner(
   }
 
   if (link.isActive) {
-    // Already active — return existing URL and QR
+    // Already active â€” return existing URL and QR
     const url = buildAccessUrl(link.accessToken);
     const qrDataUrl = await generateQRDataURL(url);
     return { ok: true, data: { url, qrDataUrl } };
@@ -274,10 +274,10 @@ export async function activateKuesioner(
   return { ok: true, data: { url, qrDataUrl } };
 }
 
-// ─── GET TEMPLATE FOR KEGIATAN ────────────────────────────────────────────────
+// â”€â”€â”€ GET TEMPLATE FOR KEGIATAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getTemplateForKegiatan(kegiatanId: number) {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Find the link for this kegiatan
   const [link] = await db
@@ -326,12 +326,12 @@ export async function getTemplateForKegiatan(kegiatanId: number) {
   };
 }
 
-// ─── DEACTIVATE KUESIONER ────────────────────────────────────────────────────
+// â”€â”€â”€ DEACTIVATE KUESIONER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function deactivateKuesioner(
   kegiatanId: number,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Find the link for this kegiatan
   const [link] = await db
@@ -365,4 +365,50 @@ export async function deactivateKuesioner(
   revalidatePath("/ppl-evaluasi");
   revalidatePath(`/ppl-evaluasi/${kegiatanId}`);
   return { ok: true };
+}
+
+// ─── LIST ALL TEMPLATES ──────────────────────────────────────────────────────
+
+export interface TemplateListRow {
+  id: number;
+  nama: string;
+  fieldCount: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  linkedKegiatanCount: number;
+}
+
+export async function listTemplates(): Promise<TemplateListRow[]> {
+  await requirePermission("pplEvaluasi", "manage");
+
+  const templates = await db
+    .select({
+      id: pplKuesionerTemplate.id,
+      nama: pplKuesionerTemplate.nama,
+      configJson: pplKuesionerTemplate.configJson,
+      createdAt: pplKuesionerTemplate.createdAt,
+      updatedAt: pplKuesionerTemplate.updatedAt,
+    })
+    .from(pplKuesionerTemplate)
+    .orderBy(pplKuesionerTemplate.updatedAt);
+
+  // Count linked kegiatan per template
+  const linkCounts = await db
+    .select({
+      templateId: pplKuesionerLink.templateId,
+      count: count(),
+    })
+    .from(pplKuesionerLink)
+    .groupBy(pplKuesionerLink.templateId);
+
+  const linkCountMap = new Map(linkCounts.map((r) => [r.templateId, r.count]));
+
+  return templates.map((t) => ({
+    id: t.id,
+    nama: t.nama,
+    fieldCount: Array.isArray(t.configJson) ? t.configJson.length : 0,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    linkedKegiatanCount: linkCountMap.get(t.id) ?? 0,
+  }));
 }

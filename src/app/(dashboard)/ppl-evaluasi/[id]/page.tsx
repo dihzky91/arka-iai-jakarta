@@ -8,6 +8,8 @@ import {
   Calendar,
   ChevronLeft,
   ClipboardList,
+  ExternalLink,
+  FolderKanban,
   MapPin,
   Users,
 } from "lucide-react";
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getKegiatan } from "@/server/actions/ppl-evaluasi/kegiatan";
+import { getProjectByKegiatanId } from "@/server/actions/ppl-evaluasi/project-sync";
 
 export const metadata: Metadata = {
   title: "Detail Kegiatan PPL | ARKA",
@@ -41,6 +44,8 @@ export default async function Page({ params }: Props) {
   const kegiatan = await getKegiatan(numericId);
 
   if (!kegiatan) notFound();
+
+  const linkedProject = await getProjectByKegiatanId(numericId).catch(() => null);
 
   const conversionRateDisplay =
     kegiatan.pendaftar === 0
@@ -209,6 +214,34 @@ export default async function Page({ params }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Project Kolaborasi */}
+      {linkedProject && (
+        <Card className="mt-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FolderKanban className="h-4 w-4" />
+              Project Kolaborasi
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">{linkedProject.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Koordinasi tim, tasks, dan dokumen kegiatan ini
+                </p>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/projects/${linkedProject.id}`}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                  Buka Project
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs for sub-pages */}
       <Tabs defaultValue="kuesioner" className="mt-6">

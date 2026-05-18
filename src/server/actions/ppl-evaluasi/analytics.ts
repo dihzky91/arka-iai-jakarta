@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { and, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/server/db";
@@ -17,7 +17,7 @@ import {
   computePopularityScore,
 } from "@/server/lib/ppl-analytics";
 import { computeConversionRate } from "@/lib/ppl-conversion-rate";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import type {
   FormField,
   GridConfig,
@@ -32,6 +32,7 @@ import type {
   CategoryMonthData,
   CategoryRanking,
   YoYComparison,
+  YoYMonthlyDetail,
   PatternAnalysisData,
   CategoryPattern,
   TopMonth,
@@ -41,7 +42,7 @@ import type {
   KategoriPpl,
 } from "./types";
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getDateRange(filter: DashboardFilter): { startDate: string; endDate: string } {
   if (filter.startDate && filter.endDate) {
@@ -55,7 +56,7 @@ function getDateRange(filter: DashboardFilter): { startDate: string; endDate: st
 }
 
 
-// ─── GET FIELD ANALYTICS ─────────────────────────────────────────────────────
+// â”€â”€â”€ GET FIELD ANALYTICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Compute per-field analytics for a specific kegiatan.
@@ -67,7 +68,7 @@ function getDateRange(filter: DashboardFilter): { startDate: string; endDate: st
 export async function getFieldAnalytics(
   kegiatanId: number,
 ): Promise<FieldAnalyticsResult[]> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   // Find the kuesioner link for this kegiatan
   const [link] = await db
@@ -283,7 +284,7 @@ export async function getFieldAnalytics(
 }
 
 
-// ─── GET ATTENDANCE DASHBOARD ────────────────────────────────────────────────
+// â”€â”€â”€ GET ATTENDANCE DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Aggregate kegiatan data by kategori and month for the attendance dashboard.
@@ -294,7 +295,7 @@ export async function getFieldAnalytics(
 export async function getAttendanceDashboard(
   filter: DashboardFilter = {},
 ): Promise<AttendanceDashboardData> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const { startDate, endDate } = getDateRange(filter);
 
@@ -403,8 +404,33 @@ export async function getAttendanceDashboard(
     }))
     .sort((a, b) => b.totalHadir - a.totalHadir);
 
-  // Build YoY comparison
-  const yoyComparison = buildYoYComparison(kegiatanRows, startDate, endDate);
+  // Build YoY comparison â€” fetch previous year data separately
+  const previousYear = parseInt(startDate.substring(0, 4)) - 1;
+  const prevStartDate = `${previousYear}-01-01`;
+  const prevEndDate = `${previousYear}-12-31`;
+
+  const previousYearRows = await db
+    .select({
+      id: pplKegiatan.id,
+      kategoriPpl: pplKegiatan.kategoriPpl,
+      tanggalMulai: pplKegiatan.tanggalMulai,
+      pendaftar: pplKegiatan.pendaftar,
+      realisasiHadir: pplKegiatan.realisasiHadir,
+    })
+    .from(pplKegiatan)
+    .where(
+      and(
+        gte(pplKegiatan.tanggalMulai, prevStartDate),
+        lte(pplKegiatan.tanggalMulai, prevEndDate),
+        eq(pplKegiatan.statusEvent, "aktif"),
+      ),
+    );
+
+  const yoyComparison = buildYoYComparison(
+    [...kegiatanRows, ...previousYearRows],
+    startDate,
+    endDate,
+  );
 
   return {
     categoryMonthData,
@@ -417,6 +443,7 @@ export async function getAttendanceDashboard(
 /**
  * Build year-over-year comparison data.
  * Compares the current period's year with the previous year.
+ * Includes monthly breakdown for granular trend analysis.
  */
 function buildYoYComparison(
   kegiatanRows: Array<{
@@ -431,19 +458,26 @@ function buildYoYComparison(
   const currentYear = parseInt(startDate.substring(0, 4));
   const previousYear = currentYear - 1;
 
-  // Group by year and kategori
+  // Group by year and kategori (totals)
   const yearCategoryMap = new Map<
     string,
     { totalHadir: number; kegiatanCount: number; conversionSum: number; conversionCount: number }
   >();
 
-  // We need previous year data too - but we only have current range data
-  // The YoY comparison uses the data we already have grouped by year
+  // Group by year, kategori, and month (for monthly breakdown)
+  const yearCategoryMonthMap = new Map<
+    string,
+    { totalHadir: number; kegiatanCount: number }
+  >();
+
   for (const row of kegiatanRows) {
     const rowYear = parseInt(row.tanggalMulai.substring(0, 4));
+    if (rowYear !== currentYear && rowYear !== previousYear) continue;
+
     const key = `${rowYear}|${row.kategoriPpl}`;
     const rate = computeConversionRate(row.pendaftar, row.realisasiHadir);
 
+    // Aggregate totals
     const existing = yearCategoryMap.get(key);
     if (existing) {
       existing.totalHadir += row.realisasiHadir;
@@ -460,12 +494,29 @@ function buildYoYComparison(
         conversionCount: rate !== null ? 1 : 0,
       });
     }
+
+    // Aggregate monthly
+    const monthNum = parseInt(row.tanggalMulai.substring(5, 7));
+    const monthKey = `${rowYear}|${row.kategoriPpl}|${monthNum}`;
+    const existingMonth = yearCategoryMonthMap.get(monthKey);
+    if (existingMonth) {
+      existingMonth.totalHadir += row.realisasiHadir;
+      existingMonth.kegiatanCount += 1;
+    } else {
+      yearCategoryMonthMap.set(monthKey, {
+        totalHadir: row.realisasiHadir,
+        kegiatanCount: 1,
+      });
+    }
   }
 
-  // Build comparison for each kategori that has data in both years
+  // Build comparison for each kategori
   const allKategori = new Set<string>();
   for (const row of kegiatanRows) {
-    allKategori.add(row.kategoriPpl);
+    const rowYear = parseInt(row.tanggalMulai.substring(0, 4));
+    if (rowYear === currentYear || rowYear === previousYear) {
+      allKategori.add(row.kategoriPpl);
+    }
   }
 
   const comparisons: YoYComparison[] = [];
@@ -505,6 +556,32 @@ function buildYoYComparison(
         ? Math.round((currentAvgConversion - previousAvgConversion) * 10) / 10
         : null;
 
+    // Build monthly details (1-12)
+    const monthlyDetails: YoYMonthlyDetail[] = [];
+    for (let month = 1; month <= 12; month++) {
+      const currentMonthData = yearCategoryMonthMap.get(`${currentYear}|${kategori}|${month}`);
+      const previousMonthData = yearCategoryMonthMap.get(`${previousYear}|${kategori}|${month}`);
+
+      // Only include months that have data in at least one year
+      if (!currentMonthData && !previousMonthData) continue;
+
+      const currentHadir = currentMonthData?.totalHadir ?? 0;
+      const previousHadir = previousMonthData?.totalHadir ?? 0;
+      const monthHadirChange =
+        previousHadir > 0
+          ? Math.round(((currentHadir - previousHadir) / previousHadir) * 1000) / 10
+          : null;
+
+      monthlyDetails.push({
+        month,
+        currentHadir,
+        previousHadir,
+        hadirChangePercent: monthHadirChange,
+        currentKegiatanCount: currentMonthData?.kegiatanCount ?? 0,
+        previousKegiatanCount: previousMonthData?.kegiatanCount ?? 0,
+      });
+    }
+
     comparisons.push({
       kategori: kategori as KategoriPpl,
       currentYear,
@@ -518,6 +595,7 @@ function buildYoYComparison(
       hadirChangePercent,
       kegiatanChangePercent,
       conversionChange,
+      monthlyDetails,
     });
   }
 
@@ -525,7 +603,7 @@ function buildYoYComparison(
 }
 
 
-// ─── GET PATTERN ANALYSIS ────────────────────────────────────────────────────
+// â”€â”€â”€ GET PATTERN ANALYSIS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Analyze historical patterns for annual program planning.
@@ -537,7 +615,7 @@ function buildYoYComparison(
 export async function getPatternAnalysis(
   filter: DashboardFilter = {},
 ): Promise<PatternAnalysisData> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const { startDate, endDate } = getDateRange(filter);
 
@@ -796,7 +874,7 @@ async function getKategoriEvalScores(): Promise<Map<string, number>> {
 }
 
 
-// ─── GET SPEAKER PERFORMANCE ─────────────────────────────────────────────────
+// â”€â”€â”€ GET SPEAKER PERFORMANCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Calculate narasumber performance analytics based on evaluation scores.
@@ -807,7 +885,7 @@ async function getKategoriEvalScores(): Promise<Map<string, number>> {
 export async function getSpeakerPerformance(
   filter: SpeakerFilter = {},
 ): Promise<SpeakerPerformanceData> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const { startDate, endDate } = getDateRange(filter);
 

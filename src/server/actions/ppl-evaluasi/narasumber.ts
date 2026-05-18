@@ -1,15 +1,16 @@
 "use server";
 
-import { and, count, eq, ilike, ne } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import {
   pplNarasumber,
+  pplNarasumberExpertise,
   pplKegiatanNarasumber,
   pplKegiatan,
 } from "@/server/db/schema";
 import { narasumberSchema } from "@/lib/validators/ppl-evaluasi";
-import { requireSession } from "@/server/actions/auth";
+import { requirePermission } from "@/server/actions/auth";
 import { calculateHonorarium } from "@/lib/ppl-honorarium";
 import type {
   ActionResult,
@@ -26,7 +27,7 @@ import type {
 export async function createNarasumber(
   data: CreateNarasumberInput,
 ): Promise<ActionResult<{ id: number }>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   const parsed = narasumberSchema.safeParse(data);
   if (!parsed.success) {
@@ -65,6 +66,17 @@ export async function createNarasumber(
     return { ok: false, error: "Gagal membuat narasumber" };
   }
 
+  // Save expertise categories if provided
+  if (data.expertise && data.expertise.length > 0) {
+    await db.insert(pplNarasumberExpertise).values(
+      data.expertise.map((kategori) => ({
+        narasumberId: row.id,
+        kategoriPpl: kategori,
+        topik: [],
+      })),
+    );
+  }
+
   revalidatePath("/ppl-evaluasi/narasumber");
   return { ok: true, data: { id: row.id } };
 }
@@ -75,7 +87,7 @@ export async function updateNarasumber(
   id: number,
   data: UpdateNarasumberInput,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Check if narasumber exists
   const [existing] = await db
@@ -124,6 +136,25 @@ export async function updateNarasumber(
 
   await db.update(pplNarasumber).set(updateSet).where(eq(pplNarasumber.id, id));
 
+  // Update expertise categories if provided
+  if (data.expertise !== undefined) {
+    // Delete existing expertise
+    await db
+      .delete(pplNarasumberExpertise)
+      .where(eq(pplNarasumberExpertise.narasumberId, id));
+
+    // Insert new expertise
+    if (data.expertise.length > 0) {
+      await db.insert(pplNarasumberExpertise).values(
+        data.expertise.map((kategori) => ({
+          narasumberId: id,
+          kategoriPpl: kategori,
+          topik: [],
+        })),
+      );
+    }
+  }
+
   revalidatePath("/ppl-evaluasi/narasumber");
   return { ok: true };
 }
@@ -131,7 +162,7 @@ export async function updateNarasumber(
 // ─── DEACTIVATE NARASUMBER ───────────────────────────────────────────────────
 
 export async function deactivateNarasumber(id: number): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Check if narasumber exists
   const [existing] = await db
@@ -176,7 +207,7 @@ export async function deactivateNarasumber(id: number): Promise<ActionResult> {
 export async function listNarasumber(
   opts: ListNarasumberOpts = {},
 ): Promise<PaginatedResult<NarasumberRow>> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "view");
 
   const page = opts.page ?? 1;
   const pageSize = opts.pageSize ?? 10;
@@ -221,8 +252,34 @@ export async function listNarasumber(
     .limit(pageSize)
     .offset(offset);
 
+  // Fetch expertise for all narasumber in this page
+  const narasumberIds = rows.map((r) => r.id);
+  const expertiseRows = narasumberIds.length > 0
+    ? await db
+        .select({
+          narasumberId: pplNarasumberExpertise.narasumberId,
+          kategoriPpl: pplNarasumberExpertise.kategoriPpl,
+        })
+        .from(pplNarasumberExpertise)
+        .where(inArray(pplNarasumberExpertise.narasumberId, narasumberIds))
+    : [];
+
+  // Group expertise by narasumber ID
+  const expertiseMap = new Map<number, string[]>();
+  for (const row of expertiseRows) {
+    const existing = expertiseMap.get(row.narasumberId) ?? [];
+    existing.push(row.kategoriPpl);
+    expertiseMap.set(row.narasumberId, existing);
+  }
+
+  // Merge expertise into rows
+  const dataWithExpertise: NarasumberRow[] = rows.map((r) => ({
+    ...r,
+    expertise: (expertiseMap.get(r.id) ?? []) as NarasumberRow["expertise"],
+  }));
+
   return {
-    data: rows as NarasumberRow[],
+    data: dataWithExpertise,
     total,
     page,
     pageSize,
@@ -235,7 +292,7 @@ export async function listNarasumber(
 export async function assignNarasumberToKegiatan(
   data: AssignNarasumberInput,
 ): Promise<ActionResult> {
-  await requireSession();
+  await requirePermission("pplEvaluasi", "manage");
 
   // Validate topik length
   if (data.topik && data.topik.length > 200) {
@@ -281,6 +338,14 @@ export async function assignNarasumberToKegiatan(
     topik: data.topik ?? null,
     totalHonorarium,
   });
+
+  // Sync narasumber to linked project speakers
+  try {
+    const { syncNarasumberToProject } = await import("./project-sync");
+    await syncNarasumberToProject(data.kegiatanId);
+  } catch (err) {
+    console.error("[assignNarasumber] Sync to project failed:", err);
+  }
 
   revalidatePath("/ppl-evaluasi/narasumber");
   revalidatePath(`/ppl-evaluasi/${data.kegiatanId}`);

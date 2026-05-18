@@ -86,6 +86,7 @@ export interface CreateNarasumberInput {
   noTelepon?: string;
   feePerSkp: number;
   isActive?: boolean;
+  expertise?: KategoriPpl[];
 }
 
 export interface UpdateNarasumberInput extends Partial<CreateNarasumberInput> {}
@@ -102,6 +103,7 @@ export interface NarasumberRow {
   noTelepon: string | null;
   isActive: boolean;
   feePerSkp: number;
+  expertise: KategoriPpl[];
 }
 
 export interface AssignNarasumberInput {
@@ -194,6 +196,15 @@ export interface CategoryRanking {
   avgConversionRate: number | null;
 }
 
+export interface YoYMonthlyDetail {
+  month: number; // 1-12
+  currentHadir: number;
+  previousHadir: number;
+  hadirChangePercent: number | null;
+  currentKegiatanCount: number;
+  previousKegiatanCount: number;
+}
+
 export interface YoYComparison {
   kategori: KategoriPpl;
   currentYear: number;
@@ -207,6 +218,7 @@ export interface YoYComparison {
   hadirChangePercent: number | null;
   kegiatanChangePercent: number | null;
   conversionChange: number | null;
+  monthlyDetails: YoYMonthlyDetail[];
 }
 
 export interface AttendanceDashboardData {

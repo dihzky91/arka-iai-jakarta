@@ -4,7 +4,7 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
 import { systemSettings, auditLog } from "@/server/db/schema";
@@ -102,37 +102,46 @@ async function withResolvedAssetUrls(
 // cache() deduplicates DB calls within a single request
 // (dipakai di root layout + dashboard layout sekaligus)
 export const getSystemSettings = cache(async (): Promise<SystemSettingsRow> => {
-  try {
-    const rows = await db
-      .select({
-        id: systemSettings.id,
-        namaSistem: systemSettings.namaSistem,
-        singkatan: systemSettings.singkatan,
-        logoUrl: systemSettings.logoUrl,
-        faviconUrl: systemSettings.faviconUrl,
-        financeContactName: systemSettings.financeContactName,
-        financeWhatsappNumber: systemSettings.financeWhatsappNumber,
-        defaultDisposisiDeadlineDays:
-          systemSettings.defaultDisposisiDeadlineDays,
-        notificationEmailEnabled: systemSettings.notificationEmailEnabled,
-        whatsappBotEnabled: systemSettings.whatsappBotEnabled,
-        emailProvider: systemSettings.emailProvider,
-        updatedAt: systemSettings.updatedAt,
-      })
-      .from(systemSettings)
-      .limit(1);
-    const settings = rows[0] ?? FALLBACK;
-    return withResolvedAssetUrls({
-      ...settings,
-      namaSistem:
-        settings.namaSistem === "IAI Jakarta"
-          ? APP_BRAND_NAME
-          : settings.namaSistem,
-    });
-  } catch {
-    return FALLBACK;
-  }
+  return cachedSystemSettingsInternal();
 });
+
+// unstable_cache provides cross-request caching (revalidates every 300s or on tag)
+const cachedSystemSettingsInternal = unstable_cache(
+  async () => {
+    try {
+      const rows = await db
+        .select({
+          id: systemSettings.id,
+          namaSistem: systemSettings.namaSistem,
+          singkatan: systemSettings.singkatan,
+          logoUrl: systemSettings.logoUrl,
+          faviconUrl: systemSettings.faviconUrl,
+          financeContactName: systemSettings.financeContactName,
+          financeWhatsappNumber: systemSettings.financeWhatsappNumber,
+          defaultDisposisiDeadlineDays:
+            systemSettings.defaultDisposisiDeadlineDays,
+          notificationEmailEnabled: systemSettings.notificationEmailEnabled,
+          whatsappBotEnabled: systemSettings.whatsappBotEnabled,
+          emailProvider: systemSettings.emailProvider,
+          updatedAt: systemSettings.updatedAt,
+        })
+        .from(systemSettings)
+        .limit(1);
+      const settings = rows[0] ?? FALLBACK;
+      return withResolvedAssetUrls({
+        ...settings,
+        namaSistem:
+          settings.namaSistem === "IAI Jakarta"
+            ? APP_BRAND_NAME
+            : settings.namaSistem,
+      });
+    } catch {
+      return FALLBACK;
+    }
+  },
+  ["system-settings"],
+  { revalidate: 300 },
+);
 
 const ALLOWED_LOGO_TYPES = [
   "image/png",
@@ -251,6 +260,7 @@ export async function updateSystemSettings(formData: FormData) {
     },
   });
 
+  updateTag("system-settings");
   revalidatePath("/pengaturan");
   revalidatePath("/dashboard");
   return { ok: true as const };

@@ -104,6 +104,9 @@ export const CAPABILITIES = [
   "saldo_cuti:view",
   "saldo_cuti:view_all",
   "saldo_cuti:manage",
+  "ppl_evaluasi:view",
+  "ppl_evaluasi:manage",
+  "ppl_evaluasi:export",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -249,6 +252,14 @@ export const CAPABILITY_GROUPS: Array<{
     ],
   },
   {
+    label: "PPL & Evaluasi",
+    capabilities: [
+      "ppl_evaluasi:view",
+      "ppl_evaluasi:manage",
+      "ppl_evaluasi:export",
+    ],
+  },
+  {
     label: "Sistem",
     capabilities: [
       "pengaturan:view",
@@ -365,6 +376,9 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "saldo_cuti:view": "Lihat saldo cuti milik sendiri",
   "saldo_cuti:view_all": "Lihat saldo cuti seluruh karyawan",
   "saldo_cuti:manage": "Kelola saldo cuti, cuti bersama & konfigurasi",
+  "ppl_evaluasi:view": "Lihat kegiatan PPL & evaluasi",
+  "ppl_evaluasi:manage": "Kelola kegiatan PPL, narasumber & kuesioner",
+  "ppl_evaluasi:export": "Export data evaluasi & program tahunan",
 };
 
 export const DEFAULT_ROLE_CAPABILITIES: Record<
@@ -423,6 +437,9 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "kuitansi:view",
     "kuitansi:create",
     "kuitansi:edit",
+    "ppl_evaluasi:view",
+    "ppl_evaluasi:manage",
+    "ppl_evaluasi:export",
   ],
   pejabat: [
     "surat_masuk:view",
@@ -478,6 +495,7 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<
     "kuitansi:create",
     "kuitansi:edit",
     "kuitansi:assign",
+    "ppl_evaluasi:view",
   ],
   viewer: [
     "surat_masuk:view",

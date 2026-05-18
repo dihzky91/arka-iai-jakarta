@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { CheckCircle2, Clock, Loader2, Plus, UserPlus } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Plus, RefreshCw, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   type BrevetSummary,
 } from "@/server/actions/projects";
 import { autoGenerateBrevetTasks } from "@/server/actions/projects";
+import { syncBrevetInstructors } from "@/server/actions/project-integrations-ppl";
 import { EmptyText } from "./shared-ui";
 
 function statusBadge(ok: boolean) {
@@ -89,6 +90,18 @@ export function BrevetInfoCard({
     });
   }
 
+  function handleSyncInstructors() {
+    startTransition(async () => {
+      const result = await syncBrevetInstructors(projectId);
+      if (result.ok) {
+        toast.success(`${result.count} instruktur berhasil di-sync ke project.`);
+        onRefresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   return (
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
@@ -148,6 +161,20 @@ export function BrevetInfoCard({
               <Plus className="mr-1 h-3 w-3" />
             )}
             Generate Tasks
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            disabled={isPending}
+            onClick={handleSyncInstructors}
+          >
+            {isPending ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-1 h-3 w-3" />
+            )}
+            Sync Instruktur
           </Button>
           <Button variant="ghost" size="sm" className="text-xs" asChild>
             <Link href={`/jadwal-ujian/kelas?kelasId=${summary.kelasUjianId}`}>
