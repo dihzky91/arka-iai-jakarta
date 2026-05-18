@@ -17,6 +17,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { FormField } from "@/components/ppl-evaluasi/form-builder/types";
 
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
 
@@ -2890,3 +2891,154 @@ export type NewInvoice = typeof invoices.$inferInsert;
 export type KuitansiCounter = typeof kuitansiCounter.$inferSelect;
 export type Kuitansi = typeof kuitansi.$inferSelect;
 export type NewKuitansi = typeof kuitansi.$inferInsert;
+
+
+// ─── PPL EVALUASI ENUMS ──────────────────────────────────────────────────────
+
+export const kategoriPplEnum = pgEnum("kategori_ppl", [
+  "Perpajakan",
+  "Sistem Informasi & Softskill",
+  "Akuntansi Keuangan",
+  "Audit",
+  "Akuntansi Syariah",
+  "Akuntansi Manajemen",
+  "Akuntansi Manajemen dan Manajemen Keuangan",
+  "Akuntansi Perpajakan",
+  "Manajemen Keuangan",
+  "Akuntansi Keuangan & Softskill",
+  "Akuntansi Keuangan dan Manajemen Keuangan",
+  "Manajemen Strategik",
+  "SAK & PSAK",
+]);
+
+export const statusPplEnum = pgEnum("status_ppl", [
+  "aktif",
+  "archived",
+]);
+
+// ─── PPL KEGIATAN ────────────────────────────────────────────────────────────
+
+export const pplKegiatan = pgTable("ppl_kegiatan", {
+  id: serial("id").primaryKey(),
+  namaKegiatan: varchar("nama_kegiatan", { length: 255 }).notNull(),
+  kategoriPpl: kategoriPplEnum("kategori_ppl").notNull(),
+  tipePelaksanaan: tipePelaksanaanEnum("tipe_pelaksanaan").notNull(),
+  statusEvent: statusPplEnum("status_event").default("aktif").notNull(),
+  tanggalMulai: date("tanggal_mulai").notNull(),
+  tanggalSelesai: date("tanggal_selesai").notNull(),
+  lokasi: varchar("lokasi", { length: 255 }),
+  skp: integer("skp").notNull(),
+  pendaftar: integer("pendaftar").default(0).notNull(),
+  realisasiHadir: integer("realisasi_hadir").default(0).notNull(),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ─── PPL NARASUMBER ──────────────────────────────────────────────────────────
+
+export const pplNarasumber = pgTable("ppl_narasumber", {
+  id: serial("id").primaryKey(),
+  nama: varchar("nama", { length: 200 }).notNull(),
+  email: varchar("email", { length: 150 }).unique().notNull(),
+  noTelepon: varchar("no_telepon", { length: 30 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  feePerSkp: integer("fee_per_skp").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const pplNarasumberExpertise = pgTable("ppl_narasumber_expertise", {
+  id: serial("id").primaryKey(),
+  narasumberId: integer("narasumber_id")
+    .notNull()
+    .references(() => pplNarasumber.id, { onDelete: "cascade" }),
+  kategoriPpl: kategoriPplEnum("kategori_ppl").notNull(),
+  topik: jsonb("topik").$type<string[]>().default([]).notNull(),
+}, (t) => ({
+  narasumberIdx: index("ppl_narasumber_expertise_narasumber_idx").on(t.narasumberId),
+  uniqueNarasumberKategori: uniqueIndex("ppl_narasumber_expertise_unique").on(t.narasumberId, t.kategoriPpl),
+}));
+
+// ─── PPL KEGIATAN-NARASUMBER ASSIGNMENT ──────────────────────────────────────
+
+export const pplKegiatanNarasumber = pgTable("ppl_kegiatan_narasumber", {
+  id: serial("id").primaryKey(),
+  kegiatanId: integer("kegiatan_id")
+    .notNull()
+    .references(() => pplKegiatan.id, { onDelete: "cascade" }),
+  narasumberId: integer("narasumber_id")
+    .notNull()
+    .references(() => pplNarasumber.id, { onDelete: "restrict" }),
+  topik: varchar("topik", { length: 200 }),
+  totalHonorarium: integer("total_honorarium").default(0).notNull(),
+}, (t) => ({
+  kegiatanIdx: index("ppl_kegiatan_narasumber_kegiatan_idx").on(t.kegiatanId),
+  narasumberIdx: index("ppl_kegiatan_narasumber_narasumber_idx").on(t.narasumberId),
+}));
+
+// ─── PPL KUESIONER TEMPLATE ──────────────────────────────────────────────────
+
+export const pplKuesionerTemplate = pgTable("ppl_kuesioner_template", {
+  id: serial("id").primaryKey(),
+  nama: varchar("nama", { length: 200 }).notNull(),
+  configJson: jsonb("config_json").$type<FormField[]>().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ─── PPL KUESIONER LINK (kegiatan <-> template) ─────────────────────────────
+
+export const pplKuesionerLink = pgTable("ppl_kuesioner_link", {
+  id: serial("id").primaryKey(),
+  kegiatanId: integer("kegiatan_id")
+    .notNull()
+    .references(() => pplKegiatan.id, { onDelete: "cascade" }),
+  templateId: integer("template_id")
+    .notNull()
+    .references(() => pplKuesionerTemplate.id, { onDelete: "restrict" }),
+  accessToken: varchar("access_token", { length: 64 }).unique().notNull(),
+  isActive: boolean("is_active").default(false).notNull(),
+  activatedAt: timestamp("activated_at"),
+  deactivatedAt: timestamp("deactivated_at"),
+}, (t) => ({
+  kegiatanIdx: index("ppl_kuesioner_link_kegiatan_idx").on(t.kegiatanId),
+  tokenIdx: uniqueIndex("ppl_kuesioner_link_token_idx").on(t.accessToken),
+}));
+
+// ─── PPL KUESIONER RESPONSE ─────────────────────────────────────────────────
+
+export const pplKuesionerResponse = pgTable("ppl_kuesioner_response", {
+  id: serial("id").primaryKey(),
+  linkId: integer("link_id")
+    .notNull()
+    .references(() => pplKuesionerLink.id, { onDelete: "cascade" }),
+  namaResponden: varchar("nama_responden", { length: 200 }).notNull(),
+  emailResponden: varchar("email_responden", { length: 150 }).notNull(),
+  answersJson: jsonb("answers_json").$type<Record<string, unknown>>().notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+}, (t) => ({
+  linkIdx: index("ppl_kuesioner_response_link_idx").on(t.linkId),
+  uniqueResponden: uniqueIndex("ppl_kuesioner_response_unique_responden").on(
+    t.linkId,
+    sql`lower(${t.namaResponden})`,
+    sql`lower(${t.emailResponden})`,
+  ),
+}));
+
+// ─── TYPE EXPORTS (PPL Evaluasi) ─────────────────────────────────────────────
+
+export type PplKegiatan = typeof pplKegiatan.$inferSelect;
+export type NewPplKegiatan = typeof pplKegiatan.$inferInsert;
+export type PplNarasumber = typeof pplNarasumber.$inferSelect;
+export type NewPplNarasumber = typeof pplNarasumber.$inferInsert;
+export type PplNarasumberExpertise = typeof pplNarasumberExpertise.$inferSelect;
+export type NewPplNarasumberExpertise = typeof pplNarasumberExpertise.$inferInsert;
+export type PplKegiatanNarasumber = typeof pplKegiatanNarasumber.$inferSelect;
+export type NewPplKegiatanNarasumber = typeof pplKegiatanNarasumber.$inferInsert;
+export type PplKuesionerTemplate = typeof pplKuesionerTemplate.$inferSelect;
+export type NewPplKuesionerTemplate = typeof pplKuesionerTemplate.$inferInsert;
+export type PplKuesionerLink = typeof pplKuesionerLink.$inferSelect;
+export type NewPplKuesionerLink = typeof pplKuesionerLink.$inferInsert;
+export type PplKuesionerResponse = typeof pplKuesionerResponse.$inferSelect;
+export type NewPplKuesionerResponse = typeof pplKuesionerResponse.$inferInsert;
