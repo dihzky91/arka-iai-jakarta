@@ -11,6 +11,7 @@ import { sendEmail, getActiveEmailProvider, getMissingEmailEnv, isEmailProviderR
 import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
 import { APP_BRAND_FULL_NAME } from "@/lib/branding";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 // â”€â”€â”€ Update non-secret config (admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -125,7 +126,8 @@ export async function testEmailConnection() {
 }
 
 export async function testStorageConnection() {
-  await requirePermission("pengaturan", "configure");
+  const session = await requirePermission("pengaturan", "configure");
+  enforceUploadRateLimit(session.user.id);
   try {
     const storage = getStorageProvider();
     const payload = `storage-test-${Date.now()}`;

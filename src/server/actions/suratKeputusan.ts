@@ -22,6 +22,7 @@ import {
 } from "@/lib/validators/suratKeputusan.schema";
 import { requirePermission, requireSession } from "./auth";
 import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 export type SuratKeputusanRow = {
   id: string;
@@ -156,7 +157,8 @@ export async function deleteSuratKeputusan(data: unknown) {
 
 export async function uploadSuratKeputusanFile(data: unknown) {
   const parsed = uploadFileSchema.parse(data);
-  await requirePermission("suratKeputusan", "create");
+  const session = await requirePermission("suratKeputusan", "create");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
   const storage = getStorageProvider();
   const uploaded = await storage.upload({

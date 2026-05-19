@@ -201,45 +201,50 @@ export async function inviteUser(data: InviteUserInput) {
   const token = crypto.randomUUID();
   const expiredAt = new Date(Date.now() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000);
 
-  // 1. Simpan invitation record
-  const [invitation] = await db
-    .insert(userInvitations)
-    .values({
-      email: parsed.email,
+  // DB writes dalam satu transaction — atomic: invitation + user + account
+  const { invitation, newUserId } = await db.transaction(async (tx) => {
+    // 1. Simpan invitation record
+    const [inv] = await tx
+      .insert(userInvitations)
+      .values({
+        email: parsed.email,
+        namaLengkap: parsed.namaLengkap,
+        role: legacyRole,
+        roleId: parsed.roleId,
+        divisiId: parsed.divisiId,
+        jabatan: parsed.jabatan,
+        token,
+        expiredAt,
+        invitedBy: session.user.id,
+      })
+      .returning();
+
+    // 2. Buat user row
+    const userId = crypto.randomUUID();
+    await tx.insert(users).values({
+      id: userId,
       namaLengkap: parsed.namaLengkap,
+      email: parsed.email,
       role: legacyRole,
       roleId: parsed.roleId,
       divisiId: parsed.divisiId,
       jabatan: parsed.jabatan,
-      token,
-      expiredAt,
-      invitedBy: session.user.id,
-    })
-    .returning();
+      isActive: false,
+    });
 
-  // 2. Buat user row
-  const userId = crypto.randomUUID();
-  await db.insert(users).values({
-    id: userId,
-    namaLengkap: parsed.namaLengkap,
-    email: parsed.email,
-    role: legacyRole,
-    roleId: parsed.roleId,
-    divisiId: parsed.divisiId,
-    jabatan: parsed.jabatan,
-    isActive: false,
+    // 3. Buat account row dengan password placeholder
+    await tx.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password: PENDING_INVITE_PASSWORD,
+    });
+
+    return { invitation: inv!, newUserId: userId };
   });
 
-  // 3. Buat account row dengan password placeholder
-  await db.insert(account).values({
-    id: crypto.randomUUID(),
-    accountId: userId,
-    providerId: "credential",
-    userId,
-    password: PENDING_INVITE_PASSWORD,
-  });
-
-  // 4. Kirim email aktivasi via Better Auth
+  // 4. Side effects di luar transaction (email, audit log)
   let inviteSent = true;
   try {
     await auth.api.requestPasswordReset({
@@ -258,7 +263,7 @@ export async function inviteUser(data: InviteUserInput) {
     userId: session.user.id,
     aksi: "INVITE_USER",
     entitasType: "user_invitations",
-    entitasId: invitation!.id,
+    entitasId: invitation.id,
     detail: {
       email: parsed.email,
       namaLengkap: parsed.namaLengkap,
@@ -271,7 +276,7 @@ export async function inviteUser(data: InviteUserInput) {
   revalidatePath("/pengaturan");
   return {
     ok: true as const,
-    data: invitation!,
+    data: invitation,
     inviteSent,
     pendingExists,
   };

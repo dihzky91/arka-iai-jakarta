@@ -6,6 +6,7 @@ import { eq, and, desc, count, gte, lte, inArray, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { checkNotificationPreference } from "./notificationPreferences";
+import { requireSession, requirePermission } from "./auth";
 
 export interface NotificationInput {
   userId: string;
@@ -16,6 +17,11 @@ export interface NotificationInput {
   entitasId?: string;
 }
 
+/**
+ * @internal — hanya boleh dipanggil dari server action lain, bukan dari client.
+ * Tidak ada auth check karena ini helper internal yang dipanggil setelah
+ * action pemanggil sudah melakukan permission check sendiri.
+ */
 export async function createNotification(input: NotificationInput): Promise<Notification> {
   const result = await db
     .insert(notifications)
@@ -40,11 +46,14 @@ export async function createNotification(input: NotificationInput): Promise<Noti
   return result[0];
 }
 
-export async function getNotifications(userId: string, options?: {
+export async function getNotifications(options?: {
   unreadOnly?: boolean;
   limit?: number;
   offset?: number;
 }): Promise<Notification[]> {
+  const session = await requireSession();
+  const userId = session.user.id;
+
   const conditions = [eq(notifications.userId, userId)];
 
   if (options?.unreadOnly) {
@@ -62,7 +71,10 @@ export async function getNotifications(userId: string, options?: {
   return results;
 }
 
-export async function getUnreadNotificationCount(userId: string): Promise<number> {
+export async function getUnreadNotificationCount(): Promise<number> {
+  const session = await requireSession();
+  const userId = session.user.id;
+
   const result = await db
     .select({ count: count() })
     .from(notifications)
@@ -73,8 +85,10 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
 
 export async function markNotificationAsRead(
   notificationId: string,
-  userId: string
 ): Promise<void> {
+  const session = await requireSession();
+  const userId = session.user.id;
+
   await db
     .update(notifications)
     .set({
@@ -88,7 +102,10 @@ export async function markNotificationAsRead(
   revalidatePath("/dashboard");
 }
 
-export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+export async function markAllNotificationsAsRead(): Promise<void> {
+  const session = await requireSession();
+  const userId = session.user.id;
+
   await db
     .update(notifications)
     .set({
@@ -102,8 +119,10 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
 
 export async function deleteNotification(
   notificationId: string,
-  userId: string
 ): Promise<void> {
+  const session = await requireSession();
+  const userId = session.user.id;
+
   await db
     .delete(notifications)
     .where(
@@ -113,7 +132,42 @@ export async function deleteNotification(
   revalidatePath("/dashboard");
 }
 
-// Helper function to create notification for disposisi
+export async function pruneOldNotifications(daysOld: number = 90): Promise<number> {
+  // Fungsi ini dipanggil dari 2 konteks:
+  // 1. Cron job (tanpa session) — dilindungi oleh CRON_SECRET di route handler
+  // 2. Admin manual — harus punya permission pengaturan:manage
+  try {
+    // Jika ada session aktif, enforce permission admin
+    await requirePermission("pengaturan", "manage");
+  } catch (err) {
+    // Jika error = "Unauthorized" (tidak ada session), izinkan untuk cron context.
+    // Jika error = "Forbidden" (ada session tapi bukan admin), re-throw.
+    if (err instanceof Error && err.message === "Unauthorized") {
+      // Cron context — tidak ada session, tapi cron route sudah auth via CRON_SECRET
+    } else {
+      throw err;
+    }
+  }
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysOld);
+
+  const result = await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.isRead, true),
+        lt(notifications.createdAt, cutoff)
+      )
+    )
+    .returning({ id: notifications.id });
+
+  return result.length;
+}
+
+// ─── INTERNAL HELPERS (dipanggil dari server action lain yang sudah ber-guard) ───
+
+/** @internal */
 export async function notifyDisposisiBaru(
   kepadaUserId: string,
   dariNama: string,
@@ -133,7 +187,7 @@ export async function notifyDisposisiBaru(
   });
 }
 
-// Helper function to notify deadline approaching
+/** @internal */
 export async function notifyDisposisiDeadline(
   userId: string,
   suratPerihal: string,
@@ -157,7 +211,7 @@ export async function notifyDisposisiDeadline(
   });
 }
 
-// Helper function to notify surat keluar approval needed
+/** @internal */
 export async function notifySuratKeluarApproval(
   pejabatUserId: string,
   pengirimNama: string,
@@ -177,7 +231,7 @@ export async function notifySuratKeluarApproval(
   });
 }
 
-// Helper function to notify surat keluar revisi
+/** @internal */
 export async function notifySuratKeluarRevisi(
   creatorUserId: string,
   pejabatNama: string,
@@ -198,7 +252,7 @@ export async function notifySuratKeluarRevisi(
   });
 }
 
-// Helper function to notify surat keluar selesai
+/** @internal */
 export async function notifySuratKeluarSelesai(
   creatorUserId: string,
   perihal: string,
@@ -218,7 +272,7 @@ export async function notifySuratKeluarSelesai(
   });
 }
 
-// Helper function to notify surat masuk baru
+/** @internal */
 export async function notifySuratMasukBaru(
   suratPerihal: string,
   pengirim: string,
@@ -247,21 +301,4 @@ export async function notifySuratMasukBaru(
       entitasId: suratMasukId,
     });
   }
-}
-
-export async function pruneOldNotifications(daysOld: number = 90): Promise<number> {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - daysOld);
-
-  const result = await db
-    .delete(notifications)
-    .where(
-      and(
-        eq(notifications.isRead, true),
-        lt(notifications.createdAt, cutoff)
-      )
-    )
-    .returning({ id: notifications.id });
-
-  return result.length;
 }

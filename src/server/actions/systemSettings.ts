@@ -13,6 +13,7 @@ import { APP_BRAND_NAME } from "@/lib/branding";
 import { getCurrentUserAccess, requirePermission, getSession } from "./auth";
 import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 export type SystemSettingsRow = {
   id: number;
@@ -172,6 +173,7 @@ export async function updateSystemSettings(formData: FormData) {
 
   const logoFile = formData.get("logo") as File | null;
   if (logoFile && logoFile.size > 0) {
+    enforceUploadRateLimit(session.user.id);
     if (!ALLOWED_LOGO_TYPES.includes(logoFile.type)) {
       return {
         ok: false as const,
@@ -196,6 +198,7 @@ export async function updateSystemSettings(formData: FormData) {
 
   const faviconFile = formData.get("favicon") as File | null;
   if (faviconFile && faviconFile.size > 0) {
+    enforceUploadRateLimit(session.user.id);
     if (!ALLOWED_FAVICON_TYPES.includes(faviconFile.type)) {
       return {
         ok: false as const,

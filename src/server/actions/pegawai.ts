@@ -149,7 +149,7 @@ export async function listPegawaiWithBiodata(options?: {
   nextCursor: string | null;
   total: number;
 }> {
-  await requireSession();
+  await requirePermission("pegawai", "view");
 
   const limit = options?.limit ?? 200;
   const cursorDate = options?.cursor ? new Date(options.cursor) : undefined;
@@ -246,7 +246,7 @@ export async function listPegawaiWithBiodata(options?: {
 }
 
 export async function getPegawaiById(id: string) {
-  await requireSession();
+  await requirePegawaiSubEntityAccess(id);
   const [user] = await db
     .select({
       id: users.id,
@@ -353,21 +353,26 @@ export async function createPegawai(data: unknown) {
   }
 
   // ── Fallback: flow lama tanpa roleId (legacy) ──
-  // Buat user row langsung tanpa userInvitations record.
-  const userId = crypto.randomUUID();
-  const [row] = await db
-    .insert(users)
-    .values({ id: userId, ...parsed })
-    .returning();
+  // Buat user row + account dalam satu transaction.
+  const row = await db.transaction(async (tx) => {
+    const userId = crypto.randomUUID();
+    const [userRow] = await tx
+      .insert(users)
+      .values({ id: userId, ...parsed })
+      .returning();
 
-  await db.insert(account).values({
-    id: crypto.randomUUID(),
-    accountId: userId,
-    providerId: "credential",
-    userId,
-    password: PENDING_INVITE_PASSWORD,
+    await tx.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password: PENDING_INVITE_PASSWORD,
+    });
+
+    return userRow!;
   });
 
+  // Side effects di luar transaction (email, audit log)
   let inviteSent = true;
   try {
     await auth.api.requestPasswordReset({
@@ -385,7 +390,7 @@ export async function createPegawai(data: unknown) {
     userId: session.user.id,
     aksi: "CREATE_PEGAWAI",
     entitasType: "users",
-    entitasId: row!.id,
+    entitasId: row.id,
     detail: {
       email: parsed.email,
       namaLengkap: parsed.namaLengkap,
@@ -395,7 +400,7 @@ export async function createPegawai(data: unknown) {
   });
 
   revalidatePath("/pegawai");
-  return { ok: true as const, data: row!, inviteSent };
+  return { ok: true as const, data: row, inviteSent };
 }
 
 export async function updatePegawai(data: unknown) {
@@ -540,25 +545,29 @@ export async function deletePegawai(data: unknown) {
 
   // ── Jika aman, lanjut hard delete ──
 
-  // Hapus sub-entitas pegawai
-  await db.delete(pegawaiKeluarga).where(eq(pegawaiKeluarga.userId, parsed.id));
-  await db.delete(pegawaiPendidikan).where(eq(pegawaiPendidikan.userId, parsed.id));
-  await db
-    .delete(pegawaiRiwayatPekerjaan)
-    .where(eq(pegawaiRiwayatPekerjaan.userId, parsed.id));
-  await db.delete(pegawaiBiodata).where(eq(pegawaiBiodata.userId, parsed.id));
-  await db.delete(pegawaiKelengkapan).where(eq(pegawaiKelengkapan.userId, parsed.id));
-  await db.delete(pegawaiKesehatan).where(eq(pegawaiKesehatan.userId, parsed.id));
-  await db
-    .delete(pegawaiPernyataanIntegritas)
-    .where(eq(pegawaiPernyataanIntegritas.userId, parsed.id));
+  // Semua DELETE dalam satu transaction — atomic: semua atau tidak sama sekali.
+  await db.transaction(async (tx) => {
+    // Hapus sub-entitas pegawai
+    await tx.delete(pegawaiKeluarga).where(eq(pegawaiKeluarga.userId, parsed.id));
+    await tx.delete(pegawaiPendidikan).where(eq(pegawaiPendidikan.userId, parsed.id));
+    await tx
+      .delete(pegawaiRiwayatPekerjaan)
+      .where(eq(pegawaiRiwayatPekerjaan.userId, parsed.id));
+    await tx.delete(pegawaiBiodata).where(eq(pegawaiBiodata.userId, parsed.id));
+    await tx.delete(pegawaiKelengkapan).where(eq(pegawaiKelengkapan.userId, parsed.id));
+    await tx.delete(pegawaiKesehatan).where(eq(pegawaiKesehatan.userId, parsed.id));
+    await tx
+      .delete(pegawaiPernyataanIntegritas)
+      .where(eq(pegawaiPernyataanIntegritas.userId, parsed.id));
 
-  // Hapus auth account & invitation records sebelum hapus user
-  await db.delete(account).where(eq(account.userId, parsed.id));
-  await db.delete(userInvitations).where(eq(userInvitations.email, target.email));
+    // Hapus auth account & invitation records sebelum hapus user
+    await tx.delete(account).where(eq(account.userId, parsed.id));
+    await tx.delete(userInvitations).where(eq(userInvitations.email, target.email));
 
-  await db.delete(users).where(eq(users.id, parsed.id));
+    await tx.delete(users).where(eq(users.id, parsed.id));
+  });
 
+  // Side effects di luar transaction
   await writeAuditLog({
     userId: session.user.id,
     aksi: "DELETE_PEGAWAI",
@@ -576,7 +585,7 @@ export async function deletePegawai(data: unknown) {
 export type KeluargaRow = typeof pegawaiKeluarga.$inferSelect;
 
 export async function listKeluarga(userId: string): Promise<KeluargaRow[]> {
-  await requireSession();
+  await requirePegawaiSubEntityAccess(userId);
   return db
     .select()
     .from(pegawaiKeluarga)
@@ -649,7 +658,7 @@ export async function deleteKeluarga(data: unknown) {
 export type PendidikanRow = typeof pegawaiPendidikan.$inferSelect;
 
 export async function listPendidikan(userId: string): Promise<PendidikanRow[]> {
-  await requireSession();
+  await requirePegawaiSubEntityAccess(userId);
   return db
     .select()
     .from(pegawaiPendidikan)
@@ -722,7 +731,7 @@ export async function deletePendidikan(data: unknown) {
 export type PekerjaanRow = typeof pegawaiRiwayatPekerjaan.$inferSelect;
 
 export async function listPekerjaan(userId: string): Promise<PekerjaanRow[]> {
-  await requireSession();
+  await requirePegawaiSubEntityAccess(userId);
   return db
     .select()
     .from(pegawaiRiwayatPekerjaan)
@@ -795,7 +804,7 @@ export async function deletePekerjaan(data: unknown) {
 export type KesehatanRow = typeof pegawaiKesehatan.$inferSelect;
 
 export async function getKesehatan(userId: string): Promise<KesehatanRow | null> {
-  await requireSession();
+  await requirePegawaiSubEntityAccess(userId);
   const [row] = await db
     .select()
     .from(pegawaiKesehatan)
@@ -842,7 +851,7 @@ export async function upsertKesehatan(data: unknown) {
 export type IntegritasRow = typeof pegawaiPernyataanIntegritas.$inferSelect;
 
 export async function getIntegritas(userId: string): Promise<IntegritasRow | null> {
-  await requireSession();
+  await requirePegawaiSubEntityAccess(userId);
   const [row] = await db
     .select()
     .from(pegawaiPernyataanIntegritas)

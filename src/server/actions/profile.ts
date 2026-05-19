@@ -9,6 +9,7 @@ import { users, auditLog } from "@/server/db/schema";
 import { requireSession } from "./auth";
 import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 export type ProfileRow = {
   id: string;
@@ -75,6 +76,7 @@ export async function updateMyProfile(formData: FormData) {
   let avatarUrl: string | undefined;
   const avatarFile = formData.get("avatar") as File | null;
   if (avatarFile && avatarFile.size > 0) {
+    enforceUploadRateLimit(session.user.id);
     if (!ALLOWED_AVATAR_TYPES.includes(avatarFile.type)) {
       return {
         ok: false as const,

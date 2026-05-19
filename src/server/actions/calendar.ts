@@ -5,6 +5,7 @@ import { calendarEvents, type CalendarEvent, disposisi, suratKeluar, jadwalUjian
 import { eq, and, gte, lte, desc, or, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { parseIsoDateTimeInJakarta } from "@/lib/utils";
+import { requireSession, requirePermission } from "./auth";
 
 export interface CalendarEventInput {
   title: string;
@@ -51,6 +52,7 @@ export async function getCalendarEvents(options?: {
   eventType?: string;
   includePublic?: boolean;
 }): Promise<CalendarEvent[]> {
+  await requireSession();
   const conditions: ReturnType<typeof eq>[] = [];
 
   if (options?.userId) {
@@ -92,6 +94,7 @@ export async function getCalendarEventsByMonth(
   month: number,
   userId?: string
 ): Promise<CalendarEvent[]> {
+  await requireSession();
   const monthText = String(month).padStart(2, "0");
   const startIso = `${year}-${monthText}-01`;
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -112,6 +115,7 @@ export async function updateCalendarEvent(
   input: Partial<CalendarEventInput>,
   userId: string
 ): Promise<CalendarEvent> {
+  await requireSession();
   const updateData: Partial<typeof calendarEvents.$inferInsert> = {};
 
   if (input.title !== undefined) updateData.title = input.title;
@@ -138,6 +142,7 @@ export async function updateCalendarEvent(
 }
 
 export async function deleteCalendarEvent(eventId: string, userId: string): Promise<void> {
+  await requireSession();
   await db
     .delete(calendarEvents)
     .where(and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)));
@@ -454,6 +459,8 @@ export async function removeJadwalAdminJagaEvent(jadwalId: string): Promise<void
 // Sinkronisasi data ujian/pengawas/admin yang sudah ada ke calendar
 
 export async function backfillCalendarEvents(): Promise<void> {
+  await requirePermission("pengaturan", "manage");
+
   // Hapus semua event hasil sync terdahulu (idempotent — delete all, recreate all)
   await db.delete(calendarEvents).where(
     inArray(calendarEvents.entitasType, ["ujian", "ujian_pengawas", "admin_jaga", "jadwal_admin_jaga"]),
@@ -553,6 +560,7 @@ export async function getUpcomingDeadlines(
   userId: string,
   daysAhead: number = 7
 ): Promise<CalendarEvent[]> {
+  await requireSession();
   const now = new Date();
   const future = new Date();
   future.setDate(now.getDate() + daysAhead);

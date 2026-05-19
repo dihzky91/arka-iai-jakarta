@@ -53,6 +53,8 @@ export const RATE_LIMIT_POLICIES = {
   certificate_email: { limit: 30, windowMs: 60_000 },             // 30/menit
   certificate_bulk_download: { limit: 5, windowMs: 60_000 },      // 5/menit (heavy)
   certificate_bulk_email: { limit: 3, windowMs: 60_000 },         // 3/menit (heavy)
+  file_upload: { limit: 30, windowMs: 60_000 },                   // 30 upload/menit
+  file_upload_heavy: { limit: 10, windowMs: 60_000 },             // 10 large file/menit
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type RateLimitAction = keyof typeof RATE_LIMIT_POLICIES;

@@ -39,13 +39,13 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
   const fetchNotifications = useCallback(async () => {
     const [notifs, count] = await Promise.all([
-      getNotifications(userId, { limit: PAGE_SIZE }),
-      getUnreadNotificationCount(userId),
+      getNotifications({ limit: PAGE_SIZE }),
+      getUnreadNotificationCount(),
     ]);
     setNotifications(notifs);
     setUnreadCount(count);
     setHasMore(notifs.length === PAGE_SIZE);
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -56,24 +56,24 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const handleLoadMore = async () => {
     setLoadingMore(true);
     const offset = notifications.length;
-    const more = await getNotifications(userId, { limit: PAGE_SIZE, offset });
+    const more = await getNotifications({ limit: PAGE_SIZE, offset });
     setNotifications((prev) => [...prev, ...more]);
     setHasMore(more.length === PAGE_SIZE);
     setLoadingMore(false);
   };
 
   const handleMarkAsRead = async (id: string) => {
-    await markNotificationAsRead(id, userId);
+    await markNotificationAsRead(id);
     await fetchNotifications();
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllNotificationsAsRead(userId);
+    await markAllNotificationsAsRead();
     await fetchNotifications();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteNotification(id, userId);
+    await deleteNotification(id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
     if (!notifications.find((n) => n.id === id)?.isRead) {
       setUnreadCount((prev) => Math.max(0, prev - 1));

@@ -22,6 +22,7 @@ import {
 } from "@/lib/validators/suratMou.schema";
 import { requirePermission, requireSession } from "./auth";
 import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 export type SuratMouRow = {
   id: string;
@@ -160,7 +161,8 @@ export async function deleteSuratMou(data: unknown) {
 
 export async function uploadSuratMouFile(data: unknown) {
   const parsed = uploadFileSchema.parse(data);
-  await requirePermission("suratMou", "create");
+  const session = await requirePermission("suratMou", "create");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
   const storage = getStorageProvider();
   const uploaded = await storage.upload({

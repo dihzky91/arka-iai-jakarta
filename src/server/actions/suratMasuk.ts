@@ -17,6 +17,7 @@ import {
 import { requirePermission, requireSession } from "./auth";
 import { notifySuratMasukBaru } from "./notifications";
 import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 export type SuratMasukRow = {
   id: string;
@@ -122,7 +123,8 @@ export async function createSuratMasuk(data: unknown) {
 
 export async function uploadSuratMasukFile(data: unknown) {
   const parsed = uploadFileSchema.parse(data);
-  await requirePermission("suratMasuk", "create");
+  const session = await requirePermission("suratMasuk", "create");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
 
   const storage = getStorageProvider();

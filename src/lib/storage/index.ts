@@ -13,7 +13,21 @@ function resolveProvider(kind: StorageProviderKind): StorageProvider {
     case "hosted":
       return new HostedStorageProvider();
     case "local":
+      if (process.env.NODE_ENV === "production") {
+        throw new Error(
+          "[storage] FATAL: LocalStorageProvider tidak boleh dipakai di production. " +
+          "File akan hilang di serverless/ephemeral environment. " +
+          "Set STORAGE_PROVIDER=cloudinary.",
+        );
+      }
+      return new LocalStorageProvider();
     default:
+      if (process.env.NODE_ENV === "production") {
+        throw new Error(
+          `[storage] FATAL: STORAGE_PROVIDER="${kind}" tidak dikenali. ` +
+          `Gunakan "cloudinary" untuk production.`,
+        );
+      }
       return new LocalStorageProvider();
   }
 }

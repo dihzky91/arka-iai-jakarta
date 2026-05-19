@@ -10,6 +10,7 @@ import {
 } from "@/server/db/schema";
 import { eq, or, and, ilike, gte, lte, sql, desc, type SQL } from "drizzle-orm";
 import { getTodayIsoInJakarta, parseIsoDateInJakarta } from "@/lib/utils";
+import { requireSession } from "./auth";
 
 export interface SearchFilters {
   query?: string;
@@ -39,6 +40,8 @@ export async function globalSearch(
   filters: SearchFilters,
   limit: number = 20
 ): Promise<SearchResult[]> {
+  await requireSession();
+
   const results: SearchResult[] = [];
   const searchQuery = filters.query?.trim();
 
@@ -231,6 +234,8 @@ export async function globalSearch(
 }
 
 export async function getSearchSuggestions(query: string): Promise<string[]> {
+  await requireSession();
+
   if (!query || query.length < 2) return [];
 
   const suggestions: Set<string> = new Set();

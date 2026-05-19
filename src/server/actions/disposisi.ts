@@ -116,7 +116,7 @@ export async function inboxDisposisi(): Promise<DisposisiTimelineRow[]> {
 }
 
 export async function listDisposisiTimeline(): Promise<DisposisiTimelineRow[]> {
-  await requireSession();
+  await requirePermission("disposisi", "view");
   const rows = await db
     .select({
       id: disposisi.id,

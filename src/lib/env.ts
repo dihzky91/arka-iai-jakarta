@@ -1,13 +1,15 @@
 // Helper pembacaan env yang memberi warning jelas bila kosong saat development.
 // Server-side only — jangan impor dari komponen client.
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
 function readEnv(key: string, required = false): string {
   const v = process.env[key];
   if (!v) {
     if (required) {
-      throw new Error(`Env var ${key} wajib di-set.`);
+      throw new Error(`[env] FATAL: ${key} wajib di-set.`);
     }
-    if (process.env.NODE_ENV !== "production") {
+    if (!IS_PRODUCTION) {
       console.warn(`[env] ${key} kosong — fitur terkait akan non-fungsional.`);
     }
     return "";
@@ -17,6 +19,33 @@ function readEnv(key: string, required = false): string {
 
 function readEnvOptional(key: string): string {
   return process.env[key] ?? "";
+}
+
+// ─── PRODUCTION FAIL-FAST ─────────────────────────────────────────────────────
+// Di production, env kritis WAJIB ada. App harus crash saat startup, bukan saat
+// query pertama gagal dengan error yang tidak jelas.
+if (IS_PRODUCTION) {
+  const REQUIRED_IN_PRODUCTION = [
+    "DATABASE_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+  ] as const;
+
+  const missing = REQUIRED_IN_PRODUCTION.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `[env] FATAL: Env vars berikut WAJIB di-set di production: ${missing.join(", ")}`,
+    );
+  }
+
+  // Storage provider tidak boleh "local" di production (ephemeral di serverless)
+  const storageProvider = (process.env.STORAGE_PROVIDER || "").toLowerCase();
+  if (!storageProvider || storageProvider === "local") {
+    throw new Error(
+      `[env] FATAL: STORAGE_PROVIDER tidak boleh kosong atau "local" di production. ` +
+      `Set ke "cloudinary" atau provider lain yang persistent.`,
+    );
+  }
 }
 
 export const env = {

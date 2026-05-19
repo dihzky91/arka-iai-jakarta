@@ -38,6 +38,7 @@ import {
 } from "./notifications";
 import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
 import { parseIsoDateInJakarta } from "@/lib/utils";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -216,7 +217,8 @@ export async function createSuratKeluar(data: unknown) {
 
 export async function uploadSuratKeluarDraft(data: unknown) {
   const parsed = uploadFileSchema.parse(data);
-  await requirePermission("suratKeluar", "create");
+  const session = await requirePermission("suratKeluar", "create");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
 
   const storage = getStorageProvider();
@@ -235,7 +237,8 @@ export async function uploadSuratKeluarDraft(data: unknown) {
 
 export async function uploadSuratKeluarLampiran(data: unknown) {
   const parsed = uploadFileSchema.parse(data);
-  await requirePermission("suratKeluar", "create");
+  const session = await requirePermission("suratKeluar", "create");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
 
   const storage = getStorageProvider();
@@ -261,7 +264,8 @@ export async function uploadSuratKeluarFinal(data: unknown) {
       dataUrl: z.string().min(1, "Data file wajib ada."),
     })
     .parse(data);
-  await requirePermission("suratKeluar", "generate");
+  const session = await requirePermission("suratKeluar", "generate");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
 
   const [existing] = await db
@@ -304,6 +308,7 @@ export async function uploadSuratKeluarFinal(data: unknown) {
 export async function stampQrToSuratKeluarPdf(data: unknown) {
   const parsed = stampQrPdfSchema.parse(data);
   const session = await requirePermission("suratKeluar", "generate");
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
 
   if (prepared.contentType !== "application/pdf") {

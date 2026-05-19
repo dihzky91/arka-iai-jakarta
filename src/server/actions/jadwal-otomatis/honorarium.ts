@@ -8,6 +8,7 @@ import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
 import { z } from "zod";
 import { getStorageProvider } from "@/lib/storage";
 import { prepareUploadPayload } from "@/lib/storage/utils";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 import {
   requireCapability,
   requirePermission,
@@ -2832,6 +2833,7 @@ export async function uploadHonorariumPaymentProof(
   data: z.infer<typeof uploadPaymentProofSchema>,
 ) {
   const session = await requireCapability("keuangan:pay");
+  enforceUploadRateLimit(session.user.id);
   const parsed = uploadPaymentProofSchema.parse(data);
 
   const [batch] = await db

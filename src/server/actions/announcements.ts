@@ -16,6 +16,7 @@ import {
 } from "@/server/db/schema";
 import { getStorageProvider } from "@/lib/storage";
 import { prepareUploadPayload } from "@/lib/storage/utils";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 import {
   announcementCreateSchema,
   announcementDeleteSchema,
@@ -574,8 +575,9 @@ export async function getAnnouncementAudienceOptions() {
 }
 
 export async function uploadAnnouncementAttachment(data: unknown) {
-  await requirePermission("announcement", "manage");
+  const session = await requirePermission("announcement", "manage");
   const parsed = announcementUploadFileSchema.parse(data);
+  enforceUploadRateLimit(session.user.id);
   const prepared = prepareUploadPayload(parsed);
 
   const storage = getStorageProvider();

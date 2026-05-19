@@ -18,6 +18,7 @@ import { requireCapability, requireSession } from "@/server/actions/auth";
 import { parseDataUrl, sanitizeFileName } from "@/lib/storage/utils";
 import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
+import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 import {
   uuidSchema,
   logProjectActivity,
@@ -339,6 +340,7 @@ export async function uploadProjectFile(projectId: string, data: unknown) {
     const parsedId = uuidSchema.parse(projectId);
     const { session, role } = await requireProjectMember(parsedId);
     if (role === "viewer") return { ok: false as const, error: "Viewer tidak bisa upload file." };
+    enforceUploadRateLimit(session.user.id);
 
     const payload = parseDataUrl(parsed.dataUrl);
     const contentType = parsed.contentType.trim().toLowerCase();

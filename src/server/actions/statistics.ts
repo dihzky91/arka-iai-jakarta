@@ -35,6 +35,7 @@ import {
   asc,
 } from "drizzle-orm";
 import type { Capability } from "@/lib/rbac/capabilities";
+import { requireSession } from "./auth";
 
 export interface DashboardStats {
   totalSuratKeluar: number;
@@ -50,6 +51,8 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
+  await requireSession();
+
   const [
     totalSuratKeluarResult,
     totalSuratMasukResult,
@@ -203,6 +206,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function getSuratKeluarTrend(days: number = 30) {
+  await requireSession();
+
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(endDate.getDate() - days);
@@ -226,6 +231,8 @@ export async function getSuratKeluarTrend(days: number = 30) {
 }
 
 export async function getDivisiStats() {
+  await requireSession();
+
   const result = await db
     .select({
       divisiId: users.divisiId,
@@ -252,6 +259,8 @@ export interface PersuratanMetrics {
 }
 
 export async function getPersuratanMetrics(): Promise<PersuratanMetrics> {
+  await requireSession();
+
   const [
     masukBaru,
     masukDiproses,
@@ -305,6 +314,8 @@ export interface KepegawaianMetrics {
 }
 
 export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
+  await requireSession();
+
   const todayStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -388,6 +399,8 @@ export interface SertifikatMetrics {
 }
 
 export async function getSertifikatMetrics(): Promise<SertifikatMetrics> {
+  await requireSession();
+
   const todayStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -462,6 +475,8 @@ export interface KeuanganMetrics {
 }
 
 export async function getKeuanganMetrics(): Promise<KeuanganMetrics> {
+  await requireSession();
+
   const [byStatus, totalDibayar] = await Promise.all([
     db
       .select({
@@ -572,6 +587,8 @@ function daysSinceJakarta(date: Date | null, now = new Date()) {
 }
 
 export async function getKeuanganDashboardMetrics(): Promise<KeuanganDashboardMetrics> {
+  await requireSession();
+
   const now = new Date();
   const current = toJakartaDatePartsForMetrics(now);
 
@@ -769,6 +786,8 @@ export interface PendingBatchItem {
 export async function getRecentSuratMasuk(
   limit = 5,
 ): Promise<RecentSuratMasukItem[]> {
+  await requireSession();
+
   const rows = await db
     .select({
       id: suratMasuk.id,
@@ -793,6 +812,8 @@ export async function getRecentDisposisiForUser(
   userId: string,
   limit = 5,
 ): Promise<RecentDisposisiItem[]> {
+  await requireSession();
+
   const rows = await db
     .select({
       id: disposisi.id,
@@ -821,6 +842,8 @@ export async function getRecentDisposisiForUser(
 export async function getPendingCutiList(
   limit = 5,
 ): Promise<PendingCutiItem[]> {
+  await requireSession();
+
   const rows = await db
     .select({
       id: pengajuanCuti.id,
@@ -844,6 +867,8 @@ export async function getPendingCutiList(
 export async function getPendingBatchList(
   limit = 5,
 ): Promise<PendingBatchItem[]> {
+  await requireSession();
+
   const rows = await db
     .select({
       id: honorariumBatches.id,
@@ -980,6 +1005,8 @@ export async function getRoleDashboardData(
   isSuperAdmin: boolean,
   userId: string | null,
 ): Promise<RoleDashboardData> {
+  await requireSession();
+
   // SuperAdmin/admin sees everything
   const allAccess = isSuperAdmin;
 
@@ -1374,5 +1401,7 @@ const cachedProjectCentricData = unstable_cache(
 export async function getProjectCentricData(
   userId: string,
 ): Promise<ProjectCentricData> {
+  await requireSession();
+
   return cachedProjectCentricData(userId);
 }
