@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_BRAND_DESCRIPTION } from "@/lib/branding";
+import { COLOR_THEME_IDS } from "@/lib/color-themes";
 import { getSystemSettings } from "@/server/actions/systemSettings";
 import "@/styles/globals.css";
 
@@ -45,8 +47,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body className={`${inter.variable} ${outfit.variable} font-sans min-h-screen bg-background text-foreground antialiased`}>
-        {children}
+      <body className={`${inter.variable} ${outfit.variable} font-sans min-h-screen bg-background text-foreground antialiased transition-colors duration-200`}>
+        <ThemeProvider
+          attribute="data-theme"
+          themes={COLOR_THEME_IDS}
+          defaultTheme="ocean"
+          enableSystem={false}
+          storageKey="arka-color-theme"
+          disableTransitionOnChange={false}
+        >
+          {children}
+        </ThemeProvider>
         <Toaster richColors position="top-right" />
       </body>
     </html>

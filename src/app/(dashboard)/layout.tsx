@@ -4,6 +4,7 @@ import { getCurrentUserAccess, getSession } from "@/server/actions/auth";
 import { countUnreadAnnouncements } from "@/server/actions/announcements";
 import { countUnreadDisposisi } from "@/server/actions/disposisi";
 import { getSystemSettings } from "@/server/actions/systemSettings";
+import { getUserColorTheme } from "@/server/actions/color-theme";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { AnnouncementToastNotifier } from "@/components/announcements/AnnouncementToastNotifier";
 import { DashboardProvider } from "@/components/dashboard/DashboardContext";
@@ -22,10 +23,11 @@ export default async function DashboardLayout({
   const userRole =
     access?.role ?? (session.user as { role?: string } | undefined)?.role ?? null;
 
-  const [unreadDisposisiCount, unreadAnnouncementCount, systemIdentity] = await Promise.all([
+  const [unreadDisposisiCount, unreadAnnouncementCount, systemIdentity, colorTheme] = await Promise.all([
     countUnreadDisposisi(),
     countUnreadAnnouncements(),
     getSystemSettings(),
+    getUserColorTheme(),
   ]);
 
   // Ambil pathname dari header agar SSR match dengan client hydration
@@ -45,6 +47,7 @@ export default async function DashboardLayout({
       userName={session.user.name}
       userId={session.user.id}
       pathname={pathname}
+      colorTheme={colorTheme}
     >
       <DashboardProvider
         capabilities={access?.capabilities ?? []}

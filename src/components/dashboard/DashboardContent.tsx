@@ -116,7 +116,6 @@ function RingkasanTab({
   projectData: ProjectCentricData | null;
   userName: string | null;
 }) {
-  const { userRole, isSuperAdmin } = useDashboard();
 
   // Staff/Pejabat with projects:view → project-centric dashboard
   if (projectData) {
@@ -124,15 +123,10 @@ function RingkasanTab({
       <div className="space-y-6">
         <ProjectCentricRingkasan data={projectData} userName={userName} />
 
-        {/* Keep Profile + Quick Actions in a sidebar section below */}
+        {/* Quick Actions sidebar */}
         <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           <div />
           <div className="space-y-4">
-            <ProfileCard
-              userName={userName}
-              userRole={userRole}
-              isSuperAdmin={isSuperAdmin}
-            />
             <QuickActionsCard data={data} />
           </div>
         </div>
@@ -194,19 +188,14 @@ function RingkasanTab({
       {/* 2-column layout: content left + sidebar right */}
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         {/* Left: Antrean Persuratan */}
-        <div className="space-y-5">
+        <div>
           {data.recentSuratMasuk !== null && (
             <AntreanPersuratanCard items={data.recentSuratMasuk ?? []} />
           )}
         </div>
 
-        {/* Right: Profile + Quick Actions */}
-        <div className="space-y-4">
-          <ProfileCard
-            userName={userName}
-            userRole={userRole}
-            isSuperAdmin={isSuperAdmin}
-          />
+        {/* Right: Quick Actions */}
+        <div>
           <QuickActionsCard data={data} />
         </div>
       </div>
@@ -292,65 +281,6 @@ function AntreanPersuratanCard({ items }: { items: RecentSuratMasukItem[] }) {
   );
 }
 
-// ─── Profile Card ─────────────────────────────────────────────────────────────
-
-function ProfileCard({
-  userName,
-  userRole,
-  isSuperAdmin,
-}: {
-  userName: string | null;
-  userRole: string | null;
-  isSuperAdmin: boolean;
-}) {
-  const name = userName ?? "Pengguna";
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase();
-
-  const roleLabel = isSuperAdmin
-    ? "Super Admin"
-    : userRole === "admin"
-      ? "Admin"
-      : userRole === "staff"
-        ? "Staff"
-        : userRole === "pejabat"
-          ? "Pejabat"
-          : (userRole ?? "Member");
-
-  return (
-    <div className="rounded-3xl bg-linear-to-br from-blue-600 to-blue-700 p-5 text-white shadow-sm">
-      <p className="text-[10px] font-medium uppercase tracking-widest text-blue-200">
-        Profil Saya
-      </p>
-      <div className="mt-3 flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">
-          {initials}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate font-medium">{name}</p>
-          <p className="text-xs text-blue-200">IAI Jakarta</p>
-        </div>
-      </div>
-      <div className="mt-4 space-y-2.5 border-t border-white/10 pt-4 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-blue-200">Peran</span>
-          <span className="font-medium">{roleLabel}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-blue-200">Status</span>
-          <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
-            TERVERIFIKASI
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Quick Actions Card ───────────────────────────────────────────────────────
 
 function QuickActionsCard({ data }: { data: RoleDashboardData }) {
@@ -375,7 +305,7 @@ function QuickActionsCard({ data }: { data: RoleDashboardData }) {
   if (actions.length === 0) return null;
 
   return (
-    <section className="rounded-3xl border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
+    <section className="h-full rounded-3xl border border-border/60 bg-card p-5 text-card-foreground shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <UserCheck className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-medium text-foreground">Aksi Cepat</h3>

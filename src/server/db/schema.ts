@@ -235,6 +235,7 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   activatedAt: timestamp("activated_at"),
   dingtalkUserId: text("dingtalk_user_id"),
+  colorTheme: varchar("color_theme", { length: 20 }).default("ocean").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

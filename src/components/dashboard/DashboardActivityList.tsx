@@ -27,7 +27,7 @@ export function DashboardActivityList({
   children,
 }: DashboardActivityListProps) {
   return (
-    <section className="rounded-[24px] border border-border/60 bg-card p-4 text-card-foreground shadow-sm sm:p-6">
+    <section className="h-full rounded-[24px] border border-border/60 bg-card p-4 text-card-foreground shadow-sm sm:p-6">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-medium text-foreground sm:text-lg">{title}</h2>

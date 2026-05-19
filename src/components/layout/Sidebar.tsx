@@ -151,7 +151,7 @@ export function Sidebar({
           }}
         >
           {/* TIER 1: Module Strip */}
-          <div className="flex w-[80px] shrink-0 flex-col items-center border-r border-slate-100 bg-slate-50/60 py-6 z-10 backdrop-blur-xl">
+          <div className="flex w-[80px] shrink-0 flex-col items-center border-r border-sidebar-accent/30 bg-sidebar-bg py-6 z-10 backdrop-blur-xl">
             {/* Logo */}
             <div className="mb-8 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
               {logoUrl ? (
@@ -177,7 +177,7 @@ export function Sidebar({
                       "group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-200",
                       isActive
                         ? "bg-primary text-white shadow-md shadow-primary/20 scale-105"
-                        : "text-slate-500 hover:bg-slate-200/60 hover:text-slate-900"
+                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
                     )}
                     title={section.title}
                   >
@@ -194,8 +194,8 @@ export function Sidebar({
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-2xl transition-colors",
                   desktopCollapsed
-                    ? "bg-white text-primary shadow-sm ring-1 ring-slate-200 hover:bg-primary hover:text-white"
-                    : "text-slate-400 hover:bg-slate-200/60 hover:text-slate-900",
+                    ? "bg-card text-primary shadow-sm ring-1 ring-border hover:bg-primary hover:text-white"
+                    : "text-sidebar-foreground/40 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
                 )}
                 title={desktopCollapsed ? "Tampilkan sub-menu" : "Sembunyikan sub-menu"}
                 aria-label={desktopCollapsed ? "Tampilkan sub-menu" : "Sembunyikan sub-menu"}
@@ -213,11 +213,11 @@ export function Sidebar({
                 animate={{ width: SUBMENU_PANEL_WIDTH, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="flex h-full flex-col overflow-hidden bg-white z-0"
+                className="flex h-full flex-col overflow-hidden bg-sidebar-bg z-0"
               >
                 <div className="flex h-full w-[220px] flex-col">
                   <div className="px-6 py-8">
-                    <h2 className="font-outfit text-xl font-medium text-slate-900 tracking-tight">
+                    <h2 className="font-outfit text-xl font-medium text-sidebar-foreground tracking-tight">
                       {activeSection?.title}
                     </h2>
                   </div>
@@ -245,11 +245,11 @@ export function Sidebar({
                           return (
                             <li key={item.href}>
                               {showGroupLabel && (
-                                <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">
+                                <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-0">
                                   {item.group}
                                 </p>
                               )}
-                              <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-slate-400 opacity-80">
+                              <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-muted-foreground opacity-80">
                                 <item.icon className="h-[18px] w-[18px]" strokeWidth={2} />
                                 <span className="flex-1 font-normal">{item.label}</span>
                                 <LockKeyhole className="h-3.5 w-3.5" />
@@ -260,24 +260,24 @@ export function Sidebar({
 
                         return (
                           <li key={item.href}>
-                            {showGroupLabel && (
-                              <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">
-                                {item.group}
-                              </p>
-                            )}
+                              {showGroupLabel && (
+                                <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-0">
+                                  {item.group}
+                                </p>
+                              )}
                             <Link
                               href={item.href}
                               className={cn(
                                 "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-normal transition-all duration-200",
                                 isActive
-                                  ? "bg-slate-100/80 font-medium text-primary"
-                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                  ? "bg-muted/80 font-medium text-primary"
+                                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground"
                               )}
                             >
                               <item.icon
                                 className={cn(
                                   "h-[18px] w-[18px] transition-transform group-hover:scale-110",
-                                  isActive ? "text-primary" : "text-slate-400"
+                                  isActive ? "text-primary" : "text-muted-foreground"
                                 )}
                                 strokeWidth={isActive ? 2.5 : 2}
                               />
@@ -302,14 +302,14 @@ export function Sidebar({
                   </nav>
                   
                   {/* ID Card Profil Minimalis */}
-                  <div className="p-4 mt-auto border-t border-slate-100">
+                  <div className="p-4 mt-auto border-t border-sidebar-accent/20">
                     <div className="bg-primary/5 rounded-2xl p-3 flex items-center gap-3 border border-primary/10">
                        <div className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-medium text-sm">
                           {userRole?.charAt(0).toUpperCase() || "A"}
                        </div>
                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-slate-900 truncate uppercase">{userRole || "Administrator"}</p>
-                          <p className="text-[10px] text-slate-500 truncate">Status: Aktif</p>
+                          <p className="text-xs font-medium text-sidebar-foreground truncate uppercase">{userRole || "Administrator"}</p>
+                          <p className="text-[10px] text-sidebar-foreground/60 truncate">Status: Aktif</p>
                        </div>
                     </div>
                   </div>
@@ -330,17 +330,17 @@ export function Sidebar({
         >
           <DialogTitle className="sr-only">Navigasi utama</DialogTitle>
           <div className="flex h-full min-h-0 flex-col bg-card">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <Landmark className="h-5 w-5" />
                 </div>
-                <span className="font-outfit font-medium text-slate-900">{appName}</span>
+                <span className="font-outfit font-medium text-foreground">{appName}</span>
               </div>
               <button
                 type="button"
                 onClick={() => onMobileOpenChange?.(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-900"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -348,7 +348,7 @@ export function Sidebar({
             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
               {visibleSections.map((section) => (
                 <div key={section.title} className="space-y-3">
-                  <h3 className="font-outfit text-sm font-medium text-slate-900 flex items-center gap-2">
+                  <h3 className="font-outfit text-sm font-medium text-foreground flex items-center gap-2">
                      <section.icon className="h-4 w-4 text-primary" />
                      {section.title}
                   </h3>
@@ -367,7 +367,7 @@ export function Sidebar({
                       return (
                         <li key={item.href}>
                           {showGroupLabel && (
-                            <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-400 first:mt-0">
+                            <p className="mb-1 mt-3 px-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-0">
                               {item.group}
                             </p>
                           )}
@@ -378,7 +378,7 @@ export function Sidebar({
                               "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-normal transition-all",
                               isActive
                                 ? "bg-primary/10 font-medium text-primary"
-                                : "text-slate-600 hover:bg-slate-50"
+                                : "text-muted-foreground hover:bg-muted"
                             )}
                           >
                             <span className="flex-1">{item.label}</span>

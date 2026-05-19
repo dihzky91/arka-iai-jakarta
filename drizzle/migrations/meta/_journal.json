@@ -351,6 +351,13 @@
       "when": 1779125107802,
       "tag": "0055_needy_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1779173696395,
+      "tag": "0056_redundant_satana",
+      "breakpoints": true
     }
   ]
 }

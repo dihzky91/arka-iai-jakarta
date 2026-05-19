@@ -134,14 +134,13 @@ export function DashboardTabs({
       className="space-y-5 sm:space-y-6"
     >
       <TabsList
-        variant="line"
-        className="h-auto w-full justify-start gap-1 overflow-x-auto border-b border-border/60 bg-transparent pb-px"
+        className="h-auto w-full justify-start gap-1.5 overflow-x-auto rounded-2xl bg-muted/60 p-2"
       >
         {visibleTabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="flex-none gap-2 rounded-t-xl px-4 py-2.5 text-sm data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
+            className="flex-none gap-2.5 rounded-xl px-6 py-3 text-sm font-normal text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary data-[state=active]:bg-primary data-[state=active]:font-medium data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
           >
             <tab.icon className="h-4 w-4" />
             {tab.label}
