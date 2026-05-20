@@ -78,6 +78,30 @@ export const optionsConfigSchema = z.object({
 
 export type OptionsConfigInput = z.infer<typeof optionsConfigSchema>;
 
+// ─── NARASUMBER SECTION CONFIG ────────────────────────────────────────────────
+
+export const narasumberSectionFieldSchema = z.object({
+  type: z.enum(["scale", "radio", "textarea", "text"]),
+  label: z.string().min(1).max(300),
+  required: z.boolean(),
+  config: z.union([scaleConfigSchema, optionsConfigSchema]).nullable(),
+});
+
+export const narasumberSectionConfigSchema = z.object({
+  fields: z.array(narasumberSectionFieldSchema).min(1).max(20),
+});
+
+export type NarasumberSectionConfigInput = z.infer<typeof narasumberSectionConfigSchema>;
+
+// ─── TIPE EVALUASI ────────────────────────────────────────────────────────────
+
+export const tipeEvaluasiValues = [
+  "evaluasi_umum",
+  "evaluasi_materi",
+  "evaluasi_narasumber",
+  "evaluasi_logistik",
+] as const;
+
 // ─── FORM FIELD & TEMPLATE ────────────────────────────────────────────────────
 
 export const formFieldSchema = z.object({
@@ -92,12 +116,13 @@ export const formFieldSchema = z.object({
     "checkbox",
     "scale",
     "grid",
+    "narasumber_section",
   ]),
   label: z.string().min(1).max(300),
   required: z.boolean(),
   order: z.number().int().min(0),
   config: z
-    .union([scaleConfigSchema, gridConfigSchema, optionsConfigSchema])
+    .union([scaleConfigSchema, gridConfigSchema, optionsConfigSchema, narasumberSectionConfigSchema])
     .nullable(),
 });
 
@@ -105,6 +130,7 @@ export type FormFieldInput = z.infer<typeof formFieldSchema>;
 
 export const templateSchema = z.object({
   nama: z.string().min(1).max(200),
+  tipeEvaluasi: z.enum(tipeEvaluasiValues).optional(),
   fields: z.array(formFieldSchema).min(1).max(50),
 });
 

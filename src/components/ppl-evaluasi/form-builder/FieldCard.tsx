@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   Trash2,
   Type,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ const FIELD_TYPE_LABELS: Record<FieldType, { label: string; icon: React.ReactNod
   checkbox: { label: "Pilihan Ganda", icon: <CheckSquare className="h-3.5 w-3.5" /> },
   scale: { label: "Skala", icon: <SlidersHorizontal className="h-3.5 w-3.5" /> },
   grid: { label: "Grid", icon: <Grid3X3 className="h-3.5 w-3.5" /> },
+  narasumber_section: { label: "Narasumber", icon: <Users className="h-3.5 w-3.5" /> },
 };
 
 interface FieldCardProps {

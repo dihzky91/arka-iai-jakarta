@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import {
@@ -439,4 +439,54 @@ export async function archiveLinkedProject(
     console.error("[ppl-project-sync] archiveLinkedProject failed:", err);
     return { ok: false, error: "Gagal update status project" };
   }
+}
+
+// ─── REVERSE SYNC: PROJECT → KEGIATAN ────────────────────────────────────────
+
+/**
+ * Checks if all tasks in the linked project are done.
+ * Returns true if all tasks are completed, false otherwise.
+ * Used to signal that kegiatan is ready to be archived.
+ */
+export async function checkAllTasksCompleted(
+  kegiatanId: number,
+): Promise<{ allDone: boolean; total: number; done: number }> {
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.pplKegiatanId, kegiatanId))
+    .limit(1);
+
+  if (!project) return { allDone: false, total: 0, done: 0 };
+
+  const [agg] = await db
+    .select({
+      total: sql<number>`count(*)`.mapWith(Number),
+      done: sql<number>`count(*) filter (where ${projectTasks.status} = 'done')`.mapWith(Number),
+    })
+    .from(projectTasks)
+    .where(eq(projectTasks.projectId, project.id));
+
+  const total = agg?.total ?? 0;
+  const done = agg?.done ?? 0;
+
+  return { allDone: total > 0 && total === done, total, done };
+}
+
+/**
+ * Gets the project status for display in kegiatan overview.
+ * Reverse sync: project status → kegiatan indicator.
+ */
+export async function getProjectStatusForKegiatan(
+  kegiatanId: number,
+): Promise<{ status: string; progress: number } | null> {
+  const [project] = await db
+    .select({ status: projects.status, progress: projects.progress })
+    .from(projects)
+    .where(eq(projects.pplKegiatanId, kegiatanId))
+    .limit(1);
+
+  if (!project) return null;
+
+  return { status: project.status, progress: project.progress };
 }
