@@ -4,13 +4,15 @@ import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import {
   pplKegiatan,
+  pplKegiatanNarasumber,
   pplKuesionerLink,
   pplKuesionerResponse,
   pplKuesionerTemplate,
+  pplNarasumber,
 } from "@/server/db/schema";
 import { submitResponseSchema } from "@/lib/validators/ppl-evaluasi";
 import { requirePermission } from "@/server/actions/auth";
-import type { FormField } from "@/components/ppl-evaluasi/form-builder/types";
+import type { FormField, NarasumberSectionConfig } from "@/components/ppl-evaluasi/form-builder/types";
 import type {
   ActionResult,
   PaginatedResult,
@@ -34,7 +36,9 @@ export async function getKuesionerByToken(
       kegiatanNama: pplKegiatan.namaKegiatan,
       templateNama: pplKuesionerTemplate.nama,
       configJson: pplKuesionerTemplate.configJson,
+      tipeEvaluasi: pplKuesionerLink.tipeEvaluasi,
       isActive: pplKuesionerLink.isActive,
+      kegiatanId: pplKuesionerLink.kegiatanId,
     })
     .from(pplKuesionerLink)
     .innerJoin(
@@ -52,11 +56,31 @@ export async function getKuesionerByToken(
     return null;
   }
 
+  // Fetch narasumber assignments for the kegiatan
+  const narasumberAssignments = await db
+    .select({
+      narasumberId: pplKegiatanNarasumber.narasumberId,
+      nama: pplNarasumber.nama,
+      topik: pplKegiatanNarasumber.topik,
+    })
+    .from(pplKegiatanNarasumber)
+    .innerJoin(
+      pplNarasumber,
+      eq(pplKegiatanNarasumber.narasumberId, pplNarasumber.id),
+    )
+    .where(eq(pplKegiatanNarasumber.kegiatanId, result.kegiatanId));
+
   return {
     kegiatanNama: result.kegiatanNama,
     templateNama: result.templateNama,
     fields: result.configJson as FormField[],
+    tipeEvaluasi: (result.tipeEvaluasi ?? "evaluasi_umum") as PublicKuesionerData["tipeEvaluasi"],
     isActive: result.isActive,
+    narasumberAssignments: narasumberAssignments.map((a) => ({
+      narasumberId: a.narasumberId,
+      nama: a.nama,
+      topik: a.topik,
+    })),
   };
 }
 
@@ -111,9 +135,53 @@ export async function submitResponse(
 
   const fields = template.configJson as FormField[];
 
+  // Pre-fetch narasumber assignments for narasumber_section validation
+  const hasNarasumberSection = fields.some((f) => f.type === "narasumber_section");
+  let narasumberAssignments: Array<{ narasumberId: number }> = [];
+  if (hasNarasumberSection) {
+    const [linkData] = await db
+      .select({ kegiatanId: pplKuesionerLink.kegiatanId })
+      .from(pplKuesionerLink)
+      .where(eq(pplKuesionerLink.accessToken, token))
+      .limit(1);
+
+    if (linkData) {
+      narasumberAssignments = await db
+        .select({ narasumberId: pplKegiatanNarasumber.narasumberId })
+        .from(pplKegiatanNarasumber)
+        .where(eq(pplKegiatanNarasumber.kegiatanId, linkData.kegiatanId));
+    }
+  }
+
   // Validate required fields (Req 4.4)
   const missingFields: string[] = [];
   for (const field of fields) {
+    if (field.type === "narasumber_section") {
+      // Validate narasumber section sub-fields
+      const config = field.config as NarasumberSectionConfig | null;
+      if (!config?.fields) continue;
+
+      for (let fi = 0; fi < config.fields.length; fi++) {
+        const subField = config.fields[fi];
+        if (!subField || !subField.required) continue;
+
+        for (const nars of narasumberAssignments) {
+          const answerKey = `narasumber_${nars.narasumberId}_${fi}`;
+          const answer = input.answers[answerKey];
+
+          if (
+            answer === undefined ||
+            answer === null ||
+            String(answer).trim().length === 0
+          ) {
+            missingFields.push(`${field.label} - ${subField.label}`);
+            break; // One missing per narasumber is enough to flag
+          }
+        }
+      }
+      continue;
+    }
+
     if (!field.required) continue;
 
     const answer = input.answers[field.id];

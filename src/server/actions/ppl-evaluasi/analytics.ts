@@ -21,6 +21,7 @@ import { requirePermission } from "@/server/actions/auth";
 import type {
   FormField,
   GridConfig,
+  NarasumberSectionConfig,
   OptionsConfig,
 } from "@/components/ppl-evaluasi/form-builder/types";
 import type { GridResponse } from "@/server/lib/ppl-analytics";
@@ -39,6 +40,9 @@ import type {
   SpeakerPerformanceData,
   SpeakerPerformanceRow,
   SpeakerScoreTrend,
+  NarasumberScore,
+  NarasumberFieldScore,
+  KegiatanEvaluationSummary,
   KategoriPpl,
 } from "./types";
 
@@ -57,6 +61,237 @@ function getDateRange(filter: DashboardFilter): { startDate: string; endDate: st
 
 
 // â”€â”€â”€ GET FIELD ANALYTICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// ─── GET NARASUMBER SCORES ────────────────────────────────────────────────────
+
+/**
+ * Compute per-narasumber evaluation scores from narasumber_section fields.
+ * Parses answers stored in format "narasumber_{id}_{fieldIndex}" and groups by narasumber.
+ */
+export async function getNarasumberScores(
+  kegiatanId: number,
+): Promise<NarasumberScore[]> {
+  await requirePermission("pplEvaluasi", "view");
+
+  const [link] = await db
+    .select({
+      id: pplKuesionerLink.id,
+      templateId: pplKuesionerLink.templateId,
+    })
+    .from(pplKuesionerLink)
+    .where(eq(pplKuesionerLink.kegiatanId, kegiatanId))
+    .limit(1);
+
+  if (!link) return [];
+
+  const [template] = await db
+    .select({ configJson: pplKuesionerTemplate.configJson })
+    .from(pplKuesionerTemplate)
+    .where(eq(pplKuesionerTemplate.id, link.templateId))
+    .limit(1);
+
+  if (!template) return [];
+
+  const fields = template.configJson as FormField[];
+
+  // Find narasumber_section fields and their configs
+  const narasumberFields = fields.filter((f) => f.type === "narasumber_section");
+  if (narasumberFields.length === 0) return [];
+
+  // Fetch narasumber assignments for this kegiatan
+  const assignments = await db
+    .select({
+      narasumberId: pplKegiatanNarasumber.narasumberId,
+      nama: pplNarasumber.nama,
+      topik: pplKegiatanNarasumber.topik,
+    })
+    .from(pplKegiatanNarasumber)
+    .innerJoin(
+      pplNarasumber,
+      eq(pplKegiatanNarasumber.narasumberId, pplNarasumber.id),
+    )
+    .where(eq(pplKegiatanNarasumber.kegiatanId, kegiatanId));
+
+  // Fetch all responses for this link
+  const responses = await db
+    .select({ answersJson: pplKuesionerResponse.answersJson })
+    .from(pplKuesionerResponse)
+    .where(eq(pplKuesionerResponse.linkId, link.id));
+
+  if (responses.length === 0) return [];
+
+  const result: NarasumberScore[] = [];
+
+  for (const nars of assignments) {
+    const narasumberScore: NarasumberScore = {
+      narasumberId: nars.narasumberId,
+      nama: nars.nama,
+      topik: nars.topik,
+      avgScore: 0,
+      fieldScores: [],
+      respondenCount: 0,
+    };
+
+    // Collect answers for this narasumber
+    const narasumberAnswers = responses.map((resp) => {
+      const answers = resp.answersJson as Record<string, unknown>;
+      const narasumberAnswer: Record<string, unknown> = {};
+      for (const field of narasumberFields) {
+        const config = field.config as NarasumberSectionConfig | null;
+        if (!config?.fields) continue;
+        for (let fi = 0; fi < config.fields.length; fi++) {
+          const key = `narasumber_${nars.narasumberId}_${fi}`;
+          narasumberAnswer[String(fi)] = answers[key];
+        }
+      }
+      return narasumberAnswer;
+    });
+
+    const nonEmptyAnswers = narasumberAnswers.filter(
+      (a) => Object.values(a).some((v) => v !== undefined && v !== null),
+    );
+    narasumberScore.respondenCount = nonEmptyAnswers.length;
+
+    // Compute per-field scores
+    for (const field of narasumberFields) {
+      const config = field.config as NarasumberSectionConfig | null;
+      if (!config?.fields) continue;
+
+      for (let fi = 0; fi < config.fields.length; fi++) {
+        const subField = config.fields[fi];
+        if (!subField) continue;
+        const values: number[] = [];
+
+        for (const ans of nonEmptyAnswers) {
+          const val = ans[String(fi)];
+          if (val !== undefined && val !== null) {
+            const num = Number(val);
+            if (!isNaN(num)) values.push(num);
+          }
+        }
+
+        if (values.length > 0) {
+          const sorted = [...values].sort((a, b) => a - b);
+          const mean = values.reduce((s, v) => s + v, 0) / values.length;
+          const mid = Math.floor(sorted.length / 2);
+          const median =
+            sorted.length % 2 === 0
+              ? (sorted[mid - 1]! + sorted[mid]!) / 2
+              : sorted[mid]!;
+
+          const distribution: Record<number, number> = {};
+          for (const v of values) {
+            distribution[v] = (distribution[v] ?? 0) + 1;
+          }
+
+          narasumberScore.fieldScores.push({
+            label: subField.label,
+            avg: Math.round(mean * 100) / 100,
+            median: Math.round(median * 100) / 100,
+            distribution,
+          });
+        }
+      }
+    }
+
+    // Compute overall avgScore (average of all scale field averages)
+    if (narasumberScore.fieldScores.length > 0) {
+      const totalAvg = narasumberScore.fieldScores.reduce(
+        (s, fs) => s + fs.avg,
+        0,
+      );
+      narasumberScore.avgScore =
+        Math.round((totalAvg / narasumberScore.fieldScores.length) * 100) / 100;
+    }
+
+    result.push(narasumberScore);
+  }
+
+  return result;
+}
+
+/**
+ * Get full evaluation summary for a kegiatan including overall and per-narasumber scores.
+ */
+export async function getKegiatanEvaluationSummary(
+  kegiatanId: number,
+): Promise<KegiatanEvaluationSummary | null> {
+  await requirePermission("pplEvaluasi", "view");
+
+  const [link] = await db
+    .select({
+      id: pplKuesionerLink.id,
+      templateId: pplKuesionerLink.templateId,
+    })
+    .from(pplKuesionerLink)
+    .where(eq(pplKuesionerLink.kegiatanId, kegiatanId))
+    .limit(1);
+
+  if (!link) return null;
+
+  const [template] = await db
+    .select({ configJson: pplKuesionerTemplate.configJson })
+    .from(pplKuesionerTemplate)
+    .where(eq(pplKuesionerTemplate.id, link.templateId))
+    .limit(1);
+
+  if (!template) return null;
+
+  const [kegiatan] = await db
+    .select({ realisasiHadir: pplKegiatan.realisasiHadir })
+    .from(pplKegiatan)
+    .where(eq(pplKegiatan.id, kegiatanId))
+    .limit(1);
+
+  const fields = template.configJson as FormField[];
+
+  const responses = await db
+    .select({ answersJson: pplKuesionerResponse.answersJson })
+    .from(pplKuesionerResponse)
+    .where(eq(pplKuesionerResponse.linkId, link.id));
+
+  const totalResponden = responses.length;
+
+  // Compute overall score (average of all non-narasumber scale fields)
+  let overallTotal = 0;
+  let overallCount = 0;
+
+  for (const resp of responses) {
+    const answers = resp.answersJson as Record<string, unknown>;
+    for (const field of fields) {
+      if (field.type === "narasumber_section") continue;
+      if (field.type !== "scale") continue;
+      const val = answers[field.id];
+      if (val !== undefined && val !== null) {
+        const num = Number(val);
+        if (!isNaN(num)) {
+          overallTotal += num;
+          overallCount += 1;
+        }
+      }
+    }
+  }
+
+  const overallScore =
+    overallCount > 0
+      ? Math.round((overallTotal / overallCount) * 100) / 100
+      : 0;
+
+  const narasumberScores = await getNarasumberScores(kegiatanId);
+
+  const responseRate =
+    kegiatan && kegiatan.realisasiHadir > 0
+      ? Math.round((totalResponden / kegiatan.realisasiHadir) * 1000) / 10
+      : 0;
+
+  return {
+    kegiatanId,
+    overallScore,
+    narasumberScores,
+    totalResponden,
+    responseRate,
+  };
+}
 
 /**
  * Compute per-field analytics for a specific kegiatan.
@@ -252,6 +487,12 @@ export async function getFieldAnalytics(
             totalResponses: textResponses.length,
           });
         }
+        break;
+      }
+
+      case "narasumber_section": {
+        // Skip — narasumber_section is handled by getNarasumberScores
+        // to avoid double-counting in overall field analytics
         break;
       }
 
@@ -943,9 +1184,16 @@ export async function getSpeakerPerformance(
     );
 
   // Compute average evaluation score per kegiatan
+  // Now includes narasumber_section scores filtered per-narasumber
   const kegiatanScores = new Map<
     number,
     { totalScore: number; scoreCount: number; respondenCount: number }
+  >();
+
+  // Also track narasumber-specific scores from narasumber_section
+  const narasumberKegiatanScores = new Map<
+    string, // "narasumberId_kegiatanId"
+    { totalScore: number; scoreCount: number }
   >();
 
   // Group responses by kegiatanId
@@ -960,15 +1208,70 @@ export async function getSpeakerPerformance(
     responsesByKegiatan.set(row.kegiatanId, existing);
   }
 
+  // Pre-fetch narasumber assignments per kegiatan for narasumber_section parsing
+  const assignmentsByKegiatan = new Map<number, Array<{ narasumberId: number }>>();
+  const allAssignments = await db
+    .select({
+      kegiatanId: pplKegiatanNarasumber.kegiatanId,
+      narasumberId: pplKegiatanNarasumber.narasumberId,
+    })
+    .from(pplKegiatanNarasumber);
+
+  for (const a of allAssignments) {
+    const existing = assignmentsByKegiatan.get(a.kegiatanId) ?? [];
+    existing.push({ narasumberId: a.narasumberId });
+    assignmentsByKegiatan.set(a.kegiatanId, existing);
+  }
+
   for (const [kegiatanId, responses] of responsesByKegiatan) {
     let totalScore = 0;
     let scoreCount = 0;
 
+    // Get the first response's configJson to detect narasumber_section fields
+    const firstResp = responses[0];
+    const fields = firstResp?.configJson as FormField[] | undefined;
+    const hasNarasumberSection = fields?.some((f) => f.type === "narasumber_section");
+    const narasumberList = assignmentsByKegiatan.get(kegiatanId) ?? [];
+
     for (const resp of responses) {
-      const fields = resp.configJson as FormField[];
+      const respFields = resp.configJson as FormField[];
       const answers = resp.answersJson as Record<string, unknown>;
 
-      for (const field of fields) {
+      for (const field of respFields) {
+        if (field.type === "narasumber_section") {
+          // Narasumber section scores are tracked separately per-narasumber
+          const config = field.config as NarasumberSectionConfig | null;
+          if (!config?.fields) continue;
+
+          for (const nars of narasumberList) {
+            let narsTotal = 0;
+            let narsCount = 0;
+
+            for (let fi = 0; fi < config.fields.length; fi++) {
+              const key = `narasumber_${nars.narasumberId}_${fi}`;
+              const val = answers[key];
+              if (val !== undefined && val !== null) {
+                const num = Number(val);
+                if (!isNaN(num)) {
+                  narsTotal += num;
+                  narsCount += 1;
+                }
+              }
+            }
+
+            if (narsCount > 0) {
+              const mapKey = `${nars.narasumberId}_${kegiatanId}`;
+              const existing = narasumberKegiatanScores.get(mapKey) ?? { totalScore: 0, scoreCount: 0 };
+              existing.totalScore += narsTotal;
+              existing.scoreCount += narsCount;
+              narasumberKegiatanScores.set(mapKey, existing);
+            }
+          }
+
+          // Skip narasumber_section in overall score to avoid double-counting
+          continue;
+        }
+
         if (field.type === "scale") {
           const val = answers[field.id];
           if (val !== undefined && val !== null) {
@@ -1027,20 +1330,44 @@ export async function getSpeakerPerformance(
     const trend: SpeakerScoreTrend[] = [];
 
     for (const assignment of narasumberAssignments) {
-      const scores = kegiatanScores.get(assignment.kegiatanId);
-      if (scores && scores.scoreCount > 0) {
-        const avgScore = Math.round((scores.totalScore / scores.scoreCount) * 100) / 100;
-        totalNarasumberScore += scores.totalScore;
-        totalNarasumberScoreCount += scores.scoreCount;
-        totalRespondenCount += scores.respondenCount;
+      // Prefer narasumber-specific scores from narasumber_section
+      const narasumberKey = `${narasumber.id}_${assignment.kegiatanId}`;
+      const narasumberScores = narasumberKegiatanScores.get(narasumberKey);
+
+      if (narasumberScores && narasumberScores.scoreCount > 0) {
+        const avgScore = Math.round((narasumberScores.totalScore / narasumberScores.scoreCount) * 100) / 100;
+        totalNarasumberScore += narasumberScores.totalScore;
+        totalNarasumberScoreCount += narasumberScores.scoreCount;
+
+        // Use kegiatan-level responden count
+        const scores = kegiatanScores.get(assignment.kegiatanId);
+        const respondenCount = scores?.respondenCount ?? 0;
+        totalRespondenCount += respondenCount;
 
         trend.push({
           kegiatanId: assignment.kegiatanId,
           kegiatanNama: assignment.kegiatanNama,
           tanggalSelesai: assignment.tanggalSelesai,
           avgScore,
-          respondenCount: scores.respondenCount,
+          respondenCount,
         });
+      } else {
+        // Fallback to overall kegiatan scores
+        const scores = kegiatanScores.get(assignment.kegiatanId);
+        if (scores && scores.scoreCount > 0) {
+          const avgScore = Math.round((scores.totalScore / scores.scoreCount) * 100) / 100;
+          totalNarasumberScore += scores.totalScore;
+          totalNarasumberScoreCount += scores.scoreCount;
+          totalRespondenCount += scores.respondenCount;
+
+          trend.push({
+            kegiatanId: assignment.kegiatanId,
+            kegiatanNama: assignment.kegiatanNama,
+            tanggalSelesai: assignment.tanggalSelesai,
+            avgScore,
+            respondenCount: scores.respondenCount,
+          });
+        }
       }
     }
 

@@ -19,6 +19,13 @@ import {
 import { sql } from "drizzle-orm";
 import type { FormField } from "@/components/ppl-evaluasi/form-builder/types";
 
+export interface MateriItem {
+  judul: string;
+  deskripsi: string;
+  durasiMenit: number;
+  urutan: number;
+}
+
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
 
 export const roleEnum = pgEnum("role", ["admin", "staff", "pejabat", "viewer"]);
@@ -2924,6 +2931,13 @@ export const statusPplEnum = pgEnum("status_ppl", [
   "archived",
 ]);
 
+export const tipeEvaluasiEnum = pgEnum("tipe_evaluasi", [
+  "evaluasi_umum",
+  "evaluasi_materi",
+  "evaluasi_narasumber",
+  "evaluasi_logistik",
+]);
+
 // ─── PPL KEGIATAN ────────────────────────────────────────────────────────────
 
 export const pplKegiatan = pgTable("ppl_kegiatan", {
@@ -2991,6 +3005,7 @@ export const pplKuesionerTemplate = pgTable("ppl_kuesioner_template", {
   id: serial("id").primaryKey(),
   nama: varchar("nama", { length: 200 }).notNull(),
   configJson: jsonb("config_json").$type<FormField[]>().notNull(),
+  tipeEvaluasi: tipeEvaluasiEnum("tipe_evaluasi").default("evaluasi_umum").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -3007,6 +3022,7 @@ export const pplKuesionerLink = pgTable("ppl_kuesioner_link", {
     .references(() => pplKuesionerTemplate.id, { onDelete: "restrict" }),
   accessToken: varchar("access_token", { length: 64 }).unique().notNull(),
   isActive: boolean("is_active").default(false).notNull(),
+  tipeEvaluasi: tipeEvaluasiEnum("tipe_evaluasi").default("evaluasi_umum").notNull(),
   activatedAt: timestamp("activated_at"),
   deactivatedAt: timestamp("deactivated_at"),
 }, (t) => ({
@@ -3034,6 +3050,38 @@ export const pplKuesionerResponse = pgTable("ppl_kuesioner_response", {
   ),
 }));
 
+// ─── PPL TEMA BANK ────────────────────────────────────────────────────────────
+
+export const pplTemaBank = pgTable("ppl_tema_bank", {
+  id: serial("id").primaryKey(),
+  namaTema: varchar("nama_tema", { length: 255 }).notNull(),
+  kategoriPpl: kategoriPplEnum("kategori_ppl").notNull(),
+
+  latarBelakang: text("latar_belakang"),
+  susunanMateri: jsonb("susunan_materi").$type<MateriItem[]>().default([]).notNull(),
+  benefit: jsonb("benefit").$type<string[]>().default([]).notNull(),
+  targetPeserta: text("target_peserta"),
+
+  durasiHari: integer("durasi_hari").default(1).notNull(),
+  tipePelaksanaanDefault: tipePelaksanaanEnum("tipe_pelaksanaan_default"),
+  rekomendasiNarasumberIds: jsonb("rekomendasi_narasumber_ids").$type<number[]>().default([]).notNull(),
+  defaultTemplateIds: jsonb("default_template_ids").$type<number[]>().default([]).notNull(),
+
+  tags: jsonb("tags").$type<string[]>().default([]).notNull(),
+  usageCount: integer("usage_count").default(0).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+
+  sourceKegiatanId: integer("source_kegiatan_id").references(() => pplKegiatan.id, { onDelete: "set null" }),
+
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (t) => ({
+  namaTemaIdx: index("ppl_tema_bank_nama_idx").on(t.namaTema),
+  kategoriIdx: index("ppl_tema_bank_kategori_idx").on(t.kategoriPpl),
+  tagsIdx: index("ppl_tema_bank_tags_idx").on(t.tags),
+}));
+
 // ─── TYPE EXPORTS (PPL Evaluasi) ─────────────────────────────────────────────
 
 export type PplKegiatan = typeof pplKegiatan.$inferSelect;
@@ -3050,3 +3098,22 @@ export type PplKuesionerLink = typeof pplKuesionerLink.$inferSelect;
 export type NewPplKuesionerLink = typeof pplKuesionerLink.$inferInsert;
 export type PplKuesionerResponse = typeof pplKuesionerResponse.$inferSelect;
 export type NewPplKuesionerResponse = typeof pplKuesionerResponse.$inferInsert;
+export type PplTemaBank = typeof pplTemaBank.$inferSelect;
+export type NewPplTemaBank = typeof pplTemaBank.$inferInsert;
+
+// ─── PEOPLE LINK (Unified People Directory) ──────────────────────────────────
+
+export const peopleLink = pgTable("people_link", {
+  id: serial("id").primaryKey(),
+  pplNarasumberId: integer("ppl_narasumber_id").references(() => pplNarasumber.id, { onDelete: "cascade" }),
+  instructorId: text("instructor_id").references(() => instructors.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  pplNarasumberIdx: uniqueIndex("people_link_ppl_narasumber_idx").on(t.pplNarasumberId),
+  instructorIdx: uniqueIndex("people_link_instructor_idx").on(t.instructorId),
+  userIdx: index("people_link_user_idx").on(t.userId),
+}));
+
+export type PeopleLink = typeof peopleLink.$inferSelect;
+export type NewPeopleLink = typeof peopleLink.$inferInsert;

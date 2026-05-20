@@ -7,7 +7,8 @@ export type FieldType =
   | "radio"
   | "checkbox"
   | "scale"
-  | "grid";
+  | "grid"
+  | "narasumber_section";
 
 export interface FormField {
   id: string; // nanoid
@@ -15,7 +16,7 @@ export interface FormField {
   label: string; // max 300 chars
   required: boolean;
   order: number;
-  config: ScaleConfig | GridConfig | OptionsConfig | null;
+  config: ScaleConfig | GridConfig | OptionsConfig | NarasumberSectionConfig | null;
 }
 
 export interface ScaleConfig {
@@ -34,9 +35,25 @@ export interface OptionsConfig {
   options: string[]; // 1-50 items, max 200 chars each
 }
 
+export interface NarasumberSectionConfig {
+  fields: Array<{
+    type: "scale" | "radio" | "textarea" | "text";
+    label: string;
+    required: boolean;
+    config: ScaleConfig | OptionsConfig | null;
+  }>;
+}
+
+export type TipeEvaluasi =
+  | "evaluasi_umum"
+  | "evaluasi_materi"
+  | "evaluasi_narasumber"
+  | "evaluasi_logistik";
+
 export interface KuesionerTemplate {
   id: number;
   nama: string; // max 200 chars
+  tipeEvaluasi: TipeEvaluasi;
   fields: FormField[]; // 1-50 fields
   createdAt: Date;
   updatedAt: Date;

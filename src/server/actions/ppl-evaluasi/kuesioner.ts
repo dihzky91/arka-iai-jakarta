@@ -1,6 +1,6 @@
 ﻿"use server";
 
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import {
@@ -11,6 +11,7 @@ import {
 import { templateSchema } from "@/lib/validators/ppl-evaluasi";
 import { requirePermission } from "@/server/actions/auth";
 import { generateQRDataURL } from "@/lib/qr/generateQR";
+import type { FormField, TipeEvaluasi } from "@/components/ppl-evaluasi/form-builder/types";
 import type {
   ActionResult,
   CreateTemplateInput,
@@ -57,6 +58,7 @@ export async function createTemplate(
     .values({
       nama: input.nama,
       configJson: input.fields,
+      tipeEvaluasi: (input.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
     })
     .returning({ id: pplKuesionerTemplate.id });
 
@@ -104,6 +106,7 @@ export async function updateTemplate(
     };
   }
 
+  // Check if template has any links (izinkan update tipeEvaluasi even with links)
   // Validate the update data
   const parsed = templateSchema.safeParse(data);
   if (!parsed.success) {
@@ -121,6 +124,7 @@ export async function updateTemplate(
     .set({
       nama: input.nama,
       configJson: input.fields,
+      tipeEvaluasi: (input.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
       updatedAt: new Date(),
     })
     .where(eq(pplKuesionerTemplate.id, id));
@@ -150,6 +154,7 @@ export async function duplicateTemplate(
     .select({
       id: pplKuesionerTemplate.id,
       configJson: pplKuesionerTemplate.configJson,
+      tipeEvaluasi: pplKuesionerTemplate.tipeEvaluasi,
     })
     .from(pplKuesionerTemplate)
     .where(eq(pplKuesionerTemplate.id, id))
@@ -159,12 +164,13 @@ export async function duplicateTemplate(
     return { ok: false, error: "Template sumber tidak ditemukan" };
   }
 
-  // Create independent copy with new name
+  // Create independent copy with new name and same tipeEvaluasi
   const [row] = await db
     .insert(pplKuesionerTemplate)
     .values({
       nama: newName.trim(),
       configJson: source.configJson,
+      tipeEvaluasi: source.tipeEvaluasi,
     })
     .returning({ id: pplKuesionerTemplate.id });
 
@@ -181,32 +187,19 @@ export async function duplicateTemplate(
 export async function linkTemplateToKegiatan(
   templateId: number,
   kegiatanId: number,
+  tipeEvaluasi?: TipeEvaluasi,
 ): Promise<ActionResult> {
   await requirePermission("pplEvaluasi", "manage");
 
   // Verify template exists
   const [template] = await db
-    .select({ id: pplKuesionerTemplate.id })
+    .select({ id: pplKuesionerTemplate.id, tipeEvaluasi: pplKuesionerTemplate.tipeEvaluasi })
     .from(pplKuesionerTemplate)
     .where(eq(pplKuesionerTemplate.id, templateId))
     .limit(1);
 
   if (!template) {
     return { ok: false, error: "Template tidak ditemukan" };
-  }
-
-  // Check if kegiatan already has a linked template
-  const [existingLink] = await db
-    .select({ id: pplKuesionerLink.id })
-    .from(pplKuesionerLink)
-    .where(eq(pplKuesionerLink.kegiatanId, kegiatanId))
-    .limit(1);
-
-  if (existingLink) {
-    return {
-      ok: false,
-      error: "Kegiatan sudah memiliki kuesioner yang terhubung",
-    };
   }
 
   // Generate access token for the link
@@ -217,6 +210,7 @@ export async function linkTemplateToKegiatan(
     templateId,
     accessToken,
     isActive: false,
+    tipeEvaluasi: (tipeEvaluasi ?? template.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
   });
 
   revalidatePath("/ppl-evaluasi");
@@ -228,10 +222,15 @@ export async function linkTemplateToKegiatan(
 
 export async function activateKuesioner(
   kegiatanId: number,
+  linkId?: number,
 ): Promise<ActionResult<{ url: string; qrDataUrl: string }>> {
   await requirePermission("pplEvaluasi", "manage");
 
-  // Find the link for this kegiatan
+  // Find the specific link or the first link for this kegiatan
+  const condition = linkId
+    ? and(eq(pplKuesionerLink.id, linkId), eq(pplKuesionerLink.kegiatanId, kegiatanId))
+    : eq(pplKuesionerLink.kegiatanId, kegiatanId);
+
   const [link] = await db
     .select({
       id: pplKuesionerLink.id,
@@ -239,7 +238,7 @@ export async function activateKuesioner(
       isActive: pplKuesionerLink.isActive,
     })
     .from(pplKuesionerLink)
-    .where(eq(pplKuesionerLink.kegiatanId, kegiatanId))
+    .where(condition)
     .limit(1);
 
   if (!link) {
@@ -274,16 +273,75 @@ export async function activateKuesioner(
   return { ok: true, data: { url, qrDataUrl } };
 }
 
-// â”€â”€â”€ GET TEMPLATE FOR KEGIATAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LIST LINKS FOR KEGIATAN ─────────────────────────────────────────────────
+
+export interface KegiatanLinkRow {
+  linkId: number;
+  templateId: number;
+  templateNama: string;
+  tipeEvaluasi: TipeEvaluasi;
+  isActive: boolean;
+  responseCount: number;
+  createdAt: Date | null;
+}
+
+export async function listLinksForKegiatan(
+  kegiatanId: number,
+): Promise<KegiatanLinkRow[]> {
+  await requirePermission("pplEvaluasi", "view");
+
+  const links = await db
+    .select({
+      linkId: pplKuesionerLink.id,
+      templateId: pplKuesionerLink.templateId,
+      templateNama: pplKuesionerTemplate.nama,
+      tipeEvaluasi: pplKuesionerLink.tipeEvaluasi,
+      isActive: pplKuesionerLink.isActive,
+      createdAt: pplKuesionerLink.activatedAt,
+    })
+    .from(pplKuesionerLink)
+    .innerJoin(
+      pplKuesionerTemplate,
+      eq(pplKuesionerLink.templateId, pplKuesionerTemplate.id),
+    )
+    .where(eq(pplKuesionerLink.kegiatanId, kegiatanId));
+
+  const linkIds = links.map((l) => l.linkId);
+
+  let responseCounts: Array<{ linkId: number; count: number }> = [];
+  if (linkIds.length > 0) {
+    responseCounts = await db
+      .select({
+        linkId: pplKuesionerResponse.linkId,
+        count: count(),
+      })
+      .from(pplKuesionerResponse)
+      .where(inArray(pplKuesionerResponse.linkId, linkIds))
+      .groupBy(pplKuesionerResponse.linkId);
+  }
+
+  const countMap = new Map(responseCounts.map((r) => [r.linkId, r.count]));
+
+  return links.map((l) => ({
+    linkId: l.linkId,
+    templateId: l.templateId,
+    templateNama: l.templateNama,
+    tipeEvaluasi: (l.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
+    isActive: l.isActive,
+    responseCount: countMap.get(l.linkId) ?? 0,
+    createdAt: l.createdAt,
+  }));
+}
 
 export async function getTemplateForKegiatan(kegiatanId: number) {
   await requirePermission("pplEvaluasi", "manage");
 
-  // Find the link for this kegiatan
+  // Find the primary (first) link for this kegiatan
   const [link] = await db
     .select({
       id: pplKuesionerLink.id,
       templateId: pplKuesionerLink.templateId,
+      tipeEvaluasi: pplKuesionerLink.tipeEvaluasi,
     })
     .from(pplKuesionerLink)
     .where(eq(pplKuesionerLink.kegiatanId, kegiatanId))
@@ -299,6 +357,7 @@ export async function getTemplateForKegiatan(kegiatanId: number) {
       id: pplKuesionerTemplate.id,
       nama: pplKuesionerTemplate.nama,
       configJson: pplKuesionerTemplate.configJson,
+      tipeEvaluasi: pplKuesionerTemplate.tipeEvaluasi,
       createdAt: pplKuesionerTemplate.createdAt,
       updatedAt: pplKuesionerTemplate.updatedAt,
     })
@@ -319,7 +378,9 @@ export async function getTemplateForKegiatan(kegiatanId: number) {
   return {
     id: template.id,
     nama: template.nama,
-    fields: template.configJson,
+    fields: template.configJson as FormField[],
+    tipeEvaluasi: (template.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
+    linkTipeEvaluasi: (link.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
     isLocked: (responseCount?.count ?? 0) > 0,
     createdAt: template.createdAt,
     updatedAt: template.updatedAt,
@@ -330,17 +391,22 @@ export async function getTemplateForKegiatan(kegiatanId: number) {
 
 export async function deactivateKuesioner(
   kegiatanId: number,
+  linkId?: number,
 ): Promise<ActionResult> {
   await requirePermission("pplEvaluasi", "manage");
 
-  // Find the link for this kegiatan
+  // Find the specific link or the first link for this kegiatan
+  const condition = linkId
+    ? and(eq(pplKuesionerLink.id, linkId), eq(pplKuesionerLink.kegiatanId, kegiatanId))
+    : eq(pplKuesionerLink.kegiatanId, kegiatanId);
+
   const [link] = await db
     .select({
       id: pplKuesionerLink.id,
       isActive: pplKuesionerLink.isActive,
     })
     .from(pplKuesionerLink)
-    .where(eq(pplKuesionerLink.kegiatanId, kegiatanId))
+    .where(condition)
     .limit(1);
 
   if (!link) {
@@ -367,12 +433,96 @@ export async function deactivateKuesioner(
   return { ok: true };
 }
 
+// ─── GET SINGLE TEMPLATE ─────────────────────────────────────────────────────
+
+export async function getTemplate(
+  id: number,
+): Promise<{
+  id: number;
+  nama: string;
+  fields: FormField[];
+  tipeEvaluasi: TipeEvaluasi;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  linkedKegiatanCount: number;
+} | null> {
+  await requirePermission("pplEvaluasi", "view");
+
+  const [template] = await db
+    .select({
+      id: pplKuesionerTemplate.id,
+      nama: pplKuesionerTemplate.nama,
+      configJson: pplKuesionerTemplate.configJson,
+      tipeEvaluasi: pplKuesionerTemplate.tipeEvaluasi,
+      createdAt: pplKuesionerTemplate.createdAt,
+      updatedAt: pplKuesionerTemplate.updatedAt,
+    })
+    .from(pplKuesionerTemplate)
+    .where(eq(pplKuesionerTemplate.id, id))
+    .limit(1);
+
+  if (!template) return null;
+
+  const [linkCount] = await db
+    .select({ count: count() })
+    .from(pplKuesionerLink)
+    .where(eq(pplKuesionerLink.templateId, id));
+
+  return {
+    id: template.id,
+    nama: template.nama,
+    fields: template.configJson as FormField[],
+    tipeEvaluasi: template.tipeEvaluasi as TipeEvaluasi,
+    createdAt: template.createdAt,
+    updatedAt: template.updatedAt,
+    linkedKegiatanCount: linkCount?.count ?? 0,
+  };
+}
+
+// ─── DELETE TEMPLATE ─────────────────────────────────────────────────────────
+
+export async function deleteTemplate(
+  id: number,
+): Promise<ActionResult> {
+  await requirePermission("pplEvaluasi", "manage");
+
+  const [existing] = await db
+    .select({ id: pplKuesionerTemplate.id })
+    .from(pplKuesionerTemplate)
+    .where(eq(pplKuesionerTemplate.id, id))
+    .limit(1);
+
+  if (!existing) {
+    return { ok: false, error: "Template tidak ditemukan" };
+  }
+
+  const [linkCount] = await db
+    .select({ count: count() })
+    .from(pplKuesionerLink)
+    .where(eq(pplKuesionerLink.templateId, id));
+
+  if ((linkCount?.count ?? 0) > 0) {
+    return {
+      ok: false,
+      error: "Template tidak bisa dihapus karena masih terhubung dengan kegiatan. Lepaskan semua link terlebih dahulu.",
+    };
+  }
+
+  await db
+    .delete(pplKuesionerTemplate)
+    .where(eq(pplKuesionerTemplate.id, id));
+
+  revalidatePath("/ppl-evaluasi");
+  return { ok: true };
+}
+
 // ─── LIST ALL TEMPLATES ──────────────────────────────────────────────────────
 
 export interface TemplateListRow {
   id: number;
   nama: string;
   fieldCount: number;
+  tipeEvaluasi: TipeEvaluasi;
   createdAt: Date | null;
   updatedAt: Date | null;
   linkedKegiatanCount: number;
@@ -386,6 +536,7 @@ export async function listTemplates(): Promise<TemplateListRow[]> {
       id: pplKuesionerTemplate.id,
       nama: pplKuesionerTemplate.nama,
       configJson: pplKuesionerTemplate.configJson,
+      tipeEvaluasi: pplKuesionerTemplate.tipeEvaluasi,
       createdAt: pplKuesionerTemplate.createdAt,
       updatedAt: pplKuesionerTemplate.updatedAt,
     })
@@ -407,6 +558,7 @@ export async function listTemplates(): Promise<TemplateListRow[]> {
     id: t.id,
     nama: t.nama,
     fieldCount: Array.isArray(t.configJson) ? t.configJson.length : 0,
+    tipeEvaluasi: (t.tipeEvaluasi ?? "evaluasi_umum") as TipeEvaluasi,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
     linkedKegiatanCount: linkCountMap.get(t.id) ?? 0,

@@ -5,6 +5,8 @@ import { format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import {
   AlertTriangle,
+  Archive,
+  BookOpen,
   Calendar,
   ChevronLeft,
   ClipboardList,
@@ -26,6 +28,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getKegiatan } from "@/server/actions/ppl-evaluasi/kegiatan";
 import { getProjectByKegiatanId } from "@/server/actions/ppl-evaluasi/project-sync";
+import { getEmbeddedProjectData } from "@/server/actions/ppl-evaluasi/project-embedded";
+import { SaveKegiatanAsTemaButton } from "@/components/ppl-evaluasi/SaveKegiatanAsTemaButton";
+import { EmbeddedProjectView } from "@/components/ppl-evaluasi/EmbeddedProjectView";
 
 export const metadata: Metadata = {
   title: "Detail Kegiatan PPL | ARKA",
@@ -46,6 +51,9 @@ export default async function Page({ params }: Props) {
   if (!kegiatan) notFound();
 
   const linkedProject = await getProjectByKegiatanId(numericId).catch(() => null);
+  const embeddedProject = linkedProject
+    ? await getEmbeddedProjectData(numericId).catch(() => null)
+    : null;
 
   const conversionRateDisplay =
     kegiatan.pendaftar === 0
@@ -215,8 +223,36 @@ export default async function Page({ params }: Props) {
         </Card>
       </div>
 
-      {/* Project Kolaborasi */}
-      {linkedProject && (
+      {/* Simpan sebagai Tema */}
+      <Card className="mt-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BookOpen className="h-4 w-4" />
+            Bank Tema
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Simpan sebagai Tema</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Simpan kegiatan ini ke Bank Tema untuk digunakan kembali di masa depan.
+              </p>
+            </div>
+            <SaveKegiatanAsTemaButton kegiatanId={kegiatan.id} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Project Kolaborasi — Embedded View */}
+      {embeddedProject && (
+        <div className="mt-4">
+          <EmbeddedProjectView data={embeddedProject} />
+        </div>
+      )}
+
+      {/* Fallback: simple link if embedded data failed but project exists */}
+      {!embeddedProject && linkedProject && (
         <Card className="mt-4">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">

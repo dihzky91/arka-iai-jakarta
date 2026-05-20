@@ -29,6 +29,7 @@ import type {
   FieldType,
   FormField,
   GridConfig,
+  NarasumberSectionConfig,
   OptionsConfig,
   ScaleConfig,
 } from "./types";
@@ -41,7 +42,7 @@ interface FormBuilderProps {
   isLocked?: boolean;
 }
 
-function getDefaultConfig(type: FieldType): ScaleConfig | GridConfig | OptionsConfig | null {
+function getDefaultConfig(type: FieldType): ScaleConfig | GridConfig | OptionsConfig | NarasumberSectionConfig | null {
   switch (type) {
     case "scale":
       return { min: 1, max: 5, minLabel: "", maxLabel: "" };
@@ -51,6 +52,14 @@ function getDefaultConfig(type: FieldType): ScaleConfig | GridConfig | OptionsCo
     case "radio":
     case "checkbox":
       return { options: [""] };
+    case "narasumber_section":
+      return {
+        fields: [
+          { type: "scale", label: "Penguasaan materi", required: true, config: { min: 1, max: 5, minLabel: "", maxLabel: "" } },
+          { type: "scale", label: "Cara penyampaian", required: true, config: { min: 1, max: 5, minLabel: "", maxLabel: "" } },
+          { type: "scale", label: "Interaksi dengan peserta", required: true, config: { min: 1, max: 5, minLabel: "", maxLabel: "" } },
+        ],
+      };
     default:
       return null;
   }

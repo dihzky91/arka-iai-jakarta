@@ -4,10 +4,18 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type {
   FormField,
   GridConfig,
+  NarasumberSectionConfig,
   OptionsConfig,
   ScaleConfig,
 } from "./types";
@@ -76,6 +84,14 @@ export function FieldConfigPanel({ field, onChange, disabled }: FieldConfigPanel
       {(field.type === "select" || field.type === "radio" || field.type === "checkbox") && (
         <OptionsConfigPanel
           config={(field.config as OptionsConfig) ?? { options: [""] }}
+          onChange={(config) => onChange({ ...field, config })}
+          disabled={disabled}
+        />
+      )}
+
+      {field.type === "narasumber_section" && (
+        <NarasumberSectionConfigPanel
+          config={(field.config as NarasumberSectionConfig) ?? { fields: [] }}
           onChange={(config) => onChange({ ...field, config })}
           disabled={disabled}
         />
@@ -349,6 +365,206 @@ function OptionsConfigPanel({
           >
             <Trash2 className="h-3 w-3" />
           </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Narasumber Section Config ──────────────────────────────────────────────
+
+const NARASUMBER_FIELD_TYPES = ["scale", "radio", "textarea", "text"] as const;
+
+function NarasumberSectionConfigPanel({
+  config,
+  onChange,
+  disabled,
+}: {
+  config: NarasumberSectionConfig;
+  onChange: (config: NarasumberSectionConfig) => void;
+  disabled?: boolean;
+}) {
+  const addField = () => {
+    if (config.fields.length < 20) {
+      onChange({
+        ...config,
+        fields: [
+          ...config.fields,
+          { type: "scale", label: "", required: false, config: null },
+        ],
+      });
+    }
+  };
+
+  const removeField = (index: number) => {
+    if (config.fields.length > 1) {
+      onChange({
+        ...config,
+        fields: config.fields.filter((_, i) => i !== index),
+      });
+    }
+  };
+
+  const updateField = (index: number, updates: Partial<{
+    type: "scale" | "radio" | "textarea" | "text";
+    label: string;
+    required: boolean;
+    config: ScaleConfig | OptionsConfig | null;
+  }>) => {
+    const fields = [...config.fields];
+    fields[index] = { ...fields[index], ...updates } as (typeof config.fields)[number];
+    onChange({ ...config, fields });
+  };
+
+  return (
+    <div className="space-y-3 rounded-lg border p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Sub-Field Evaluasi Narasumber</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addField}
+          disabled={disabled || config.fields.length >= 20}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Tambah
+        </Button>
+      </div>
+
+      {config.fields.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Belum ada sub-field. Tambah sub-field untuk evaluasi per-narasumber.
+        </p>
+      )}
+
+      {config.fields.map((field, idx) => (
+        <div key={idx} className="space-y-2 rounded-md border p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Sub-Field {idx + 1}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => removeField(idx)}
+              disabled={disabled || config.fields.length <= 1}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Tipe Field</Label>
+            <Select
+              value={field.type}
+              onValueChange={(val: string) =>
+                updateField(idx, {
+                  type: val as (typeof NARASUMBER_FIELD_TYPES)[number],
+                  config: val === "scale" ? { min: 1, max: 5, minLabel: "", maxLabel: "" } :
+                          val === "radio" ? { options: [""] } : null,
+                })
+              }
+              disabled={disabled}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="scale">Skala</SelectItem>
+                <SelectItem value="radio">Pilihan Tunggal</SelectItem>
+                <SelectItem value="textarea">Teks Panjang</SelectItem>
+                <SelectItem value="text">Teks Singkat</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Label</Label>
+            <Input
+              value={field.label}
+              onChange={(e) => {
+                if (e.target.value.length <= 300) {
+                  updateField(idx, { label: e.target.value });
+                }
+              }}
+              placeholder="cth: Penguasaan materi"
+              maxLength={300}
+              className="h-8 text-xs"
+              disabled={disabled}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-xs" htmlFor={`narsub-req-${idx}`}>Wajib diisi</Label>
+            <Switch
+              id={`narsub-req-${idx}`}
+              checked={field.required}
+              onCheckedChange={(checked) => updateField(idx, { required: checked })}
+              disabled={disabled}
+            />
+          </div>
+
+          {field.type === "scale" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Min</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={(field.config as ScaleConfig)?.min ?? 1}
+                  onChange={(e) =>
+                    updateField(idx, {
+                      config: {
+                        ...((field.config as ScaleConfig) ?? { min: 1, max: 5, minLabel: "", maxLabel: "" }),
+                        min: Number(e.target.value),
+                      },
+                    })
+                  }
+                  className="h-8 text-xs"
+                  disabled={disabled}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Max</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={(field.config as ScaleConfig)?.max ?? 5}
+                  onChange={(e) =>
+                    updateField(idx, {
+                      config: {
+                        ...((field.config as ScaleConfig) ?? { min: 1, max: 5, minLabel: "", maxLabel: "" }),
+                        max: Number(e.target.value),
+                      },
+                    })
+                  }
+                  className="h-8 text-xs"
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+          )}
+
+          {field.type === "radio" && (
+            <div className="space-y-1">
+              <Label className="text-xs">Opsi (dipisah koma)</Label>
+              <Input
+                value={((field.config as OptionsConfig)?.options ?? []).join(", ")}
+                onChange={(e) =>
+                  updateField(idx, {
+                    config: {
+                      options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    },
+                  })
+                }
+                placeholder="Sangat Baik, Baik, Cukup, Kurang"
+                className="h-8 text-xs"
+                disabled={disabled}
+              />
+            </div>
+          )}
         </div>
       ))}
     </div>

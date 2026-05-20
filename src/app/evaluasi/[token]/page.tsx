@@ -27,6 +27,7 @@ import type { PublicKuesionerData } from "@/server/actions/ppl-evaluasi/types";
 import type {
   FormField,
   GridConfig,
+  NarasumberSectionConfig,
   OptionsConfig,
   ScaleConfig,
 } from "@/components/ppl-evaluasi/form-builder/types";
@@ -236,14 +237,27 @@ export default function EvaluasiPublicPage() {
             </div>
 
             {/* Dynamic fields */}
-            {sortedFields.map((field) => (
-              <FieldRenderer
-                key={field.id}
-                field={field}
-                value={answers[field.id]}
-                onChange={(val) => updateAnswer(field.id, val)}
-              />
-            ))}
+            {sortedFields.map((field) => {
+              if (field.type === "narasumber_section" && kuesioner?.narasumberAssignments) {
+                return (
+                  <NarasumberSectionField
+                    key={field.id}
+                    field={field}
+                    narasumberAssignments={kuesioner.narasumberAssignments}
+                    answers={answers}
+                    updateAnswer={updateAnswer}
+                  />
+                );
+              }
+              return (
+                <FieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={answers[field.id]}
+                  onChange={(val) => updateAnswer(field.id, val)}
+                />
+              );
+            })}
 
             {/* Submit button */}
             <div className="pt-2">
@@ -599,6 +613,178 @@ function GridField({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ─── NARASUMBER SECTION FIELD ────────────────────────────────────────────────
+
+interface NarasumberSectionFieldProps {
+  field: FormField;
+  narasumberAssignments: Array<{ narasumberId: number; nama: string; topik: string | null }>;
+  answers: Record<string, unknown>;
+  updateAnswer: (fieldId: string, value: unknown) => void;
+}
+
+function NarasumberSectionField({
+  field,
+  narasumberAssignments,
+  answers,
+  updateAnswer,
+}: NarasumberSectionFieldProps) {
+  const config = field.config as NarasumberSectionConfig | null;
+  if (!config?.fields || config.fields.length === 0) return null;
+  if (!narasumberAssignments || narasumberAssignments.length === 0) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        Belum ada narasumber yang di-assign untuk kegiatan ini.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-medium text-slate-700">
+          {field.label || "Evaluasi Narasumber"}
+        </h3>
+        {field.required && <span className="text-xs text-red-500">*</span>}
+      </div>
+
+      {narasumberAssignments.map((nars) => (
+        <div
+          key={nars.narasumberId}
+          className="rounded-xl border border-slate-200 bg-slate-50/50 p-4"
+        >
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-700">
+              {nars.nama.charAt(0)}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-800">{nars.nama}</p>
+              {nars.topik && (
+                <p className="text-xs text-slate-500">Topik: {nars.topik}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {config.fields.map((subField, fi) => {
+              const answerKey = `narasumber_${nars.narasumberId}_${fi}`;
+              const value = answers[answerKey];
+
+              const requiredMark = subField.required ? (
+                <span className="text-red-500">*</span>
+              ) : null;
+
+              const handleChange = (val: unknown) => {
+                updateAnswer(answerKey, val);
+              };
+
+              if (subField.type === "text") {
+                return (
+                  <div key={fi} className="space-y-1">
+                    <Label className="text-xs">{subField.label} {requiredMark}</Label>
+                    <Input
+                      value={(value as string) ?? ""}
+                      onChange={(e) => handleChange(e.target.value)}
+                      required={subField.required}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                );
+              }
+
+              if (subField.type === "textarea") {
+                return (
+                  <div key={fi} className="space-y-1">
+                    <Label className="text-xs">{subField.label} {requiredMark}</Label>
+                    <Textarea
+                      value={(value as string) ?? ""}
+                      onChange={(e) => handleChange(e.target.value)}
+                      required={subField.required}
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+                );
+              }
+
+              if (subField.type === "scale") {
+                const scaleConfig = subField.config as ScaleConfig | null;
+                if (!scaleConfig) return null;
+
+                const { min, max, minLabel, maxLabel } = scaleConfig;
+                const scaleValues = Array.from(
+                  { length: max - min + 1 },
+                  (_, i) => min + i,
+                );
+
+                return (
+                  <div key={fi} className="space-y-1">
+                    <Label className="text-xs">{subField.label} {requiredMark}</Label>
+                    <div className="flex items-center justify-between gap-1 pt-1">
+                      {minLabel && (
+                        <span className="text-[10px] text-slate-400 w-12 text-right">{minLabel}</span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        {scaleValues.map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => handleChange(String(val))}
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-all ${
+                              String(value) === String(val)
+                                ? "border-blue-500 bg-blue-600 text-white shadow-sm"
+                                : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50"
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                      {maxLabel && (
+                        <span className="text-[10px] text-slate-400 w-12">{maxLabel}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (subField.type === "radio") {
+                const optionsConfig = subField.config as OptionsConfig | null;
+                const options = optionsConfig?.options ?? [];
+
+                return (
+                  <div key={fi} className="space-y-1">
+                    <Label className="text-xs">{subField.label} {requiredMark}</Label>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {options.map((opt, oi) => (
+                        <label
+                          key={oi}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs transition-colors hover:bg-slate-50 has-[:checked]:border-blue-300 has-[:checked]:bg-blue-50"
+                        >
+                          <input
+                            type="radio"
+                            name={`${field.id}_${nars.narasumberId}_${fi}`}
+                            value={opt}
+                            checked={(value as string) === opt}
+                            onChange={() => handleChange(opt)}
+                            className="h-3 w-3 border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-slate-700">{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

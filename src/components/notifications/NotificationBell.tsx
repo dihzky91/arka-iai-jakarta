@@ -38,13 +38,19 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    const [notifs, count] = await Promise.all([
-      getNotifications({ limit: PAGE_SIZE }),
-      getUnreadNotificationCount(),
-    ]);
-    setNotifications(notifs);
-    setUnreadCount(count);
-    setHasMore(notifs.length === PAGE_SIZE);
+    try {
+      const [notifs, count] = await Promise.all([
+        getNotifications({ limit: PAGE_SIZE }),
+        getUnreadNotificationCount(),
+      ]);
+      setNotifications(notifs);
+      setUnreadCount(count);
+      setHasMore(notifs.length === PAGE_SIZE);
+    } catch (err) {
+      // Session expired atau belum login — skip silently.
+      // Interval berikutnya akan retry setelah user login ulang.
+      console.warn("[NotificationBell] Failed to fetch notifications:", err);
+    }
   }, []);
 
   useEffect(() => {

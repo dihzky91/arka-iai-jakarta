@@ -50,9 +50,8 @@ export interface DashboardStats {
   disposisiByStatus: { status: string; count: number }[];
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  await requireSession();
-
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getDashboardStatsInternal(): Promise<DashboardStats> {
   const [
     totalSuratKeluarResult,
     totalSuratMasukResult,
@@ -258,9 +257,8 @@ export interface PersuratanMetrics {
   disposisiBelumDibaca: number;
 }
 
-export async function getPersuratanMetrics(): Promise<PersuratanMetrics> {
-  await requireSession();
-
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getPersuratanMetricsInternal(): Promise<PersuratanMetrics> {
   const [
     masukBaru,
     masukDiproses,
@@ -313,9 +311,8 @@ export interface KepegawaianMetrics {
   cutiDisetujuiBulanIni: number;
 }
 
-export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
-  await requireSession();
-
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getKepegawaianMetricsInternal(): Promise<KepegawaianMetrics> {
   const todayStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -398,9 +395,8 @@ export interface SertifikatMetrics {
   }[];
 }
 
-export async function getSertifikatMetrics(): Promise<SertifikatMetrics> {
-  await requireSession();
-
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getSertifikatMetricsInternal(): Promise<SertifikatMetrics> {
   const todayStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -474,9 +470,8 @@ export interface KeuanganMetrics {
   totalNominalDibayar: number;
 }
 
-export async function getKeuanganMetrics(): Promise<KeuanganMetrics> {
-  await requireSession();
-
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getKeuanganMetricsInternal(): Promise<KeuanganMetrics> {
   const [byStatus, totalDibayar] = await Promise.all([
     db
       .select({
@@ -783,11 +778,10 @@ export interface PendingBatchItem {
   submittedAt: string | null;
 }
 
-export async function getRecentSuratMasuk(
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getRecentSuratMasukInternal(
   limit = 5,
 ): Promise<RecentSuratMasukItem[]> {
-  await requireSession();
-
   const rows = await db
     .select({
       id: suratMasuk.id,
@@ -808,12 +802,11 @@ export async function getRecentSuratMasuk(
   }));
 }
 
-export async function getRecentDisposisiForUser(
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getRecentDisposisiForUserInternal(
   userId: string,
   limit = 5,
 ): Promise<RecentDisposisiItem[]> {
-  await requireSession();
-
   const rows = await db
     .select({
       id: disposisi.id,
@@ -839,11 +832,10 @@ export async function getRecentDisposisiForUser(
   }));
 }
 
-export async function getPendingCutiList(
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getPendingCutiListInternal(
   limit = 5,
 ): Promise<PendingCutiItem[]> {
-  await requireSession();
-
   const rows = await db
     .select({
       id: pengajuanCuti.id,
@@ -864,11 +856,10 @@ export async function getPendingCutiList(
   return rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
 }
 
-export async function getPendingBatchList(
+/** @internal — tanpa auth check, untuk dipakai di unstable_cache */
+async function getPendingBatchListInternal(
   limit = 5,
 ): Promise<PendingBatchItem[]> {
-  await requireSession();
-
   const rows = await db
     .select({
       id: honorariumBatches.id,
@@ -894,6 +885,53 @@ export async function getPendingBatchList(
   }));
 }
 
+// ─── PUBLIC WRAPPERS (auth-guarded, untuk direct call di luar cache) ─────────
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  await requireSession();
+  return getDashboardStatsInternal();
+}
+
+export async function getPersuratanMetrics(): Promise<PersuratanMetrics> {
+  await requireSession();
+  return getPersuratanMetricsInternal();
+}
+
+export async function getKepegawaianMetrics(): Promise<KepegawaianMetrics> {
+  await requireSession();
+  return getKepegawaianMetricsInternal();
+}
+
+export async function getSertifikatMetrics(): Promise<SertifikatMetrics> {
+  await requireSession();
+  return getSertifikatMetricsInternal();
+}
+
+export async function getKeuanganMetrics(): Promise<KeuanganMetrics> {
+  await requireSession();
+  return getKeuanganMetricsInternal();
+}
+
+export async function getRecentSuratMasuk(limit = 5): Promise<RecentSuratMasukItem[]> {
+  await requireSession();
+  return getRecentSuratMasukInternal(limit);
+}
+
+export async function getRecentDisposisiForUser(userId: string, limit = 5): Promise<RecentDisposisiItem[]> {
+  await requireSession();
+  return getRecentDisposisiForUserInternal(userId, limit);
+}
+
+export async function getPendingCutiList(limit = 5): Promise<PendingCutiItem[]> {
+  await requireSession();
+  return getPendingCutiListInternal(limit);
+}
+
+export async function getPendingBatchList(limit = 5): Promise<PendingBatchItem[]> {
+  await requireSession();
+  return getPendingBatchListInternal(limit);
+}
+
 // ─── CACHE TAGS ──────────────────────────────────────────────────────────────
 
 import { DASHBOARD_TAGS, type DashboardTag } from "@/lib/dashboard-cache-tags";
@@ -903,55 +941,55 @@ export async function revalidateDashboardTag(tag: DashboardTag) {
 }
 
 const cachedPersuratanMetrics = unstable_cache(
-  getPersuratanMetrics,
+  getPersuratanMetricsInternal,
   [DASHBOARD_TAGS.persuratan],
   { tags: [DASHBOARD_TAGS.persuratan], revalidate: 60 },
 );
 
 const cachedKepegawaianMetrics = unstable_cache(
-  getKepegawaianMetrics,
+  getKepegawaianMetricsInternal,
   [DASHBOARD_TAGS.kepegawaian],
   { tags: [DASHBOARD_TAGS.kepegawaian], revalidate: 60 },
 );
 
 const cachedSertifikatMetrics = unstable_cache(
-  getSertifikatMetrics,
+  getSertifikatMetricsInternal,
   [DASHBOARD_TAGS.sertifikat],
   { tags: [DASHBOARD_TAGS.sertifikat], revalidate: 60 },
 );
 
 const cachedKeuanganMetrics = unstable_cache(
-  getKeuanganMetrics,
+  getKeuanganMetricsInternal,
   [DASHBOARD_TAGS.keuangan],
   { tags: [DASHBOARD_TAGS.keuangan], revalidate: 60 },
 );
 
 const cachedDashboardStats = unstable_cache(
-  getDashboardStats,
+  getDashboardStatsInternal,
   [`${DASHBOARD_TAGS.persuratan}-stats`],
   { tags: [DASHBOARD_TAGS.persuratan], revalidate: 60 },
 );
 
 const cachedRecentSuratMasuk = unstable_cache(
-  (limit: number) => getRecentSuratMasuk(limit),
+  (limit: number) => getRecentSuratMasukInternal(limit),
   [`${DASHBOARD_TAGS.persuratan}-recent-surat-masuk`],
   { tags: [DASHBOARD_TAGS.persuratan], revalidate: 60 },
 );
 
 const cachedRecentDisposisi = unstable_cache(
-  (userId: string, limit: number) => getRecentDisposisiForUser(userId, limit),
+  (userId: string, limit: number) => getRecentDisposisiForUserInternal(userId, limit),
   [`${DASHBOARD_TAGS.persuratan}-recent-disposisi`],
   { tags: [DASHBOARD_TAGS.persuratan], revalidate: 60 },
 );
 
 const cachedPendingCutiList = unstable_cache(
-  (limit: number) => getPendingCutiList(limit),
+  (limit: number) => getPendingCutiListInternal(limit),
   [`${DASHBOARD_TAGS.kepegawaian}-pending-cuti`],
   { tags: [DASHBOARD_TAGS.kepegawaian], revalidate: 60 },
 );
 
 const cachedPendingBatchList = unstable_cache(
-  (limit: number) => getPendingBatchList(limit),
+  (limit: number) => getPendingBatchListInternal(limit),
   [`${DASHBOARD_TAGS.keuangan}-pending-batch`],
   { tags: [DASHBOARD_TAGS.keuangan], revalidate: 60 },
 );

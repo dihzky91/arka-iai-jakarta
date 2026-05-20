@@ -1,4 +1,4 @@
-import type { FormField } from "@/components/ppl-evaluasi/form-builder/types";
+import type { FormField, TipeEvaluasi } from "@/components/ppl-evaluasi/form-builder/types";
 
 export type KategoriPpl =
   | "Perpajakan"
@@ -117,6 +117,7 @@ export interface AssignNarasumberInput {
 export interface CreateTemplateInput {
   nama: string;
   fields: FormField[];
+  tipeEvaluasi?: TipeEvaluasi;
 }
 
 export interface UpdateTemplateInput extends CreateTemplateInput {}
@@ -149,7 +150,13 @@ export interface PublicKuesionerData {
   kegiatanNama: string;
   templateNama: string;
   fields: FormField[];
+  tipeEvaluasi: TipeEvaluasi;
   isActive: boolean;
+  narasumberAssignments?: Array<{
+    narasumberId: number;
+    nama: string;
+    topik: string | null;
+  }>;
 }
 
 // ─── Dashboard & Analytics Filters ──────────────────────────────────────────
@@ -275,4 +282,93 @@ export interface SpeakerPerformanceRow {
 export interface SpeakerPerformanceData {
   speakers: SpeakerPerformanceRow[];
   period: { startDate: string; endDate: string };
+}
+
+// ─── Narasumber Scoring ─────────────────────────────────────────────────────
+
+export interface NarasumberFieldScore {
+  label: string;
+  avg: number;
+  median: number;
+  distribution: Record<number, number>;
+}
+
+export interface NarasumberScore {
+  narasumberId: number;
+  nama: string;
+  topik: string | null;
+  avgScore: number;
+  fieldScores: NarasumberFieldScore[];
+  respondenCount: number;
+}
+
+export interface KegiatanEvaluationSummary {
+  kegiatanId: number;
+  overallScore: number;
+  narasumberScores: NarasumberScore[];
+  totalResponden: number;
+  responseRate: number;
+}
+
+// ─── Tema Bank ───────────────────────────────────────────────────────────────
+
+export interface MateriItem {
+  judul: string;
+  deskripsi: string;
+  durasiMenit: number;
+  urutan: number;
+}
+
+export interface CreateTemaInput {
+  namaTema: string;
+  kategoriPpl: KategoriPpl;
+  latarBelakang?: string;
+  susunanMateri?: MateriItem[];
+  benefit?: string[];
+  targetPeserta?: string;
+  durasiHari?: number;
+  tipePelaksanaanDefault?: TipePelaksanaan | null;
+  rekomendasiNarasumberIds?: number[];
+  defaultTemplateIds?: number[];
+  tags?: string[];
+}
+
+export interface UpdateTemaInput extends Partial<CreateTemaInput> {}
+
+export interface TemaBankRow {
+  id: number;
+  namaTema: string;
+  kategoriPpl: KategoriPpl;
+  susunanMateri: MateriItem[];
+  benefit: string[];
+  tags: string[];
+  usageCount: number;
+  lastUsedAt: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface TemaBankDetail extends TemaBankRow {
+  latarBelakang: string | null;
+  targetPeserta: string | null;
+  durasiHari: number;
+  tipePelaksanaanDefault: TipePelaksanaan | null;
+  rekomendasiNarasumberIds: number[];
+  defaultTemplateIds: number[];
+  sourceKegiatanId: number | null;
+  createdBy: string | null;
+}
+
+export interface TemaSuggestion {
+  id: number;
+  namaTema: string;
+  kategoriPpl: KategoriPpl;
+  matchScore: number;
+  usageCount: number;
+  lastUsedAt: Date | null;
+  preview: {
+    benefitCount: number;
+    materiCount: number;
+    hasNarasumberRekomendasi: boolean;
+  };
 }

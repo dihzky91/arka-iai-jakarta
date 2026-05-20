@@ -10,6 +10,7 @@ import {
   Mail,
   SlidersHorizontal,
   Type,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ const FIELD_TYPE_OPTIONS: {
   { type: "checkbox", label: "Pilihan Ganda", icon: <CheckSquare className="h-4 w-4" />, group: "choice" },
   { type: "scale", label: "Skala (Likert)", icon: <SlidersHorizontal className="h-4 w-4" />, group: "advanced" },
   { type: "grid", label: "Grid / Matriks", icon: <Grid3X3 className="h-4 w-4" />, group: "advanced" },
+  { type: "narasumber_section", label: "Evaluasi Narasumber", icon: <Users className="h-4 w-4" />, group: "advanced" },
 ];
 
 interface AddFieldButtonProps {
