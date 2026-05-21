@@ -5,11 +5,17 @@ import { systemSettings } from "@/server/db/schema";
 import { env } from "@/lib/env";
 import { sendEmailMailjet, isMailjetReady, getMissingMailjetEnv } from "./mailjet";
 import { sendEmailBrevo, isBrevoReady, getMissingBrevoEnv } from "./brevo";
-import { buildInviteEmail, buildResetPasswordEmail, buildDisposisiEmail } from "./templates";
 import type { EmailPayload, EmailProviderType } from "./types";
 
 export type { EmailPayload, EmailProviderType } from "./types";
-export { buildInviteEmail, buildResetPasswordEmail, buildDisposisiEmail } from "./templates";
+export {
+  buildInviteEmail,
+  buildResetPasswordEmail,
+  buildDisposisiEmail,
+  buildSuratKeluarReviewEmail,
+  buildSuratKeluarRevisiEmail,
+  buildSuratKeluarSelesaiEmail,
+} from "./templates";
 
 // ─── Provider resolution ──────────────────────────────────────────────────────
 

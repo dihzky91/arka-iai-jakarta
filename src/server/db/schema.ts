@@ -458,6 +458,7 @@ export const suratKeluar = pgTable("surat_keluar", {
   jenisSurat: jenisSuratEnum("jenis_surat").notNull(),
   isiSingkat: text("isi_singkat"),
   status: statusSuratKeluarEnum("status").default("draft"),
+  prosesViaSimpeg: boolean("proses_via_simpeg").default(false).notNull(),
   fileDraftUrl: text("file_draft_url"),
   fileFinalUrl: text("file_final_url"),
   lampiranUrl: text("lampiran_url"),

@@ -12,6 +12,7 @@ import {
   Hash,
   Download,
   Files,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -20,9 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -156,7 +155,7 @@ export function SuratKeluarManager({
   const bulkAssignableRows = useMemo(
     () =>
       initialData
-        .filter((row) => row.status === "pengarsipan" && !row.nomorSurat)
+        .filter((row) => !row.nomorSurat && row.status !== "selesai" && row.status !== "dibatalkan")
         .sort((a, b) => {
           const tanggalCompare =
             parseIsoDateInJakarta(a.tanggalSurat).getTime() -
@@ -195,6 +194,12 @@ export function SuratKeluarManager({
             <p className="text-xs leading-tight text-muted-foreground">
               {row.original.tujuan}
             </p>
+            {row.original.prosesViaSimpeg ? (
+              <Badge variant="outline" className="mt-1 gap-1 text-[11px]">
+                <Building2 className="h-3 w-3" />
+                SIMPEG
+              </Badge>
+            ) : null}
           </div>
         ),
       },
@@ -416,6 +421,7 @@ export function SuratKeluarManager({
         jenis_surat: JENIS_SURAT_LABEL[row.jenisSurat] ?? row.jenisSurat,
         isi_singkat: row.isiSingkat ?? "",
         status: STATUS_CONFIG[row.status ?? "draft"]?.label ?? (row.status ?? "draft"),
+        proses: row.prosesViaSimpeg ? "SIMPEG IAI" : "Arka",
         divisi: row.divisiNama ?? "",
         pembuat: row.dibuatOlehNama ?? "",
         pejabat: row.pejabatNama ?? "",
@@ -460,13 +466,6 @@ export function SuratKeluarManager({
       <Card className="rounded-[24px]">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Arsip Surat Keluar</CardTitle>
-              <CardDescription className="mt-1">
-                Kelola pembuatan surat keluar dan pantau workflow 5 tahap
-                hingga pengarsipan selesai.
-              </CardDescription>
-            </div>
             {canCreate ? (
               <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
                 <Button variant="outline" onClick={handleExportCsv} className="w-full sm:w-auto">
@@ -589,8 +588,8 @@ export function SuratKeluarManager({
           <DialogHeader>
             <DialogTitle>Generate Nomor Surat Massal?</DialogTitle>
             <DialogDescription>
-              Sistem akan memproses {bulkAssignableRows.length} surat yang masih
-              berstatus Pengarsipan dan belum memiliki nomor surat. Urutan
+              Sistem akan memproses {bulkAssignableRows.length} surat yang belum
+              memiliki nomor surat. Urutan
               generate mengikuti tanggal surat tertua lebih dulu.
             </DialogDescription>
           </DialogHeader>

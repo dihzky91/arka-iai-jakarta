@@ -15,6 +15,7 @@ export const suratKeluarCreateSchema = z.object({
   tanggalSurat: isoDate,
   jenisSurat: z.enum(jenisSuratValues),
   isiSingkat: z.string().optional(),
+  prosesViaSimpeg: z.boolean().optional().default(false),
   fileDraftUrl: fileUrlSchema.optional(),
   lampiranUrl: fileUrlSchema.optional(),
   fileFinalUrl: fileUrlSchema.optional(),
