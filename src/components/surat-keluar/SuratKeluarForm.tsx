@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   createSuratKeluar,
   updateSuratKeluar,
@@ -73,6 +74,7 @@ const formSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD"),
   jenisSurat: z.enum(JENIS_SURAT_VALUES as [string, ...string[]]),
   isiSingkat: z.string().optional(),
+  prosesViaSimpeg: z.boolean().optional(),
   lampiranUrl: optionalFileUrlSchema,
   fileDraftUrl: optionalFileUrlSchema,
   pejabatId: z.string().optional(),
@@ -118,6 +120,7 @@ export function SuratKeluarForm({
       tanggalSurat: todayISO(),
       jenisSurat: "undangan",
       isiSingkat: "",
+      prosesViaSimpeg: false,
       lampiranUrl: "",
       fileDraftUrl: "",
       pejabatId: "__none__",
@@ -137,6 +140,7 @@ export function SuratKeluarForm({
         tanggalSurat: initialData.tanggalSurat,
         jenisSurat: initialData.jenisSurat,
         isiSingkat: initialData.isiSingkat ?? "",
+        prosesViaSimpeg: initialData.prosesViaSimpeg,
         lampiranUrl: initialData.lampiranUrl ?? "",
         fileDraftUrl: initialData.fileDraftUrl ?? "",
         pejabatId: initialData.pejabatId ? String(initialData.pejabatId) : "__none__",
@@ -152,6 +156,7 @@ export function SuratKeluarForm({
         tanggalSurat: todayISO(),
         jenisSurat: "undangan",
         isiSingkat: "",
+        prosesViaSimpeg: false,
         lampiranUrl: "",
         fileDraftUrl: "",
         pejabatId: "__none__",
@@ -208,6 +213,7 @@ export function SuratKeluarForm({
             values.divisiId && values.divisiId !== "__none__"
               ? parseInt(values.divisiId)
               : undefined,
+          prosesViaSimpeg: Boolean(values.prosesViaSimpeg),
           tujuanAlamat: values.tujuanAlamat || undefined,
           isiSingkat: values.isiSingkat || undefined,
           lampiranUrl: uploadedLampiranUrl,
@@ -382,6 +388,27 @@ export function SuratKeluarForm({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="prosesViaSimpeg"
+              render={({ field }) => (
+                <FormItem className="flex items-start justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+                  <div className="space-y-1">
+                    <FormLabel>Diproses di SIMPEG IAI</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Aktifkan jika review dan pengiriman resmi dilakukan di SIMPEG pusat.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={Boolean(field.value)}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

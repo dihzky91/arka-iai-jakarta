@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Download,
   ScanQrCode,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -50,6 +51,7 @@ import {
   generateQrSuratKeluar,
   stampQrToSuratKeluarPdf,
   uploadSuratKeluarFinal,
+  lanjutkanSimpegKePengarsipan,
 } from "@/server/actions/suratKeluar";
 import type { SuratKeluarRow } from "@/server/actions/suratKeluar";
 
@@ -181,6 +183,7 @@ export function SuratKeluarStepper({
   const isAdmin = role === "admin";
   const isPejabat = role === "pejabat" || role === "admin";
   const currentStep = stepIndex(status);
+  const isSimpeg = row.prosesViaSimpeg;
   const isCancelled = status === "dibatalkan";
   const verificationUrl = useMemo(() => {
     if (typeof window !== "undefined") {
@@ -474,6 +477,12 @@ export function SuratKeluarStepper({
             <p className="font-medium">{row.dibuatOlehNama ?? "-"}</p>
           </div>
           <div>
+            <span className="text-muted-foreground">Proses</span>
+            <p className="font-medium">
+              {isSimpeg ? "SIMPEG IAI" : "Workflow Arka"}
+            </p>
+          </div>
+          <div>
             <span className="text-muted-foreground">Draft Surat</span>
             {row.fileDraftUrl ? (
               <a
@@ -550,6 +559,19 @@ export function SuratKeluarStepper({
           </div>
         ) : null}
 
+        {isSimpeg ? (
+          <div className="flex gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">
+            <Building2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">Surat ini diproses di SIMPEG IAI</p>
+              <p className="mt-0.5">
+                Tahap persetujuan dilakukan di SIMPEG. Arka tetap mencatat nomor
+                surat dan arsip digital.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {!isCancelled ? (
           <div className="relative grid grid-cols-2 gap-3 sm:flex sm:items-start sm:justify-between sm:gap-2">
             {STEPS.map((step, idx) => {
@@ -613,7 +635,85 @@ export function SuratKeluarStepper({
           </p>
 
           {status === "draft" && (
-            <div className="grid gap-2 sm:flex sm:flex-wrap">
+            <div className="space-y-3">
+              <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Nomor Surat</p>
+                </div>
+                {row.nomorSurat ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
+                    <Hash className="h-4 w-4 text-primary" />
+                    <span className="font-mono text-sm font-medium">
+                      {row.nomorSurat}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="ml-auto text-xs text-green-600"
+                    >
+                      Nomor Aktif
+                    </Badge>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Generate nomor surat di awal, seperti pencatatan di logbook manual.
+                    </p>
+                    <Input
+                      value={manualNomorSurat}
+                      onChange={(event) => setManualNomorSurat(event.target.value)}
+                      placeholder="Isi manual nomor surat jika tidak ingin generate otomatis"
+                    />
+                    <div className="grid gap-2 sm:flex sm:flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleGenerateNomor}
+                        disabled={isPending}
+                        className="w-full sm:w-auto"
+                      >
+                        <Hash className="mr-1.5 h-3.5 w-3.5" />
+                        Generate Otomatis
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSaveManualNomor}
+                        disabled={
+                          isPending ||
+                          !manualNomorSurat.trim() ||
+                          nomorAvailability.state === "duplicate" ||
+                          nomorAvailability.state === "checking"
+                        }
+                        className="w-full sm:w-auto"
+                      >
+                        Gunakan Nomor Manual
+                      </Button>
+                    </div>
+                    {nomorAvailability.state !== "idle" ? (
+                      <p
+                        className={cn(
+                          "text-xs",
+                          nomorAvailability.state === "available"
+                            ? "text-green-700 dark:text-green-300"
+                            : nomorAvailability.state === "checking"
+                              ? "text-muted-foreground"
+                              : "text-red-700 dark:text-red-300",
+                        )}
+                      >
+                        {nomorAvailability.message}
+                      </p>
+                    ) : null}
+                    {nomorFormatHint ? (
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        {nomorFormatHint}
+                      </p>
+                    ) : null}
+                  </>
+                )}
+              </div>
+
+              <div className="grid gap-2 sm:flex sm:flex-wrap">
               <Button
                 size="sm"
                 variant="outline"
@@ -631,6 +731,19 @@ export function SuratKeluarStepper({
                   dokumen sudah tersedia sebelum diajukan.
                 </p>
               ) : null}
+              {isSimpeg ? (
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    runAction(() => lanjutkanSimpegKePengarsipan({ id: row.id }))
+                  }
+                  disabled={isPending}
+                  className="w-full sm:w-auto"
+                >
+                  <Archive className="mr-1.5 h-3.5 w-3.5" />
+                  Lanjut ke Pengarsipan
+                </Button>
+              ) : (
                 <Button
                   size="sm"
                   onClick={() => runAction(() => ajukanPersetujuan({ id: row.id }))}
@@ -639,7 +752,8 @@ export function SuratKeluarStepper({
                 >
                   <Send className="mr-1.5 h-3.5 w-3.5" />
                   Ajukan Persetujuan
-              </Button>
+                </Button>
+              )}
               {isAdmin ? (
                 <Button
                   size="sm"
@@ -651,6 +765,7 @@ export function SuratKeluarStepper({
                   Tandai Tidak Berlaku
                 </Button>
               ) : null}
+            </div>
             </div>
           )}
 

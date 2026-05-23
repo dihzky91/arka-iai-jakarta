@@ -7,6 +7,12 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { checkNotificationPreference } from "./notificationPreferences";
 import { requireSession, requirePermission } from "./auth";
+import {
+  buildSuratKeluarReviewEmail,
+  buildSuratKeluarRevisiEmail,
+  buildSuratKeluarSelesaiEmail,
+  sendEmail,
+} from "@/lib/email";
 
 export interface NotificationInput {
   userId: string;
@@ -216,19 +222,42 @@ export async function notifySuratKeluarApproval(
   pejabatUserId: string,
   pengirimNama: string,
   perihal: string,
-  suratId: string
+  suratId: string,
+  prosesViaSimpeg = false,
+  tujuan?: string | null,
 ): Promise<void> {
   const pref = await checkNotificationPreference(pejabatUserId, "surat_keluar_approval");
-  if (!pref.inApp) return;
 
-  await createNotification({
-    userId: pejabatUserId,
-    type: "surat_keluar_approval",
-    title: "Persetujuan Surat Keluar",
-    message: `${pengirimNama} meminta persetujuan untuk surat: ${perihal}`,
-    entitasType: "surat_keluar",
-    entitasId: suratId,
-  });
+  if (pref.inApp) {
+    await createNotification({
+      userId: pejabatUserId,
+      type: "surat_keluar_approval",
+      title: "Persetujuan Surat Keluar",
+      message: `${pengirimNama} meminta persetujuan untuk surat: ${perihal}`,
+      entitasType: "surat_keluar",
+      entitasId: suratId,
+    });
+  }
+
+  if (pref.email && !prosesViaSimpeg) {
+    const [pejabat] = await db
+      .select({ email: users.email, namaLengkap: users.namaLengkap })
+      .from(users)
+      .where(eq(users.id, pejabatUserId))
+      .limit(1);
+
+    if (pejabat?.email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const email = buildSuratKeluarReviewEmail({
+        pejabatNama: pejabat.namaLengkap,
+        pengirimNama,
+        perihal,
+        tujuan,
+        reviewUrl: `${appUrl}/surat-keluar/review/${suratId}`,
+      });
+      void sendEmail({ to: pejabat.email, toName: pejabat.namaLengkap, ...email });
+    }
+  }
 }
 
 /** @internal */
@@ -240,16 +269,37 @@ export async function notifySuratKeluarRevisi(
   suratId: string
 ): Promise<void> {
   const pref = await checkNotificationPreference(creatorUserId, "surat_keluar_revisi");
-  if (!pref.inApp) return;
 
-  await createNotification({
-    userId: creatorUserId,
-    type: "surat_keluar_revisi",
-    title: "Revisi Surat Keluar Diperlukan",
-    message: `${pejabatNama} meminta revisi untuk "${perihal}". Catatan: ${catatan}`,
-    entitasType: "surat_keluar",
-    entitasId: suratId,
-  });
+  if (pref.inApp) {
+    await createNotification({
+      userId: creatorUserId,
+      type: "surat_keluar_revisi",
+      title: "Revisi Surat Keluar Diperlukan",
+      message: `${pejabatNama} meminta revisi untuk "${perihal}". Catatan: ${catatan}`,
+      entitasType: "surat_keluar",
+      entitasId: suratId,
+    });
+  }
+
+  if (pref.email) {
+    const [creator] = await db
+      .select({ email: users.email, namaLengkap: users.namaLengkap })
+      .from(users)
+      .where(eq(users.id, creatorUserId))
+      .limit(1);
+
+    if (creator?.email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const email = buildSuratKeluarRevisiEmail({
+        pembuatNama: creator.namaLengkap,
+        pejabatNama,
+        perihal,
+        catatan,
+        suratUrl: `${appUrl}/surat-keluar`,
+      });
+      void sendEmail({ to: creator.email, toName: creator.namaLengkap, ...email });
+    }
+  }
 }
 
 /** @internal */
@@ -260,16 +310,36 @@ export async function notifySuratKeluarSelesai(
   suratId: string
 ): Promise<void> {
   const pref = await checkNotificationPreference(creatorUserId, "surat_keluar_selesai");
-  if (!pref.inApp) return;
 
-  await createNotification({
-    userId: creatorUserId,
-    type: "surat_keluar_selesai",
-    title: "Surat Keluar Selesai",
-    message: `Surat "${perihal}" telah selesai${nomorSurat ? ` dengan nomor ${nomorSurat}` : ""}`,
-    entitasType: "surat_keluar",
-    entitasId: suratId,
-  });
+  if (pref.inApp) {
+    await createNotification({
+      userId: creatorUserId,
+      type: "surat_keluar_selesai",
+      title: "Surat Keluar Selesai",
+      message: `Surat "${perihal}" telah selesai${nomorSurat ? ` dengan nomor ${nomorSurat}` : ""}`,
+      entitasType: "surat_keluar",
+      entitasId: suratId,
+    });
+  }
+
+  if (pref.email) {
+    const [creator] = await db
+      .select({ email: users.email, namaLengkap: users.namaLengkap })
+      .from(users)
+      .where(eq(users.id, creatorUserId))
+      .limit(1);
+
+    if (creator?.email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const email = buildSuratKeluarSelesaiEmail({
+        pembuatNama: creator.namaLengkap,
+        perihal,
+        nomorSurat,
+        suratUrl: `${appUrl}/surat-keluar`,
+      });
+      void sendEmail({ to: creator.email, toName: creator.namaLengkap, ...email });
+    }
+  }
 }
 
 /** @internal */

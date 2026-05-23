@@ -52,6 +52,7 @@ export type SuratKeluarRow = {
   jenisSurat: string;
   isiSingkat: string | null;
   status: string | null;
+  prosesViaSimpeg: boolean;
   fileDraftUrl: string | null;
   fileFinalUrl: string | null;
   lampiranUrl: string | null;
@@ -77,6 +78,10 @@ export type DivisiOption = {
   id: number;
   nama: string;
   kode: string | null;
+};
+
+export type SuratKeluarReviewRow = SuratKeluarRow & {
+  pejabatUserId: string | null;
 };
 
 const idSchema = uuidIdSchema;
@@ -134,6 +139,7 @@ export async function listSuratKeluar(): Promise<SuratKeluarRow[]> {
       jenisSurat: suratKeluar.jenisSurat,
       isiSingkat: suratKeluar.isiSingkat,
       status: suratKeluar.status,
+      prosesViaSimpeg: suratKeluar.prosesViaSimpeg,
       fileDraftUrl: suratKeluar.fileDraftUrl,
       fileFinalUrl: suratKeluar.fileFinalUrl,
       lampiranUrl: suratKeluar.lampiranUrl,
@@ -183,6 +189,47 @@ export async function getSuratKeluarById(id: string) {
     .select()
     .from(suratKeluar)
     .where(eq(suratKeluar.id, id));
+  return row ?? null;
+}
+
+export async function getSuratKeluarReviewById(
+  id: string,
+): Promise<SuratKeluarReviewRow | null> {
+  await requirePermission("suratKeluar", "approve");
+  const [row] = await db
+    .select({
+      id: suratKeluar.id,
+      nomorSurat: suratKeluar.nomorSurat,
+      perihal: suratKeluar.perihal,
+      tujuan: suratKeluar.tujuan,
+      tujuanAlamat: suratKeluar.tujuanAlamat,
+      tanggalSurat: suratKeluar.tanggalSurat,
+      jenisSurat: suratKeluar.jenisSurat,
+      isiSingkat: suratKeluar.isiSingkat,
+      status: suratKeluar.status,
+      prosesViaSimpeg: suratKeluar.prosesViaSimpeg,
+      fileDraftUrl: suratKeluar.fileDraftUrl,
+      fileFinalUrl: suratKeluar.fileFinalUrl,
+      lampiranUrl: suratKeluar.lampiranUrl,
+      qrCodeUrl: suratKeluar.qrCodeUrl,
+      catatanReviu: suratKeluar.catatanReviu,
+      catatanReviuAt: suratKeluar.catatanReviuAt,
+      pejabatId: suratKeluar.pejabatId,
+      divisiId: suratKeluar.divisiId,
+      divisiNama: divisi.nama,
+      dibuatOleh: suratKeluar.dibuatOleh,
+      dibuatOlehNama: users.namaLengkap,
+      pejabatNama: pejabatPenandatangan.namaJabatan,
+      pejabatUserId: pejabatPenandatangan.userId,
+      createdAt: suratKeluar.createdAt,
+      updatedAt: suratKeluar.updatedAt,
+    })
+    .from(suratKeluar)
+    .leftJoin(divisi, eq(suratKeluar.divisiId, divisi.id))
+    .leftJoin(users, eq(suratKeluar.dibuatOleh, users.id))
+    .leftJoin(pejabatPenandatangan, eq(suratKeluar.pejabatId, pejabatPenandatangan.id))
+    .where(eq(suratKeluar.id, id));
+
   return row ?? null;
 }
 
@@ -494,8 +541,10 @@ export async function ajukanPersetujuan(data: { id: string }) {
     .select({
       status: suratKeluar.status,
       perihal: suratKeluar.perihal,
+      tujuan: suratKeluar.tujuan,
       dibuatOleh: suratKeluar.dibuatOleh,
       pejabatId: suratKeluar.pejabatId,
+      prosesViaSimpeg: suratKeluar.prosesViaSimpeg,
     })
     .from(suratKeluar)
     .where(eq(suratKeluar.id, id));
@@ -505,6 +554,13 @@ export async function ajukanPersetujuan(data: { id: string }) {
     return {
       ok: false as const,
       error: "Surat harus berstatus Draft untuk diajukan.",
+    };
+  }
+
+  if (existing.prosesViaSimpeg) {
+    return {
+      ok: false as const,
+      error: "Surat yang diproses di SIMPEG IAI tidak perlu diajukan untuk persetujuan di Arka.",
     };
   }
 
@@ -537,12 +593,62 @@ export async function ajukanPersetujuan(data: { id: string }) {
         pejabatUser.userId,
         pengirimNama,
         existing.perihal,
-        id
+        id,
+        existing.prosesViaSimpeg,
+        existing.tujuan,
       );
     }
   }
 
   revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
+  return { ok: true as const };
+}
+
+export async function lanjutkanSimpegKePengarsipan(data: { id: string }) {
+  const { id } = idSchema.parse(data);
+  const session = await requirePermission("suratKeluar", "update");
+
+  const [existing] = await db
+    .select({
+      status: suratKeluar.status,
+      prosesViaSimpeg: suratKeluar.prosesViaSimpeg,
+    })
+    .from(suratKeluar)
+    .where(eq(suratKeluar.id, id));
+
+  if (!existing) return { ok: false as const, error: "Surat tidak ditemukan." };
+  if (!existing.prosesViaSimpeg) {
+    return {
+      ok: false as const,
+      error: "Aksi ini hanya untuk surat yang diproses di SIMPEG IAI.",
+    };
+  }
+  if (existing.status !== "draft") {
+    return {
+      ok: false as const,
+      error: "Surat SIMPEG harus berstatus Draft untuk masuk pengarsipan.",
+    };
+  }
+
+  await db
+    .update(suratKeluar)
+    .set({
+      status: "pengarsipan",
+      updatedAt: new Date(),
+    })
+    .where(eq(suratKeluar.id, id));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "LANJUTKAN_SIMPEG_SURAT_KELUAR_KE_PENGARSIPAN",
+    entitasType: "surat_keluar",
+    entitasId: id,
+    detail: { prosesViaSimpeg: true },
+  });
+
+  revalidatePath("/surat-keluar");
+  revalidatePath(`/surat-keluar/review/${id}`);
   revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
@@ -578,6 +684,7 @@ export async function mulaiReviu(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidatePath(`/surat-keluar/review/${id}`);
   revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
@@ -586,7 +693,7 @@ export async function setujuiSurat(data: { id: string }) {
   const { id } = idSchema.parse(data);
   const session = await requirePermission("suratKeluar", "approve");
 
-  const guard = await ensureSuratStatus(id, ["reviu"]);
+  const guard = await ensureSuratStatus(id, ["permohonan_persetujuan", "reviu"]);
   if (!guard.ok) return guard;
 
   await db
@@ -608,6 +715,7 @@ export async function setujuiSurat(data: { id: string }) {
   });
 
   revalidatePath("/surat-keluar");
+  revalidatePath(`/surat-keluar/review/${id}`);
   revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
@@ -621,7 +729,10 @@ export async function tolakSurat(data: { id: string; catatanReviu: string }) {
     .parse(data);
   const session = await requirePermission("suratKeluar", "approve");
 
-  const guard = await ensureSuratStatus(parsed.id, ["reviu"]);
+  const guard = await ensureSuratStatus(parsed.id, [
+    "permohonan_persetujuan",
+    "reviu",
+  ]);
   if (!guard.ok) return guard;
 
   const [existing] = await db
@@ -873,10 +984,10 @@ export async function assignNomorSuratKeluar(data: { id: string }) {
     return { ok: false as const, error: "Nomor surat sudah digenerate." };
   }
 
-  if (surat.status !== "pengarsipan") {
+  if (surat.status === "selesai" || surat.status === "dibatalkan") {
     return {
       ok: false as const,
-      error: "Nomor surat hanya bisa digenerate saat status Pengarsipan.",
+      error: "Nomor surat tidak bisa digenerate untuk surat yang sudah selesai atau dibatalkan.",
     };
   }
 
@@ -923,7 +1034,12 @@ export async function setManualNomorSuratKeluar(data: unknown) {
   const session = await requirePermission("suratKeluar", "assign");
   const nomorSurat = parsed.nomorSurat.trim();
 
-  const guard = await ensureSuratStatus(parsed.id, ["pengarsipan"]);
+  const guard = await ensureSuratStatus(parsed.id, [
+    "draft",
+    "permohonan_persetujuan",
+    "reviu",
+    "pengarsipan",
+  ]);
   if (!guard.ok) return guard;
 
   const [duplicate] = await db
@@ -1040,7 +1156,7 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
   }
 
   const invalidRows = rows.filter(
-    (row) => row.nomorSurat || row.status !== "pengarsipan",
+    (row) => row.nomorSurat || row.status === "selesai" || row.status === "dibatalkan",
   );
   if (invalidRows.length > 0) {
     return {
@@ -1048,7 +1164,7 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
       error:
         invalidRows.length === 1
           ? `Surat "${invalidRows[0]?.perihal}" tidak valid untuk generate nomor massal.`
-          : `${invalidRows.length} surat tidak valid untuk generate nomor massal. Pastikan semua masih di status Pengarsipan dan belum punya nomor.`,
+          : `${invalidRows.length} surat tidak valid untuk generate nomor massal. Pastikan semua belum punya nomor dan belum berstatus selesai/dibatalkan.`,
     };
   }
 
