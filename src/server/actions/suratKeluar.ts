@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { desc, eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -22,6 +22,7 @@ import {
   sanitizeFileName,
 } from "@/lib/storage/utils";
 import { allocateNomorSurat } from "@/lib/nomor-surat";
+import { resolveNomorSuratParams } from "@/lib/nomor-surat-helpers";
 import {
   buildVerifikasiSuratPayload,
   generateQRDataURL,
@@ -40,7 +41,7 @@ import { uploadFileSchema, uuidIdSchema } from "@/lib/validators/common";
 import { parseIsoDateInJakarta } from "@/lib/utils";
 import { enforceUploadRateLimit } from "@/lib/rate-limit/upload-guard";
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SuratKeluarRow = {
   id: string;
@@ -53,6 +54,7 @@ export type SuratKeluarRow = {
   isiSingkat: string | null;
   status: string | null;
   prosesViaSimpeg: boolean;
+  catatSaja: boolean;
   fileDraftUrl: string | null;
   fileFinalUrl: string | null;
   lampiranUrl: string | null;
@@ -65,6 +67,12 @@ export type SuratKeluarRow = {
   dibuatOleh: string | null;
   dibuatOlehNama: string | null;
   pejabatNama: string | null;
+  tentang: string | null;
+  tanggalBerlaku: string | null;
+  tanggalBerakhir: string | null;
+  pihakKedua: string | null;
+  pihakKeduaAlamat: string | null;
+  nilaiKerjasama: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -124,7 +132,7 @@ async function ensureSuratStatus(
   return { ok: true as const, status };
 }
 
-// â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listSuratKeluar(): Promise<SuratKeluarRow[]> {
   await requireSession();
@@ -140,6 +148,7 @@ export async function listSuratKeluar(): Promise<SuratKeluarRow[]> {
       isiSingkat: suratKeluar.isiSingkat,
       status: suratKeluar.status,
       prosesViaSimpeg: suratKeluar.prosesViaSimpeg,
+      catatSaja: suratKeluar.catatSaja,
       fileDraftUrl: suratKeluar.fileDraftUrl,
       fileFinalUrl: suratKeluar.fileFinalUrl,
       lampiranUrl: suratKeluar.lampiranUrl,
@@ -152,6 +161,12 @@ export async function listSuratKeluar(): Promise<SuratKeluarRow[]> {
       dibuatOleh: suratKeluar.dibuatOleh,
       dibuatOlehNama: users.namaLengkap,
       pejabatNama: pejabatPenandatangan.namaJabatan,
+      tentang: suratKeluar.tentang,
+      tanggalBerlaku: suratKeluar.tanggalBerlaku,
+      tanggalBerakhir: suratKeluar.tanggalBerakhir,
+      pihakKedua: suratKeluar.pihakKedua,
+      pihakKeduaAlamat: suratKeluar.pihakKeduaAlamat,
+      nilaiKerjasama: suratKeluar.nilaiKerjasama,
       createdAt: suratKeluar.createdAt,
       updatedAt: suratKeluar.updatedAt,
     })
@@ -208,6 +223,7 @@ export async function getSuratKeluarReviewById(
       isiSingkat: suratKeluar.isiSingkat,
       status: suratKeluar.status,
       prosesViaSimpeg: suratKeluar.prosesViaSimpeg,
+      catatSaja: suratKeluar.catatSaja,
       fileDraftUrl: suratKeluar.fileDraftUrl,
       fileFinalUrl: suratKeluar.fileFinalUrl,
       lampiranUrl: suratKeluar.lampiranUrl,
@@ -221,6 +237,12 @@ export async function getSuratKeluarReviewById(
       dibuatOlehNama: users.namaLengkap,
       pejabatNama: pejabatPenandatangan.namaJabatan,
       pejabatUserId: pejabatPenandatangan.userId,
+      tentang: suratKeluar.tentang,
+      tanggalBerlaku: suratKeluar.tanggalBerlaku,
+      tanggalBerakhir: suratKeluar.tanggalBerakhir,
+      pihakKedua: suratKeluar.pihakKedua,
+      pihakKeduaAlamat: suratKeluar.pihakKeduaAlamat,
+      nilaiKerjasama: suratKeluar.nilaiKerjasama,
       createdAt: suratKeluar.createdAt,
       updatedAt: suratKeluar.updatedAt,
     })
@@ -233,7 +255,7 @@ export async function getSuratKeluarReviewById(
   return row ?? null;
 }
 
-// â”€â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Create ──────────────────────────────────────────────────────────────────
 
 export async function createSuratKeluar(data: unknown) {
   const parsed = suratKeluarCreateSchema.parse(data);
@@ -458,7 +480,7 @@ export async function stampQrToSuratKeluarPdf(data: unknown) {
   return { ok: true as const, data: uploaded };
 }
 
-// â”€â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Update ──────────────────────────────────────────────────────────────────
 
 export async function updateSuratKeluar(data: unknown) {
   const parsed = suratKeluarUpdateSchema.parse(data);
@@ -497,7 +519,7 @@ export async function updateSuratKeluar(data: unknown) {
   return { ok: true as const, data: row! };
 }
 
-// â”€â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Delete ──────────────────────────────────────────────────────────────────
 
 export async function deleteSuratKeluar(data: { id: string }) {
   const { id } = idSchema.parse(data);
@@ -531,7 +553,7 @@ export async function deleteSuratKeluar(data: { id: string }) {
   return { ok: true as const };
 }
 
-// â”€â”€â”€ Status Transitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Status Transitions ───────────────────────────────────────────────────────
 
 export async function ajukanPersetujuan(data: { id: string }) {
   const { id } = idSchema.parse(data);
@@ -649,6 +671,53 @@ export async function lanjutkanSimpegKePengarsipan(data: { id: string }) {
 
   revalidatePath("/surat-keluar");
   revalidatePath(`/surat-keluar/review/${id}`);
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
+  return { ok: true as const };
+}
+
+export async function selesaikanCatatSaja(data: { id: string }) {
+  const { id } = idSchema.parse(data);
+  const session = await requirePermission("suratKeluar", "update");
+
+  const [existing] = await db
+    .select({
+      status: suratKeluar.status,
+      catatSaja: suratKeluar.catatSaja,
+    })
+    .from(suratKeluar)
+    .where(eq(suratKeluar.id, id));
+
+  if (!existing) return { ok: false as const, error: "Surat tidak ditemukan." };
+  if (!existing.catatSaja) {
+    return {
+      ok: false as const,
+      error: "Aksi ini hanya untuk surat dengan mode Catat Saja.",
+    };
+  }
+  if (existing.status !== "draft") {
+    return {
+      ok: false as const,
+      error: "Surat harus berstatus Draft untuk diselesaikan langsung.",
+    };
+  }
+
+  await db
+    .update(suratKeluar)
+    .set({
+      status: "selesai",
+      updatedAt: new Date(),
+    })
+    .where(eq(suratKeluar.id, id));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "SELESAIKAN_CATAT_SAJA_SURAT_KELUAR",
+    entitasType: "surat_keluar",
+    entitasId: id,
+    detail: { catatSaja: true },
+  });
+
+  revalidatePath("/surat-keluar");
   revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const };
 }
@@ -901,10 +970,17 @@ export type SuratKeluarVerificationRow = {
   perihal: string;
   tujuan: string;
   tanggalSurat: string;
+  jenisSurat: string;
   status: string | null;
   qrCodeUrl: string | null;
   pejabatNama: string | null;
   fileFinalUrl: string | null;
+  tentang: string | null;
+  tanggalBerlaku: string | null;
+  tanggalBerakhir: string | null;
+  pihakKedua: string | null;
+  pihakKeduaAlamat: string | null;
+  nilaiKerjasama: string | null;
 };
 
 export async function getSuratKeluarVerificationById(
@@ -917,10 +993,17 @@ export async function getSuratKeluarVerificationById(
       perihal: suratKeluar.perihal,
       tujuan: suratKeluar.tujuan,
       tanggalSurat: suratKeluar.tanggalSurat,
+      jenisSurat: suratKeluar.jenisSurat,
       status: suratKeluar.status,
       qrCodeUrl: suratKeluar.qrCodeUrl,
       pejabatNama: pejabatPenandatangan.namaJabatan,
       fileFinalUrl: suratKeluar.fileFinalUrl,
+      tentang: suratKeluar.tentang,
+      tanggalBerlaku: suratKeluar.tanggalBerlaku,
+      tanggalBerakhir: suratKeluar.tanggalBerakhir,
+      pihakKedua: suratKeluar.pihakKedua,
+      pihakKeduaAlamat: suratKeluar.pihakKeduaAlamat,
+      nilaiKerjasama: suratKeluar.nilaiKerjasama,
     })
     .from(suratKeluar)
     .leftJoin(pejabatPenandatangan, eq(suratKeluar.pejabatId, pejabatPenandatangan.id))
@@ -960,7 +1043,7 @@ export async function batalkanSurat(data: { id: string }) {
   return { ok: true as const };
 }
 
-// â”€â”€â”€ Generate & Assign Nomor Surat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Generate & Assign Nomor Surat ───────────────────────────────────────────
 // Atomic: counter increment + nomorSurat assignment dalam satu DB transaction.
 
 export async function assignNomorSuratKeluar(data: { id: string }) {
@@ -994,12 +1077,14 @@ export async function assignNomorSuratKeluar(data: { id: string }) {
   const tanggal = parseIsoDateInJakarta(surat.tanggalSurat);
   const bulan = tanggal.getMonth() + 1;
   const tahun = tanggal.getFullYear();
-  const jenisSurat = surat.jenisSurat;
+
+  const { kodeJenis, prefixOrganisasi } = await resolveNomorSuratParams(surat.jenisSurat);
 
   const result = await allocateNomorSurat({
     tahun,
     bulan,
-    jenisSurat,
+    kodeJenis,
+    prefixOrganisasi,
   });
   const nomorSurat = result.nomorList[0];
 
@@ -1185,13 +1270,26 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
   const assigned = await db.transaction(async (tx) => {
     const results: Array<{ id: string; nomorSurat: string; perihal: string }> = [];
 
+    // Pre-resolve kodeJenis per unique jenisSurat in this batch
+    const jenisSuratSet = [...new Set(orderedRows.map((r) => r.jenisSurat))];
+    const kodeJenisMap = new Map<string, string>();
+    for (const js of jenisSuratSet) {
+      const { kodeJenis } = await resolveNomorSuratParams(js);
+      kodeJenisMap.set(js, kodeJenis);
+    }
+
+    // Resolve prefixOrganisasi once
+    const { prefixOrganisasi } = await resolveNomorSuratParams(jenisSuratSet[0]!);
+
     for (const row of orderedRows) {
       const tanggal = parseIsoDateInJakarta(row.tanggalSurat);
+      const kodeJenis = kodeJenisMap.get(row.jenisSurat)!;
       const result = await allocateNomorSurat(
         {
           tahun: tanggal.getFullYear(),
           bulan: tanggal.getMonth() + 1,
-          jenisSurat: row.jenisSurat,
+          kodeJenis,
+          prefixOrganisasi,
         },
         tx,
       );

@@ -52,6 +52,7 @@ import {
   stampQrToSuratKeluarPdf,
   uploadSuratKeluarFinal,
   lanjutkanSimpegKePengarsipan,
+  selesaikanCatatSaja,
 } from "@/server/actions/suratKeluar";
 import type { SuratKeluarRow } from "@/server/actions/suratKeluar";
 
@@ -178,12 +179,23 @@ export function SuratKeluarStepper({
   const [qrPlacement, setQrPlacement] = useState<
     "bottom-right" | "bottom-left" | "top-right" | "top-left"
   >("bottom-right");
+  const [localQrCodeUrl, setLocalQrCodeUrl] = useState(row.qrCodeUrl);
+  const [localFileFinalUrl, setLocalFileFinalUrl] = useState(row.fileFinalUrl);
+  const [localNomorSurat, setLocalNomorSurat] = useState(row.nomorSurat);
+
+  // Sync local state when row prop changes (e.g. after router.refresh())
+  useEffect(() => {
+    setLocalQrCodeUrl(row.qrCodeUrl);
+    setLocalFileFinalUrl(row.fileFinalUrl);
+    setLocalNomorSurat(row.nomorSurat);
+  }, [row.qrCodeUrl, row.fileFinalUrl, row.nomorSurat]);
 
   const status = row.status ?? "draft";
   const isAdmin = role === "admin";
   const isPejabat = role === "pejabat" || role === "admin";
   const currentStep = stepIndex(status);
   const isSimpeg = row.prosesViaSimpeg;
+  const isCatatSaja = row.catatSaja;
   const isCancelled = status === "dibatalkan";
   const verificationUrl = useMemo(() => {
     if (typeof window !== "undefined") {
@@ -194,15 +206,15 @@ export function SuratKeluarStepper({
   const archiveChecklist = [
     {
       label: "Nomor surat sudah dibuat",
-      done: Boolean(row.nomorSurat),
+      done: Boolean(localNomorSurat),
     },
     {
       label: "QR verifikasi sudah dibuat",
-      done: Boolean(row.qrCodeUrl),
+      done: Boolean(localQrCodeUrl),
     },
     {
       label: "Dokumen final sudah diunggah",
-      done: Boolean(row.fileFinalUrl),
+      done: Boolean(localFileFinalUrl),
     },
   ];
   const isArchiveChecklistComplete = archiveChecklist.every((item) => item.done);
@@ -311,6 +323,9 @@ export function SuratKeluarStepper({
         toast.success(
           "Nomor surat manual disimpan. QR verifikasi dan file final perlu diperbarui.",
         );
+        setLocalNomorSurat(manualNomorSurat.trim());
+        setLocalQrCodeUrl(null);
+        setLocalFileFinalUrl(null);
         setFinalFile(null);
         router.refresh();
       } catch (e) {
@@ -330,6 +345,7 @@ export function SuratKeluarStepper({
           return;
         }
 
+        setLocalQrCodeUrl(res.qrCodeUrl);
         toast.success("QR verifikasi surat berhasil dibuat.");
         router.refresh();
       } catch (e) {
@@ -360,6 +376,7 @@ export function SuratKeluarStepper({
         }
 
         toast.success("File final surat berhasil diunggah.");
+        setLocalFileFinalUrl(res.data?.url ?? "uploaded");
         setFinalFile(null);
         router.refresh();
       } catch (e) {
@@ -387,14 +404,14 @@ export function SuratKeluarStepper({
   }
 
   function handleDownloadQr() {
-    if (!row.qrCodeUrl) {
+    if (!localQrCodeUrl) {
       toast.error("QR verifikasi belum tersedia.");
       return;
     }
 
     const link = document.createElement("a");
-    const fileStem = (row.nomorSurat ?? row.id).replace(/[^a-zA-Z0-9-_]+/g, "-");
-    link.href = row.qrCodeUrl;
+    const fileStem = (localNomorSurat ?? row.id).replace(/[^a-zA-Z0-9-_]+/g, "-");
+    link.href = localQrCodeUrl;
     link.download = `qr-verifikasi-${fileStem}.png`;
     document.body.appendChild(link);
     link.click();
@@ -412,7 +429,7 @@ export function SuratKeluarStepper({
       return;
     }
 
-    if (!row.qrCodeUrl) {
+    if (!localQrCodeUrl) {
       toast.error("Generate QR verifikasi terlebih dahulu.");
       return;
     }
@@ -434,6 +451,7 @@ export function SuratKeluarStepper({
         }
 
         toast.success("QR berhasil dibubuhkan ke PDF dan file final diperbarui.");
+        setLocalFileFinalUrl(res.data?.url ?? "uploaded");
         setFinalFile(null);
         router.refresh();
       } catch (e) {
@@ -514,9 +532,9 @@ export function SuratKeluarStepper({
           </div>
           <div>
             <span className="text-muted-foreground">File Final</span>
-            {row.fileFinalUrl ? (
+            {localFileFinalUrl ? (
               <a
-                href={row.fileFinalUrl}
+                href={localFileFinalUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-primary underline underline-offset-2"
@@ -547,6 +565,48 @@ export function SuratKeluarStepper({
               </p>
             </div>
           ) : null}
+
+          {row.jenisSurat === "keputusan" && row.tentang ? (
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Tentang</span>
+              <p className="font-medium">{row.tentang}</p>
+            </div>
+          ) : null}
+
+          {(row.jenisSurat === "keputusan" || row.jenisSurat === "mou") && row.tanggalBerlaku ? (
+            <div>
+              <span className="text-muted-foreground">Tanggal Berlaku</span>
+              <p className="font-medium">{formatTanggal(row.tanggalBerlaku)}</p>
+            </div>
+          ) : null}
+
+          {(row.jenisSurat === "keputusan" || row.jenisSurat === "mou") && row.tanggalBerakhir ? (
+            <div>
+              <span className="text-muted-foreground">Tanggal Berakhir</span>
+              <p className="font-medium">{formatTanggal(row.tanggalBerakhir)}</p>
+            </div>
+          ) : null}
+
+          {row.jenisSurat === "mou" && row.pihakKedua ? (
+            <div>
+              <span className="text-muted-foreground">Pihak Kedua</span>
+              <p className="font-medium">{row.pihakKedua}</p>
+            </div>
+          ) : null}
+
+          {row.jenisSurat === "mou" && row.pihakKeduaAlamat ? (
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Alamat Pihak Kedua</span>
+              <p className="font-medium">{row.pihakKeduaAlamat}</p>
+            </div>
+          ) : null}
+
+          {row.jenisSurat === "mou" && row.nilaiKerjasama ? (
+            <div>
+              <span className="text-muted-foreground">Nilai Kerjasama</span>
+              <p className="font-medium">{row.nilaiKerjasama}</p>
+            </div>
+          ) : null}
         </div>
 
         {row.catatanReviu && status === "draft" ? (
@@ -567,6 +627,18 @@ export function SuratKeluarStepper({
               <p className="mt-0.5">
                 Tahap persetujuan dilakukan di SIMPEG. Arka tetap mencatat nomor
                 surat dan arsip digital.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {isCatatSaja ? (
+          <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">Mode Catat Saja</p>
+              <p className="mt-0.5">
+                Surat ini hanya dicatat nomornya tanpa proses lanjutan. Seperti pencatatan di logbook manual.
               </p>
             </div>
           </div>
@@ -731,7 +803,19 @@ export function SuratKeluarStepper({
                   dokumen sudah tersedia sebelum diajukan.
                 </p>
               ) : null}
-              {isSimpeg ? (
+              {isCatatSaja ? (
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    runAction(() => selesaikanCatatSaja({ id: row.id }))
+                  }
+                  disabled={isPending}
+                  className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                  Selesaikan Langsung
+                </Button>
+              ) : isSimpeg ? (
                 <Button
                   size="sm"
                   onClick={() =>
@@ -1027,9 +1111,9 @@ export function SuratKeluarStepper({
                           QR akan mengarah ke halaman verifikasi publik surat.
                         </p>
                       </div>
-                      {row.qrCodeUrl ? (
+                      {localQrCodeUrl ? (
                         <img
-                          src={row.qrCodeUrl}
+                          src={localQrCodeUrl}
                           alt="QR verifikasi surat"
                           className="h-20 w-20 rounded-md border bg-white p-1"
                         />
@@ -1049,7 +1133,7 @@ export function SuratKeluarStepper({
                         className="w-full sm:w-auto"
                       >
                         <QrCode className="mr-1.5 h-3.5 w-3.5" />
-                        {row.qrCodeUrl ? "Generate Ulang QR" : "Generate QR"}
+                        {localQrCodeUrl ? "Generate Ulang QR" : "Generate QR"}
                       </Button>
                       <Button
                         size="sm"
@@ -1073,7 +1157,7 @@ export function SuratKeluarStepper({
                         size="sm"
                         variant="outline"
                         onClick={() => setShowQrPreview(true)}
-                        disabled={!row.qrCodeUrl}
+                        disabled={!localQrCodeUrl}
                         className="w-full sm:w-auto"
                       >
                         <ScanQrCode className="mr-1.5 h-3.5 w-3.5" />
@@ -1083,7 +1167,7 @@ export function SuratKeluarStepper({
                         size="sm"
                         variant="outline"
                         onClick={handleDownloadQr}
-                        disabled={!row.qrCodeUrl}
+                        disabled={!localQrCodeUrl}
                         className="w-full sm:w-auto"
                       >
                         <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -1125,7 +1209,7 @@ export function SuratKeluarStepper({
                         size="sm"
                         variant="outline"
                         onClick={handleStampQrPdf}
-                        disabled={isPending || !finalFile || !isPdfFile(finalFile) || !row.qrCodeUrl}
+                        disabled={isPending || !finalFile || !isPdfFile(finalFile) || !localQrCodeUrl}
                         className="w-full sm:w-auto"
                       >
                         Tempel QR ke PDF & Upload
@@ -1308,9 +1392,9 @@ export function SuratKeluarStepper({
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-muted/20 p-4 sm:p-6">
-            {row.qrCodeUrl ? (
+            {localQrCodeUrl ? (
               <img
-                src={row.qrCodeUrl}
+                src={localQrCodeUrl}
                 alt="QR verifikasi surat"
                 className="h-auto w-full max-w-72 rounded-xl border bg-white p-3 shadow-sm"
               />
@@ -1324,7 +1408,7 @@ export function SuratKeluarStepper({
                 type="button"
                 variant="outline"
                 onClick={handleDownloadQr}
-                disabled={!row.qrCodeUrl}
+                disabled={!localQrCodeUrl}
                 className="w-full sm:w-auto"
               >
                 <Download className="mr-1.5 h-3.5 w-3.5" />

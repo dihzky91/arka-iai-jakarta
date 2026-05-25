@@ -70,6 +70,8 @@ export default async function VerificationSuratKeluarPage({
   }
 
   const verification = getVerificationStatus(surat.status, surat.qrCodeUrl);
+  const isKeputusan = surat.jenisSurat === "keputusan";
+  const isMou = surat.jenisSurat === "mou";
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] px-4 py-10 text-foreground sm:px-6 lg:px-8">
@@ -110,6 +112,24 @@ export default async function VerificationSuratKeluarPage({
             />
             <DetailRow label="Perihal" value={surat.perihal} />
             <DetailRow label="Ditujukan Kepada" value={surat.tujuan} />
+            {isKeputusan && surat.tentang ? (
+              <DetailRow label="Tentang" value={surat.tentang} />
+            ) : null}
+            {(isKeputusan || isMou) && surat.tanggalBerlaku ? (
+              <DetailRow label="Tanggal Berlaku" value={formatTanggal(surat.tanggalBerlaku)} />
+            ) : null}
+            {(isKeputusan || isMou) && surat.tanggalBerakhir ? (
+              <DetailRow label="Tanggal Berakhir" value={formatTanggal(surat.tanggalBerakhir)} />
+            ) : null}
+            {isMou && surat.pihakKedua ? (
+              <DetailRow label="Pihak Kedua" value={surat.pihakKedua} />
+            ) : null}
+            {isMou && surat.pihakKeduaAlamat ? (
+              <DetailRow label="Alamat Pihak Kedua" value={surat.pihakKeduaAlamat} />
+            ) : null}
+            {isMou && surat.nilaiKerjasama ? (
+              <DetailRow label="Nilai Kerjasama" value={surat.nilaiKerjasama} />
+            ) : null}
             <DetailRow label="Penandatangan" value={surat.pejabatNama ?? "-"} />
             <DetailRow
               label="Status Sistem"

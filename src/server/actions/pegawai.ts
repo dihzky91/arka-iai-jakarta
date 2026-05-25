@@ -21,8 +21,6 @@ import {
   suratKeluar,
   suratMasuk,
   disposisi,
-  suratKeputusan,
-  suratMou,
 } from "@/server/db/schema";
 import { auth, type AuthSession } from "@/server/auth";
 import { env } from "@/lib/env";
@@ -502,18 +500,18 @@ export async function deletePegawai(data: unknown) {
     .where(eq(suratKeluar.dibuatOleh, parsed.id));
   const suratKeluarCount = suratKeluarRows[0]?.count ?? 0;
 
-  // 4. Cek surat keputusan (sebagai pembuat)
+  // 4. Cek surat keputusan (sebagai pembuat, di surat_keluar)
   const suratKeputusanRows = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(suratKeputusan)
-    .where(eq(suratKeputusan.dibuatOleh, parsed.id));
+    .from(suratKeluar)
+    .where(and(eq(suratKeluar.dibuatOleh, parsed.id), eq(suratKeluar.jenisSurat, "keputusan")));
   const suratKeputusanCount = suratKeputusanRows[0]?.count ?? 0;
 
-  // 5. Cek surat MoU (sebagai pembuat)
+  // 5. Cek surat MoU (sebagai pembuat, di surat_keluar)
   const suratMouRows = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(suratMou)
-    .where(eq(suratMou.dibuatOleh, parsed.id));
+    .from(suratKeluar)
+    .where(and(eq(suratKeluar.dibuatOleh, parsed.id), eq(suratKeluar.jenisSurat, "mou")));
   const suratMouCount = suratMouRows[0]?.count ?? 0;
 
   if (activePejabat) {
@@ -532,10 +530,7 @@ export async function deletePegawai(data: unknown) {
     };
   }
 
-  const totalSurat =
-    Number(suratKeluarCount) +
-    Number(suratKeputusanCount) +
-    Number(suratMouCount);
+  const totalSurat = Number(suratKeluarCount);
   if (totalSurat > 0) {
     return {
       ok: false as const,

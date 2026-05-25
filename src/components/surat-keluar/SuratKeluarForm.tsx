@@ -75,10 +75,34 @@ const formSchema = z.object({
   jenisSurat: z.enum(JENIS_SURAT_VALUES as [string, ...string[]]),
   isiSingkat: z.string().optional(),
   prosesViaSimpeg: z.boolean().optional(),
+  catatSaja: z.boolean().optional(),
   lampiranUrl: optionalFileUrlSchema,
   fileDraftUrl: optionalFileUrlSchema,
   pejabatId: z.string().optional(),
   divisiId: z.string().optional(),
+  // SK/MOU conditional fields
+  tentang: z.string().optional(),
+  tanggalBerlaku: z.string().optional(),
+  tanggalBerakhir: z.string().optional(),
+  pihakKedua: z.string().optional(),
+  pihakKeduaAlamat: z.string().optional(),
+  nilaiKerjasama: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.jenisSurat === "keputusan" && !data.tentang?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Field 'Tentang' wajib diisi untuk Surat Keputusan.",
+      path: ["tentang"],
+    });
+  }
+
+  if (data.jenisSurat === "mou" && !data.pihakKedua?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Field 'Pihak Kedua' wajib diisi untuk Surat MOU.",
+      path: ["pihakKedua"],
+    });
+  }
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -121,12 +145,21 @@ export function SuratKeluarForm({
       jenisSurat: "undangan",
       isiSingkat: "",
       prosesViaSimpeg: false,
+      catatSaja: false,
       lampiranUrl: "",
       fileDraftUrl: "",
       pejabatId: "__none__",
       divisiId: "__none__",
+      tentang: "",
+      tanggalBerlaku: "",
+      tanggalBerakhir: "",
+      pihakKedua: "",
+      pihakKeduaAlamat: "",
+      nilaiKerjasama: "",
     },
   });
+
+  const watchJenisSurat = form.watch("jenisSurat");
 
   useEffect(() => {
     if (!open) return;
@@ -141,10 +174,17 @@ export function SuratKeluarForm({
         jenisSurat: initialData.jenisSurat,
         isiSingkat: initialData.isiSingkat ?? "",
         prosesViaSimpeg: initialData.prosesViaSimpeg,
+        catatSaja: initialData.catatSaja,
         lampiranUrl: initialData.lampiranUrl ?? "",
         fileDraftUrl: initialData.fileDraftUrl ?? "",
         pejabatId: initialData.pejabatId ? String(initialData.pejabatId) : "__none__",
         divisiId: initialData.divisiId ? String(initialData.divisiId) : "__none__",
+        tentang: initialData.tentang ?? "",
+        tanggalBerlaku: initialData.tanggalBerlaku ?? "",
+        tanggalBerakhir: initialData.tanggalBerakhir ?? "",
+        pihakKedua: initialData.pihakKedua ?? "",
+        pihakKeduaAlamat: initialData.pihakKeduaAlamat ?? "",
+        nilaiKerjasama: initialData.nilaiKerjasama ?? "",
       });
     } else {
       setSelectedFile(null);
@@ -157,10 +197,17 @@ export function SuratKeluarForm({
         jenisSurat: "undangan",
         isiSingkat: "",
         prosesViaSimpeg: false,
+      catatSaja: false,
         lampiranUrl: "",
         fileDraftUrl: "",
         pejabatId: "__none__",
         divisiId: "__none__",
+        tentang: "",
+        tanggalBerlaku: "",
+        tanggalBerakhir: "",
+        pihakKedua: "",
+        pihakKeduaAlamat: "",
+        nilaiKerjasama: "",
       });
     }
   }, [open, mode, initialData, form]);
@@ -214,8 +261,15 @@ export function SuratKeluarForm({
               ? parseInt(values.divisiId)
               : undefined,
           prosesViaSimpeg: Boolean(values.prosesViaSimpeg),
+          catatSaja: Boolean(values.catatSaja),
           tujuanAlamat: values.tujuanAlamat || undefined,
           isiSingkat: values.isiSingkat || undefined,
+          tentang: values.tentang || undefined,
+          tanggalBerlaku: values.tanggalBerlaku || undefined,
+          tanggalBerakhir: values.tanggalBerakhir || undefined,
+          pihakKedua: values.pihakKedua || undefined,
+          pihakKeduaAlamat: values.pihakKeduaAlamat || undefined,
+          nilaiKerjasama: values.nilaiKerjasama || undefined,
           lampiranUrl: uploadedLampiranUrl,
           fileDraftUrl: uploadedDraftUrl,
         };
@@ -368,6 +422,118 @@ export function SuratKeluarForm({
               />
             </div>
 
+            {/* Conditional SK/MOU fields */}
+            {watchJenisSurat === "keputusan" && (
+              <FormField
+                control={form.control}
+                name="tentang"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tentang</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Tentang Surat Keputusan ini..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {(watchJenisSurat === "keputusan" || watchJenisSurat === "mou") && (
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="tanggalBerlaku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Tanggal Berlaku{" "}
+                        <span className="text-muted-foreground font-normal">(opsional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="tanggalBerakhir"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Tanggal Berakhir{" "}
+                        <span className="text-muted-foreground font-normal">(opsional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {watchJenisSurat === "mou" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="pihakKedua"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pihak Kedua</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nama pihak kedua MOU" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="pihakKeduaAlamat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Alamat Pihak Kedua{" "}
+                        <span className="text-muted-foreground font-normal">(opsional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Alamat pihak kedua..."
+                          rows={2}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nilaiKerjasama"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Nilai Kerjasama{" "}
+                        <span className="text-muted-foreground font-normal">(opsional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="mis. Rp 50.000.000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+
             {/* Isi Singkat */}
             <FormField
               control={form.control}
@@ -401,6 +567,27 @@ export function SuratKeluarForm({
                     <FormLabel>Diproses di SIMPEG IAI</FormLabel>
                     <p className="text-xs text-muted-foreground">
                       Aktifkan jika review dan pengiriman resmi dilakukan di SIMPEG pusat.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={Boolean(field.value)}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="catatSaja"
+              render={({ field }) => (
+                <FormItem className="flex items-start justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+                  <div className="space-y-1">
+                    <FormLabel>Catat Saja</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Aktifkan jika surat hanya perlu dicatat nomornya tanpa proses lanjutan (seperti logbook manual).
                     </p>
                   </div>
                   <FormControl>

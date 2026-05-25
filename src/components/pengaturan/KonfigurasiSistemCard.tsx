@@ -36,6 +36,9 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
   const [emailProvider, setEmailProvider] = useState<"mailjet" | "brevo">(
     initial.emailProvider,
   );
+  const [prefixOrganisasi, setPrefixOrganisasi] = useState(
+    initial.prefixOrganisasi ?? "IAI-DKIJKT",
+  );
 
   const mailjetReady = Boolean(
     env.MAILJET_API_KEY && env.MAILJET_API_SECRET && env.MAILJET_FROM_EMAIL && env.MAILJET_FROM_NAME,
@@ -54,6 +57,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
         emailProvider,
         financeContactName: financeContactName.trim() || null,
         financeWhatsappNumber: financeWhatsappNumber.trim() || null,
+        prefixOrganisasi,
       });
       if (result.ok) {
         toast.success("Konfigurasi sistem berhasil disimpan.");
@@ -141,6 +145,23 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                   />
                 </div>
               </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label htmlFor="prefixOrganisasi">Prefix Organisasi Surat</Label>
+              <Input
+                id="prefixOrganisasi"
+                value={prefixOrganisasi}
+                onChange={(e) => setPrefixOrganisasi(e.target.value)}
+                placeholder="Mis. IAI-DKIJKT"
+                maxLength={80}
+              />
+              <p className="text-xs text-muted-foreground">
+                Prefix organisasi yang muncul di format nomor surat. Contoh format:
+                1/U/{prefixOrganisasi || "IAI-DKIJKT"}/I/2025
+              </p>
             </div>
 
             <Separator />

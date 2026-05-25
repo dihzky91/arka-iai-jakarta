@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Files, Hash, Pencil, RotateCw } from "lucide-react";
+import { Copy, Files, Hash, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,26 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   generateBulkNomorSurat,
   generateNomorSurat,
   type NomorSuratCounterRow,
-  updateNomorSuratCounterPrefix,
 } from "@/server/actions/nomor";
+import {
+  listKodeJenisSurat,
+  createKodeJenisSurat,
+  updateKodeJenisSurat,
+  deleteKodeJenisSurat,
+  type KodeJenisSuratRow,
+} from "@/server/actions/kodeJenisSurat";
 import { jenisSuratValues } from "@/lib/jenis-surat";
 import {
   formatBulanRomawi,
@@ -59,50 +74,54 @@ function currentYearValue() {
 
 export function NomorSuratManager({
   initialData,
+  initialKodeJenis,
   role,
 }: {
   initialData: NomorSuratCounterRow[];
+  initialKodeJenis: KodeJenisSuratRow[];
   role: string | null;
 }) {
   const [jenisSurat, setJenisSurat] = useState<string>("undangan");
   const [bulan, setBulan] = useState(currentMonthValue());
   const [tahun, setTahun] = useState(currentYearValue());
   const [jumlahBulk, setJumlahBulk] = useState("10");
-  const [prefixOverride, setPrefixOverride] = useState("");
   const [query, setQuery] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingPrefix, setEditingPrefix] = useState("");
   const [lastGenerated, setLastGenerated] = useState<{
     nomor: string;
-    prefix: string;
+    kodeJenis: string;
+    prefixOrganisasi: string;
     counter: number;
   } | null>(null);
   const [lastBulkGenerated, setLastBulkGenerated] = useState<{
     nomorList: string[];
-    prefix: string;
+    kodeJenis: string;
+    prefixOrganisasi: string;
     startCounter: number;
     endCounter: number;
   } | null>(null);
+
+  // Kode Jenis CRUD state
+  const [kodeJenisList, setKodeJenisList] = useState(initialKodeJenis);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingKode, setEditingKode] = useState<KodeJenisSuratRow | null>(null);
+  const [formJenisSurat, setFormJenisSurat] = useState("");
+  const [formKode, setFormKode] = useState("");
+  const [formKeterangan, setFormKeterangan] = useState("");
+
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isBulkPending, startBulkTransition] = useTransition();
-  const [isSavePending, startSaveTransition] = useTransition();
+  const [isKodePending, startKodeTransition] = useTransition();
 
   const canGenerate = role === "admin" || role === "pejabat";
-  const canManagePrefix = role === "admin";
+  const canManageKode = role === "admin";
 
   const filteredData = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return initialData;
 
     return initialData.filter((row) =>
-      [
-        row.tahun,
-        row.bulan,
-        row.jenisSurat,
-        row.prefix ?? "",
-        JENIS_SURAT_LABEL[row.jenisSurat] ?? row.jenisSurat,
-      ]
+      [row.tahun, row.bulan, formatBulanRomawi(row.bulan)]
         .join(" ")
         .toLowerCase()
         .includes(keyword),
@@ -111,6 +130,10 @@ export function NomorSuratManager({
 
   const totalCounter = initialData.reduce((sum, row) => sum + row.counter, 0);
 
+  // Available jenis surat that don't have a kode yet
+  const usedJenisSurat = new Set(kodeJenisList.map((k) => k.jenisSurat));
+  const availableJenisSurat = jenisSuratValues.filter((j) => !usedJenisSurat.has(j));
+
   function handleGenerate() {
     startTransition(async () => {
       try {
@@ -118,12 +141,12 @@ export function NomorSuratManager({
           jenisSurat,
           bulan: Number(bulan),
           tahun: Number(tahun),
-          prefixOverride: prefixOverride || undefined,
         });
 
         setLastGenerated({
           nomor: result.nomor,
-          prefix: result.prefix,
+          kodeJenis: result.kodeJenis,
+          prefixOrganisasi: result.prefixOrganisasi,
           counter: result.counter,
         });
         setLastBulkGenerated(null);
@@ -145,17 +168,18 @@ export function NomorSuratManager({
           bulan: Number(bulan),
           tahun: Number(tahun),
           jumlah: Number(jumlahBulk),
-          prefixOverride: prefixOverride || undefined,
         });
 
         setLastGenerated({
           nomor: result.nomorList[result.nomorList.length - 1]!,
-          prefix: result.prefix,
+          kodeJenis: result.kodeJenis,
+          prefixOrganisasi: result.prefixOrganisasi,
           counter: result.endCounter,
         });
         setLastBulkGenerated({
           nomorList: result.nomorList,
-          prefix: result.prefix,
+          kodeJenis: result.kodeJenis,
+          prefixOrganisasi: result.prefixOrganisasi,
           startCounter: result.startCounter,
           endCounter: result.endCounter,
         });
@@ -168,30 +192,6 @@ export function NomorSuratManager({
             : "Gagal menggenerate bulk nomor surat.",
         );
       }
-    });
-  }
-
-  function handleEditPrefix(row: NomorSuratCounterRow) {
-    setEditingId(row.id);
-    setEditingPrefix(row.prefix ?? "");
-  }
-
-  function handleSavePrefix(id: number) {
-    startSaveTransition(async () => {
-      const result = await updateNomorSuratCounterPrefix({
-        id,
-        prefix: editingPrefix,
-      });
-
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-
-      toast.success("Prefix nomor surat diperbarui.");
-      setEditingId(null);
-      setEditingPrefix("");
-      router.refresh();
     });
   }
 
@@ -215,13 +215,89 @@ export function NomorSuratManager({
     }
   }
 
+  // ─── Kode Jenis CRUD handlers ────────────────────────────────────────────
+
+  function openCreateDialog() {
+    setEditingKode(null);
+    setFormJenisSurat(availableJenisSurat[0] ?? "");
+    setFormKode("");
+    setFormKeterangan("");
+    setDialogOpen(true);
+  }
+
+  function openEditDialog(row: KodeJenisSuratRow) {
+    setEditingKode(row);
+    setFormJenisSurat(row.jenisSurat);
+    setFormKode(row.kode);
+    setFormKeterangan(row.keterangan ?? "");
+    setDialogOpen(true);
+  }
+
+  function handleSaveKode() {
+    startKodeTransition(async () => {
+      try {
+        if (editingKode) {
+          const result = await updateKodeJenisSurat({
+            id: editingKode.id,
+            kode: formKode,
+            keterangan: formKeterangan,
+          });
+          if (!result.ok) {
+            toast.error(result.error);
+            return;
+          }
+          toast.success("Kode jenis surat diperbarui.");
+        } else {
+          const result = await createKodeJenisSurat({
+            jenisSurat: formJenisSurat,
+            kode: formKode,
+            keterangan: formKeterangan,
+          });
+          if (!result.ok) {
+            toast.error(result.error);
+            return;
+          }
+          toast.success("Kode jenis surat ditambahkan.");
+        }
+        setDialogOpen(false);
+        const updated = await listKodeJenisSurat();
+        setKodeJenisList(updated);
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal menyimpan kode jenis surat.",
+        );
+      }
+    });
+  }
+
+  function handleDeleteKode(row: KodeJenisSuratRow) {
+    startKodeTransition(async () => {
+      try {
+        const result = await deleteKodeJenisSurat({ id: row.id });
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success(`Kode untuk "${JENIS_SURAT_LABEL[row.jenisSurat] ?? row.jenisSurat}" dihapus.`);
+        const updated = await listKodeJenisSurat();
+        setKodeJenisList(updated);
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Gagal menghapus kode jenis surat.",
+        );
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3">
         <SummaryCard
           label="Periode Tercatat"
           value={String(initialData.length)}
-          hint="Counter per jenis surat dan periode"
+          hint="Counter per bulan (unified)"
         />
         <SummaryCard
           label="Nomor Terbit"
@@ -229,9 +305,9 @@ export function NomorSuratManager({
           hint="Akumulasi counter yang sudah tergenerate"
         />
         <SummaryCard
-          label="Prefix Aktif"
-          value={String(new Set(initialData.map((item) => item.prefix ?? "-")).size)}
-          hint="Variasi prefix yang tersimpan di riwayat"
+          label="Kode Jenis Aktif"
+          value={String(kodeJenisList.length)}
+          hint="Jenis surat yang sudah punya kode"
         />
       </section>
 
@@ -259,15 +335,6 @@ export function NomorSuratManager({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Prefix Override</label>
-                <Input
-                  value={prefixOverride}
-                  onChange={(event) => setPrefixOverride(event.target.value)}
-                  placeholder="Mis. DE/IAI-DKIJKT"
-                />
               </div>
 
               <div className="space-y-2">
@@ -340,7 +407,8 @@ export function NomorSuratManager({
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Badge variant="outline">Counter: {lastGenerated.counter}</Badge>
-                  <Badge variant="outline">Prefix: {lastGenerated.prefix}</Badge>
+                  <Badge variant="outline">Kode: {lastGenerated.kodeJenis}</Badge>
+                  <Badge variant="outline">Prefix: {lastGenerated.prefixOrganisasi}</Badge>
                 </div>
                 <div className="mt-4">
                   <Button
@@ -371,7 +439,10 @@ export function NomorSuratManager({
                         Total: {lastBulkGenerated.nomorList.length}
                       </Badge>
                       <Badge variant="outline">
-                        Prefix: {lastBulkGenerated.prefix}
+                        Kode: {lastBulkGenerated.kodeJenis}
+                      </Badge>
+                      <Badge variant="outline">
+                        Prefix: {lastBulkGenerated.prefixOrganisasi}
                       </Badge>
                     </div>
                   </div>
@@ -390,99 +461,199 @@ export function NomorSuratManager({
           </CardContent>
         </Card>
 
-        <Card className="rounded-[24px]">
-          <CardHeader className="border-b border-border">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <CardTitle>Riwayat Counter</CardTitle>
-                <CardDescription>
-                  Pantau prefix, counter, dan periode yang sudah pernah dipakai.
-                </CardDescription>
+        <div className="space-y-6">
+          {/* Kode Jenis Surat CRUD */}
+          <Card className="rounded-[24px]">
+            <CardHeader className="border-b border-border">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <CardTitle>Kode Jenis Surat</CardTitle>
+                  <CardDescription>
+                    Mapping jenis surat ke kode singkat yang muncul di nomor surat.
+                  </CardDescription>
+                </div>
+                {canManageKode ? (
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" onClick={openCreateDialog}>
+                        <Plus className="h-4 w-4" />
+                        Tambah Kode
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingKode ? "Edit Kode Jenis Surat" : "Tambah Kode Jenis Surat"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          {editingKode
+                            ? "Ubah kode singkat untuk jenis surat ini."
+                            : "Pilih jenis surat dan tentukan kode singkatnya."}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Jenis Surat</label>
+                          {editingKode ? (
+                            <Input
+                              value={JENIS_SURAT_LABEL[editingKode.jenisSurat] ?? editingKode.jenisSurat}
+                              disabled
+                            />
+                          ) : (
+                            <Select value={formJenisSurat} onValueChange={setFormJenisSurat}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableJenisSurat.map((value) => (
+                                  <SelectItem key={value} value={value}>
+                                    {JENIS_SURAT_LABEL[value] ?? value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Kode</label>
+                          <Input
+                            value={formKode}
+                            onChange={(e) => setFormKode(e.target.value)}
+                            placeholder="Mis. U, K, INV"
+                            maxLength={20}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Keterangan{" "}
+                            <span className="text-xs font-normal text-muted-foreground">(opsional)</span>
+                          </label>
+                          <Input
+                            value={formKeterangan}
+                            onChange={(e) => setFormKeterangan(e.target.value)}
+                            placeholder="Mis. Undangan"
+                            maxLength={200}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setDialogOpen(false)}
+                        >
+                          Batal
+                        </Button>
+                        <Button
+                          onClick={handleSaveKode}
+                          disabled={isKodePending || !formKode.trim()}
+                        >
+                          {isKodePending ? "Menyimpan..." : "Simpan"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                ) : null}
               </div>
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari jenis surat, bulan, tahun, atau prefix..."
-                className="max-w-sm"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-6 md:grid-cols-2">
-            {filteredData.length ? (
-              filteredData.map((row) => (
-                <Card key={row.id} className="rounded-[24px] border border-border shadow-none">
-                  <CardContent className="space-y-4 p-5">
-                    <div className="flex items-start justify-between gap-3">
+            </CardHeader>
+            <CardContent className="p-6">
+              {kodeJenisList.length ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {kodeJenisList.map((row) => (
+                    <div
+                      key={row.id}
+                      className="flex items-center justify-between rounded-2xl border border-border bg-muted/25 px-4 py-3"
+                    >
                       <div>
-                        <p className="font-medium text-foreground">
+                        <p className="font-mono text-sm font-semibold text-foreground">
+                          {row.kode}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
                           {JENIS_SURAT_LABEL[row.jenisSurat] ?? row.jenisSurat}
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {formatBulanRomawi(row.bulan)} {row.tahun}
-                        </p>
                       </div>
-                      <Badge variant={row.counter > 0 ? "secondary" : "outline"}>
-                        Counter {row.counter}
-                      </Badge>
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-muted/25 px-4 py-3">
-                      <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                        Prefix
-                      </p>
-                      {editingId === row.id ? (
-                        <div className="mt-2 flex gap-2">
-                          <Input
-                            value={editingPrefix}
-                            onChange={(event) => setEditingPrefix(event.target.value)}
-                            disabled={!canManagePrefix || isSavePending}
-                          />
+                      {canManageKode ? (
+                        <div className="flex gap-1">
                           <Button
                             type="button"
                             size="sm"
-                            onClick={() => handleSavePrefix(row.id)}
-                            disabled={!canManagePrefix || isSavePending || !editingPrefix.trim()}
+                            variant="ghost"
+                            onClick={() => openEditDialog(row)}
                           >
-                            <RotateCw className="h-4 w-4" />
-                            Simpan
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteKode(row)}
+                            disabled={isKodePending}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
-                      ) : (
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                          <p className="font-mono text-sm text-foreground">
-                            {row.prefix ?? "IAI-DKIJKT"}
-                          </p>
-                          {canManagePrefix ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditPrefix(row)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Ubah
-                            </Button>
-                          ) : null}
-                        </div>
-                      )}
+                      ) : null}
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center text-sm text-muted-foreground">
+                  Belum ada kode jenis surat yang dikonfigurasi. Tambahkan terlebih dahulu.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                    <div className="text-sm text-muted-foreground">
-                      Format berikutnya akan mengikuti pola:
-                      <p className="mt-2 font-mono text-foreground">
-                        {row.counter + 1}/{row.prefix ?? "IAI-DKIJKT"}/{formatBulanRomawi(row.bulan)}/{row.tahun}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="md:col-span-2 rounded-3xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center text-sm text-muted-foreground">
-                Belum ada riwayat counter yang cocok dengan pencarian.
+          {/* Riwayat Counter */}
+          <Card className="rounded-[24px]">
+            <CardHeader className="border-b border-border">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <CardTitle>Riwayat Counter</CardTitle>
+                  <CardDescription>
+                    Pantau counter dan periode yang sudah pernah dipakai.
+                  </CardDescription>
+                </div>
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Cari bulan, tahun..."
+                  className="max-w-sm"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-6 md:grid-cols-2">
+              {filteredData.length ? (
+                filteredData.map((row) => (
+                  <Card key={row.id} className="rounded-[24px] border border-border shadow-none">
+                    <CardContent className="space-y-4 p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {formatBulanRomawi(row.bulan)} {row.tahun}
+                          </p>
+                        </div>
+                        <Badge variant={row.counter > 0 ? "secondary" : "outline"}>
+                          Counter {row.counter}
+                        </Badge>
+                      </div>
+
+                      <div className="text-sm text-muted-foreground">
+                        Format berikutnya akan mengikuti pola:
+                        <p className="mt-2 font-mono text-foreground">
+                          {row.counter + 1}/&lt;kode&gt;/&lt;prefix&gt;/{formatBulanRomawi(row.bulan)}/{row.tahun}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="md:col-span-2 rounded-3xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center text-sm text-muted-foreground">
+                  Belum ada riwayat counter yang cocok dengan pencarian.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </section>
     </div>
   );

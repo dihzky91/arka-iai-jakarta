@@ -291,7 +291,7 @@ export default function KuesionerPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {filterTipe !== "all"
                   ? "Tidak ada template dengan tipe evaluasi yang dipilih."
-                  : "Klik &quot;Buat Template&quot; untuk memulai."}
+                  : 'Klik "Buat Template" untuk memulai.'}
               </p>
             </div>
           ) : (

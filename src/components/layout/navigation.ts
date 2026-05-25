@@ -502,24 +502,8 @@ export const navigationSections: NavigationSection[] = [
   {
     title: "Administrasi",
     icon: Settings,
-    collapsedHref: "/surat-keputusan",
+    collapsedHref: "/nomor-surat",
     items: [
-      {
-        href: "/surat-keputusan",
-        label: "Surat Keputusan",
-        icon: FileText,
-        active: true,
-        allowedRoles: ["admin", "pejabat"],
-        requiredCapability: "surat_keputusan:view",
-      },
-      {
-        href: "/surat-mou",
-        label: "Surat MOU",
-        icon: FileSignature,
-        active: true,
-        allowedRoles: ["admin", "pejabat"],
-        requiredCapability: "surat_mou:view",
-      },
       {
         href: "/nomor-surat",
         label: "Nomor Surat",

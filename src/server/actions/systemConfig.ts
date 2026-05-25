@@ -22,6 +22,7 @@ const configSchema = z.object({
   emailProvider: z.enum(["mailjet", "brevo"]),
   financeContactName: z.string().trim().max(200).optional().nullable(),
   financeWhatsappNumber: z.string().trim().max(30).optional().nullable(),
+  prefixOrganisasi: z.string().trim().min(1, "Prefix organisasi wajib diisi.").max(80),
 });
 
 export async function updateSystemConfig(input: unknown) {
@@ -43,6 +44,7 @@ export async function updateSystemConfig(input: unknown) {
     emailProvider: parsed.data.emailProvider,
     financeContactName,
     financeWhatsappNumber,
+    prefixOrganisasi: parsed.data.prefixOrganisasi,
   };
 
   const existing = await db

@@ -38,12 +38,15 @@ export function buildVCard(input: {
 }
 
 // Payload QR verifikasi surat — kompak, bisa di-scan dan diarahkan ke URL verifikasi.
+// Semua jenis surat (termasuk SK/MOU) menggunakan verifikasi surat-keluar.
 export function buildVerifikasiSuratPayload(input: {
   appUrl: string;
-  jenis: "surat-keluar" | "surat-keputusan" | "surat-mou";
+  jenis?: "surat-keluar" | "surat-keputusan" | "surat-mou";
   id: string;
   nomor?: string | null;
 }): string {
   const base = input.appUrl.replace(/\/$/, "");
-  return `${base}/verifikasi/${input.jenis}/${input.id}`;
+  // Unified: semua verifikasi mengarah ke surat-keluar
+  const unifiedJenis = "surat-keluar";
+  return `${base}/verifikasi/${unifiedJenis}/${input.id}`;
 }

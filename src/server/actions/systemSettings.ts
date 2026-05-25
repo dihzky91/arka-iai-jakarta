@@ -27,6 +27,7 @@ export type SystemSettingsRow = {
   notificationEmailEnabled: boolean;
   whatsappBotEnabled: boolean;
   emailProvider: "mailjet" | "brevo";
+  prefixOrganisasi: string;
   updatedAt: Date | null;
 };
 
@@ -42,6 +43,7 @@ const FALLBACK: SystemSettingsRow = {
   notificationEmailEnabled: true,
   whatsappBotEnabled: false,
   emailProvider: "mailjet",
+  prefixOrganisasi: "IAI-DKIJKT",
   updatedAt: null,
 };
 
@@ -124,6 +126,7 @@ const cachedSystemSettingsInternal = unstable_cache(
           notificationEmailEnabled: systemSettings.notificationEmailEnabled,
           whatsappBotEnabled: systemSettings.whatsappBotEnabled,
           emailProvider: systemSettings.emailProvider,
+          prefixOrganisasi: systemSettings.prefixOrganisasi,
           updatedAt: systemSettings.updatedAt,
         })
         .from(systemSettings)

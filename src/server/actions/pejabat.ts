@@ -1,6 +1,6 @@
 ﻿"use server";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -8,8 +8,6 @@ import {
   auditLog,
   pejabatPenandatangan,
   suratKeluar,
-  suratKeputusan,
-  suratMou,
   users,
 } from "@/server/db/schema";
 import {
@@ -133,14 +131,14 @@ export async function deletePejabat(data: unknown) {
     .where(eq(suratKeluar.pejabatId, parsed.id))
     .limit(1);
   const [usedInSk] = await db
-    .select({ id: suratKeputusan.id })
-    .from(suratKeputusan)
-    .where(eq(suratKeputusan.pejabatId, parsed.id))
+    .select({ id: suratKeluar.id })
+    .from(suratKeluar)
+    .where(and(eq(suratKeluar.pejabatId, parsed.id), eq(suratKeluar.jenisSurat, "keputusan")))
     .limit(1);
   const [usedInMou] = await db
-    .select({ id: suratMou.id })
-    .from(suratMou)
-    .where(eq(suratMou.pejabatId, parsed.id))
+    .select({ id: suratKeluar.id })
+    .from(suratKeluar)
+    .where(and(eq(suratKeluar.pejabatId, parsed.id), eq(suratKeluar.jenisSurat, "mou")))
     .limit(1);
 
   if (usedInSuratKeluar || usedInSk || usedInMou) {

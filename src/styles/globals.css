@@ -146,6 +146,10 @@
 }
 
 @layer base {
+  html {
+    font-size: 14.4px;
+  }
+
   :root {
     color-scheme: light;
   }

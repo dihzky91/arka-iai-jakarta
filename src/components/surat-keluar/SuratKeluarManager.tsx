@@ -66,6 +66,7 @@ interface SuratKeluarManagerProps {
   pejabatList: PejabatOption[];
   divisiList: DivisiOption[];
   role: string | null;
+  defaultJenisFilter?: string;
 }
 
 type FormState =
@@ -140,6 +141,7 @@ export function SuratKeluarManager({
   pejabatList,
   divisiList,
   role,
+  defaultJenisFilter,
 }: SuratKeluarManagerProps) {
   const router = useRouter();
   const [formState, setFormState] = useState<FormState>({ open: false });
@@ -148,6 +150,15 @@ export function SuratKeluarManager({
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
   const [isBulkAssigning, startBulkAssignTransition] = useTransition();
+  const [jenisFilter, setJenisFilter] = useState<string | null>(
+    defaultJenisFilter === "keputusan" || defaultJenisFilter === "mou"
+      ? defaultJenisFilter
+      : null,
+  );
+  const filteredData = useMemo(
+    () => (jenisFilter ? initialData.filter((row) => row.jenisSurat === jenisFilter) : initialData),
+    [initialData, jenisFilter],
+  );
 
   const canCreate = role === "admin" || role === "pejabat" || role === "staff";
   const canDelete = role === "admin";
@@ -430,6 +441,12 @@ export function SuratKeluarManager({
         lampiran: row.lampiranUrl ?? "",
         qr_verifikasi: row.qrCodeUrl ?? "",
         catatan_reviu: row.catatanReviu ?? "",
+        tentang: row.tentang ?? "",
+        tanggal_berlaku: row.tanggalBerlaku ?? "",
+        tanggal_berakhir: row.tanggalBerakhir ?? "",
+        pihak_kedua: row.pihakKedua ?? "",
+        pihak_kedua_alamat: row.pihakKeduaAlamat ?? "",
+        nilai_kerjasama: row.nilaiKerjasama ?? "",
       })),
       "arsip-surat-keluar.csv",
     );
@@ -499,9 +516,35 @@ export function SuratKeluarManager({
           </div>
         </CardHeader>
         <CardContent className="pt-6">
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button
+              variant={jenisFilter === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setJenisFilter(null)}
+              className="rounded-full"
+            >
+              Semua
+            </Button>
+            <Button
+              variant={jenisFilter === "keputusan" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setJenisFilter("keputusan")}
+              className="rounded-full"
+            >
+              SK
+            </Button>
+            <Button
+              variant={jenisFilter === "mou" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setJenisFilter("mou")}
+              className="rounded-full"
+            >
+              MOU
+            </Button>
+          </div>
           <DataTable
             columns={columns}
-            data={initialData}
+            data={filteredData}
             searchColumnId="perihal"
             searchPlaceholder="Cari perihal surat..."
             emptyMessage="Belum ada surat keluar. Klik 'Buat Surat Keluar' untuk memulai."

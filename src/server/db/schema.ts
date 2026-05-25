@@ -422,8 +422,20 @@ export const pejabatPenandatangan = pgTable("pejabat_penandatangan", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── KODE JENIS SURAT ─────────────────────────────────────────────────────────
+// Master data: mapping jenis_surat (enum) → kode singkat (DE, K, P, dll)
+// Admin bisa CRUD; perubahan hanya berlaku untuk nomor surat baru.
+
+export const kodeJenisSurat = pgTable("kode_jenis_surat", {
+  id: serial("id").primaryKey(),
+  jenisSurat: jenisSuratEnum("jenis_surat").notNull().unique(),
+  kode: varchar("kode", { length: 20 }).notNull(),
+  keterangan: varchar("keterangan", { length: 200 }),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ─── NOMOR SURAT COUNTER ─────────────────────────────────────────────────────
-// UNIQUE constraint (tahun, bulan, jenis_surat) — atomic increment via transaction
+// UNIQUE constraint (tahun, bulan) — unified counter per bulan, atomic increment
 
 export const nomorSuratCounter = pgTable(
   "nomor_surat_counter",
@@ -431,16 +443,13 @@ export const nomorSuratCounter = pgTable(
     id: serial("id").primaryKey(),
     tahun: integer("tahun").notNull(),
     bulan: integer("bulan").notNull(),
-    jenisSurat: jenisSuratEnum("jenis_surat").notNull(),
     counter: integer("counter").default(0).notNull(),
-    prefix: varchar("prefix", { length: 80 }),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (t) => ({
     uniqPeriod: uniqueIndex("nomor_surat_counter_period_uniq").on(
       t.tahun,
       t.bulan,
-      t.jenisSurat,
     ),
   }),
 );
@@ -459,6 +468,7 @@ export const suratKeluar = pgTable("surat_keluar", {
   isiSingkat: text("isi_singkat"),
   status: statusSuratKeluarEnum("status").default("draft"),
   prosesViaSimpeg: boolean("proses_via_simpeg").default(false).notNull(),
+  catatSaja: boolean("catat_saja").default(false).notNull(),
   fileDraftUrl: text("file_draft_url"),
   fileFinalUrl: text("file_final_url"),
   lampiranUrl: text("lampiran_url"),
@@ -470,6 +480,13 @@ export const suratKeluar = pgTable("surat_keluar", {
   tanggalDisetujui: timestamp("tanggal_disetujui"),
   catatanReviu: text("catatan_reviu"),
   catatanReviuAt: timestamp("catatan_reviu_at"),
+  // SK/MOU fields (merged from separate tables)
+  tentang: text("tentang"),
+  tanggalBerlaku: date("tanggal_berlaku"),
+  tanggalBerakhir: date("tanggal_berakhir"),
+  pihakKedua: varchar("pihak_kedua", { length: 200 }),
+  pihakKeduaAlamat: text("pihak_kedua_alamat"),
+  nilaiKerjasama: text("nilai_kerjasama"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -519,46 +536,6 @@ export const disposisi = pgTable("disposisi", {
   parentDisposisiId: text("parent_disposisi_id"),
 });
 
-// ─── SURAT KEPUTUSAN ─────────────────────────────────────────────────────────
-
-export const suratKeputusan = pgTable("surat_keputusan", {
-  id: text("id").primaryKey(),
-  nomorSK: varchar("nomor_sk", { length: 200 }).unique().notNull(),
-  perihal: text("perihal").notNull(),
-  tentang: text("tentang").notNull(),
-  // BACKDATE: input manual bebas
-  tanggalSK: date("tanggal_sk").notNull(),
-  tanggalBerlaku: date("tanggal_berlaku"),
-  tanggalBerakhir: date("tanggal_berakhir"),
-  pejabatId: integer("pejabat_id").references(() => pejabatPenandatangan.id),
-  fileUrl: text("file_url"),
-  qrCodeUrl: text("qr_code_url"),
-  dibuatOleh: text("dibuat_oleh").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// ─── SURAT MOU ───────────────────────────────────────────────────────────────
-
-export const suratMou = pgTable("surat_mou", {
-  id: text("id").primaryKey(),
-  nomorMOU: varchar("nomor_mou", { length: 200 }).unique().notNull(),
-  perihal: text("perihal").notNull(),
-  pihakKedua: varchar("pihak_kedua", { length: 200 }).notNull(),
-  pihakKeduaAlamat: text("pihak_kedua_alamat"),
-  // BACKDATE: input manual bebas
-  tanggalMOU: date("tanggal_mou").notNull(),
-  tanggalBerlaku: date("tanggal_berlaku"),
-  tanggalBerakhir: date("tanggal_berakhir"),
-  nilaiKerjasama: text("nilai_kerjasama"),
-  fileUrl: text("file_url"),
-  qrCodeUrl: text("qr_code_url"),
-  pejabatId: integer("pejabat_id").references(() => pejabatPenandatangan.id),
-  dibuatOleh: text("dibuat_oleh").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 // ─── AUDIT LOG ───────────────────────────────────────────────────────────────
 
 export const auditLog = pgTable("audit_log", {
@@ -598,6 +575,9 @@ export const systemSettings = pgTable("system_settings", {
     .default(false)
     .notNull(),
   emailProvider: emailProviderEnum("email_provider").default("mailjet").notNull(),
+  prefixOrganisasi: varchar("prefix_organisasi", { length: 80 })
+    .notNull()
+    .default("IAI-DKIJKT"),
   updatedAt: timestamp("updated_at").defaultNow(),
   updatedBy: text("updated_by").references(() => users.id),
 });
@@ -1455,7 +1435,7 @@ export const userInvitations = pgTable(
 );
 
 // ─── INVOICE ─────────────────────────────────────────────────────────────────
-// Nomor invoice = nomor surat (dialokasikan via allocateNomorSurat, jenisSurat="invoice")
+// Nomor invoice = nomor surat (dialokasikan via allocateNomorSurat, kodeJenis dari kode_jenis_surat)
 
 export const statusInvoiceEnum = pgEnum("status_invoice", [
   "draft",
@@ -1566,9 +1546,9 @@ export type SuratMasuk = typeof suratMasuk.$inferSelect;
 export type NewSuratMasuk = typeof suratMasuk.$inferInsert;
 export type Disposisi = typeof disposisi.$inferSelect;
 export type NewDisposisi = typeof disposisi.$inferInsert;
-export type SuratKeputusan = typeof suratKeputusan.$inferSelect;
-export type SuratMou = typeof suratMou.$inferSelect;
 export type NomorSuratCounter = typeof nomorSuratCounter.$inferSelect;
+export type KodeJenisSurat = typeof kodeJenisSurat.$inferSelect;
+export type NewKodeJenisSurat = typeof kodeJenisSurat.$inferInsert;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type SystemSettings = typeof systemSettings.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;

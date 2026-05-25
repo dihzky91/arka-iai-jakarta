@@ -12,12 +12,17 @@ export const metadata: Metadata = {
   title: "Arsip Surat Keluar | ARKA",
 };
 
-export default async function Page() {
-  const [session, data, pejabatList, divisiList] = await Promise.all([
+type PageProps = {
+  searchParams: Promise<{ jenis?: string }>;
+};
+
+export default async function Page({ searchParams }: PageProps) {
+  const [session, data, pejabatList, divisiList, sp] = await Promise.all([
     getSession(),
     listSuratKeluar(),
     listPejabatAktif(),
     listDivisiOptions(),
+    searchParams,
   ]);
 
   const role = (session?.user as { role?: string } | undefined)?.role ?? null;
@@ -32,6 +37,7 @@ export default async function Page() {
         pejabatList={pejabatList}
         divisiList={divisiList}
         role={role}
+        defaultJenisFilter={sp.jenis}
       />
     </PageWrapper>
   );

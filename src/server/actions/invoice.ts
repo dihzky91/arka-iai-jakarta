@@ -8,6 +8,7 @@ import { invoices, auditLog } from "@/server/db/schema";
 import { writeAuditLog } from "@/server/lib/audit";
 import { requirePermission, requireSession } from "@/server/actions/auth";
 import { allocateNomorSurat } from "@/lib/nomor-surat";
+import { resolveNomorSuratParams } from "@/lib/nomor-surat-helpers";
 import { parseIsoDateInJakarta } from "@/lib/utils";
 
 // ─── SCHEMAS ─────────────────────────────────────────────────────────────────
@@ -229,10 +230,13 @@ export async function assignNomorInvoice(data: { id: string }) {
   const bulan = tanggal.getMonth() + 1;
   const tahun = tanggal.getFullYear();
 
+  const { kodeJenis, prefixOrganisasi } = await resolveNomorSuratParams("invoice");
+
   const result = await allocateNomorSurat({
     tahun,
     bulan,
-    jenisSurat: "invoice",
+    kodeJenis,
+    prefixOrganisasi,
   });
   const nomorSurat = result.nomorList[0];
 

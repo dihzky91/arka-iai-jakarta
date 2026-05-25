@@ -3,15 +3,17 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { NomorSuratManager } from "@/components/nomor-surat/NomorSuratManager";
 import { getSession } from "@/server/actions/auth";
 import { listNomorSuratCounters } from "@/server/actions/nomor";
+import { listKodeJenisSurat } from "@/server/actions/kodeJenisSurat";
 
 export const metadata: Metadata = {
   title: "Nomor Surat | ARKA",
 };
 
 export default async function Page() {
-  const [session, data] = await Promise.all([
+  const [session, data, kodeJenisData] = await Promise.all([
     getSession(),
     listNomorSuratCounters(),
+    listKodeJenisSurat(),
   ]);
   const role = (session?.user as { role?: string } | undefined)?.role ?? null;
 
@@ -20,7 +22,11 @@ export default async function Page() {
       title="Nomor Surat"
       description="Manajemen counter nomor surat."
     >
-      <NomorSuratManager initialData={data} role={role} />
+      <NomorSuratManager
+        initialData={data}
+        initialKodeJenis={kodeJenisData}
+        role={role}
+      />
     </PageWrapper>
   );
 }
