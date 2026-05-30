@@ -251,7 +251,7 @@ export function TemplateEditor({ template, layouts, variables }: Props) {
         {/* Left: Editor */}
         <div className="space-y-3 min-w-0">
           {/* Subject + Layout */}
-          <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="rounded-xl border border-border/60 bg-card shadow-sm p-4 space-y-3">
             <SubjectEditor
               value={subject}
               onChange={setSubject}

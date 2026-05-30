@@ -56,12 +56,12 @@ export function SortableBlock({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative rounded-lg border bg-background transition-shadow ${
-        isDragging ? "shadow-lg ring-2 ring-primary/20" : "hover:shadow-sm"
+      className={`group relative rounded-xl border border-border/60 bg-card shadow-sm transition-shadow ${
+        isDragging ? "shadow-lg ring-2 ring-primary/20" : "hover:shadow-md"
       }`}
     >
       {/* Block Header: Drag Handle + Type + Actions */}
-      <div className="flex items-center gap-1.5 border-b px-2 py-1.5">
+      <div className="flex items-center gap-1.5 border-b border-border/60 px-2 py-1.5">
         <button
           {...attributes}
           {...listeners}

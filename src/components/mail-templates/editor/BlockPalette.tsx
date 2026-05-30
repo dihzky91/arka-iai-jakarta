@@ -40,7 +40,7 @@ const BLOCK_OPTIONS: Array<{
 
 export function BlockPalette({ onAddBlock }: Props) {
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm p-3">
       <p className="text-xs font-medium text-muted-foreground mb-2">
         + Tambah Block
       </p>

@@ -220,7 +220,7 @@ function StatCard({
   color?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm p-3">
       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
         {label}
       </p>

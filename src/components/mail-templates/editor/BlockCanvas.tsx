@@ -78,7 +78,7 @@ export function BlockCanvas({ blocks, onBlocksChange, variables }: Props) {
   );
 
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm p-3">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

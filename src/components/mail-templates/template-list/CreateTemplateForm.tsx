@@ -108,7 +108,7 @@ export function CreateTemplateForm({ layouts }: Props) {
       onSubmit={handleSubmit(onSubmit)}
       className="mx-auto max-w-2xl space-y-6"
     >
-      <div className="rounded-lg border bg-card p-6 space-y-5">
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm p-6 space-y-5">
         {/* Template Key */}
         <div className="space-y-2">
           <Label htmlFor="templateKey">Template Key</Label>

@@ -26,7 +26,7 @@ export function VariablePanel({ variables }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm p-3 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium">Variabel</p>
         <span className="text-[10px] text-muted-foreground">

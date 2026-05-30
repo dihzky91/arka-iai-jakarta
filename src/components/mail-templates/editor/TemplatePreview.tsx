@@ -66,7 +66,7 @@ export function TemplatePreview({ blocks, subject, mode, category, customSampleD
 
       {/* HTML Preview */}
       <div
-        className="rounded-lg border overflow-hidden"
+        className="rounded-xl border border-border/60 shadow-sm overflow-hidden"
         style={{
           maxWidth: mode === "mobile" ? "320px" : "100%",
           margin: mode === "mobile" ? "0 auto" : undefined,

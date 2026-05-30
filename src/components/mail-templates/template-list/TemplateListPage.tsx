@@ -201,7 +201,7 @@ function TemplateCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="group flex items-start justify-between rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50">
+    <div className="group flex items-start justify-between rounded-xl border border-border/60 bg-card shadow-sm p-4 transition-colors hover:bg-accent/50">
       <Link
         href={`/pengaturan/mail-templates/${template.id}`}
         className="flex-1 min-w-0"

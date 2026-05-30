@@ -76,7 +76,7 @@ export function LayoutListPage({ initialLayouts }: Props) {
         {layouts.map((layout) => (
           <div
             key={layout.id}
-            className="rounded-lg border bg-card p-4"
+            className="rounded-xl border border-border/60 bg-card shadow-sm p-4"
           >
             <div className="flex items-start justify-between">
               <div>

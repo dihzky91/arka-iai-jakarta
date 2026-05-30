@@ -32,7 +32,7 @@ export function SampleDataEditor({
   }
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="rounded-xl border border-border/60 bg-card shadow-sm">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium hover:bg-accent/50 transition-colors"
