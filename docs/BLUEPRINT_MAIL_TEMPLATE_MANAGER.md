@@ -1148,104 +1148,104 @@ export const testSendSchema = z.object({
 
 ### Phase 1: Foundation
 
-- [ ] Drizzle schema (`emailTemplates`, `emailLayouts`, `emailTemplateVersions`, `emailSendLogs`)
-- [ ] Enum `email_template_category`, `email_send_status`
-- [ ] Migration files generated & pushed
-- [ ] Type definitions (`TemplateBlock`, `VariableDefinition`, etc.)
-- [ ] Variable registry (`src/lib/email/template-engine/variable-registry.ts`)
-- [ ] Block → HTML compiler (`src/lib/email/template-engine/compiler.ts`)
-- [ ] Block → Text compiler (`src/lib/email/template-engine/text-compiler.ts`)
-- [ ] Variable resolver (`src/lib/email/template-engine/variable-resolver.ts`)
-- [ ] Layout wrapper (`src/lib/email/template-engine/layout-wrapper.ts`)
-- [ ] `sendTemplatedEmail()` function dengan fallback logic
-- [ ] Seed script: 16 default templates + 3 layouts
-- [ ] RBAC capabilities: `mail_template:view`, `mail_template:manage`, `mail_template:logs`
+- [x] Drizzle schema (`emailTemplates`, `emailLayouts`, `emailTemplateVersions`, `emailSendLogs`)
+- [x] Enum `email_template_category`, `email_send_status`
+- [x] Migration files generated & pushed
+- [x] Type definitions (`TemplateBlock`, `VariableDefinition`, etc.)
+- [x] Variable registry (`src/lib/email/template-engine/variable-registry.ts`)
+- [x] Block → HTML compiler (`src/lib/email/template-engine/compiler.ts`)
+- [x] Block → Text compiler (`src/lib/email/template-engine/text-compiler.ts`)
+- [x] Variable resolver (`src/lib/email/template-engine/variable-resolver.ts`)
+- [x] Layout wrapper (`src/lib/email/template-engine/layout-wrapper.ts`)
+- [x] `sendTemplatedEmail()` function dengan fallback logic
+- [x] Seed script: 16 default templates + 3 layouts
+- [x] RBAC capabilities: `mail_template:view`, `mail_template:manage`, `mail_template:logs`
 
 ### Phase 2: Admin UI — Template CRUD
 
-- [ ] Template list page (`/pengaturan/mail-templates`)
-- [ ] Category filter tabs
-- [ ] Search functionality
-- [ ] Create template form (`/pengaturan/mail-templates/create`)
-- [ ] Template card component (nama, key, kategori, status, version)
-- [ ] Duplicate template action
-- [ ] Delete template (soft: deactivate for system, hard delete for custom)
-- [ ] Toggle active/inactive
+- [x] Template list page (`/pengaturan/mail-templates`)
+- [x] Category filter tabs
+- [x] Search functionality
+- [x] Create template form (`/pengaturan/mail-templates/create`)
+- [x] Template card component (nama, key, kategori, status, version)
+- [x] Duplicate template action
+- [x] Delete template (soft: deactivate for system, hard delete for custom)
+- [x] Toggle active/inactive
 
 ### Phase 3: Block Editor
 
-- [ ] Editor layout (split pane: editor | preview)
-- [ ] Block canvas with dnd-kit sortable
-- [ ] Block palette (add block dropdown)
-- [ ] Individual block editors:
-  - [ ] ParagraphBlock (textarea + variable autocomplete)
-  - [ ] HeadingBlock (level selector + content)
-  - [ ] ButtonBlock (label + URL + color picker)
-  - [ ] DividerBlock (style selector)
-  - [ ] SpacerBlock (height slider)
-  - [ ] ImageBlock (URL + alt + width)
-  - [ ] AlertBlock (variant + content)
-  - [ ] TableBlock (dynamic rows/cols editor)
-  - [ ] ListBlock (dynamic items)
-  - [ ] ColumnsBlock (nested blocks)
-  - [ ] SignatureBlock (auto, no config)
-- [ ] Block toolbar (move up/down, duplicate, delete)
-- [ ] Subject editor with variable autocomplete
-- [ ] Variable autocomplete popup (`{{` trigger)
-- [ ] Save action (compile + version + persist)
+- [x] Editor layout (split pane: editor | preview)
+- [x] Block canvas with dnd-kit sortable
+- [x] Block palette (add block dropdown)
+- [x] Individual block editors:
+  - [x] ParagraphBlock (textarea + variable autocomplete)
+  - [x] HeadingBlock (level selector + content)
+  - [x] ButtonBlock (label + URL + color picker)
+  - [x] DividerBlock (style selector)
+  - [x] SpacerBlock (height slider)
+  - [x] ImageBlock (URL + alt + width)
+  - [x] AlertBlock (variant + content)
+  - [x] TableBlock (dynamic rows/cols editor)
+  - [x] ListBlock (dynamic items)
+  - [x] ColumnsBlock (nested blocks)
+  - [x] SignatureBlock (auto, no config)
+- [x] Block toolbar (move up/down, duplicate, delete)
+- [x] Subject editor with variable autocomplete
+- [x] Variable autocomplete popup (`{{` trigger)
+- [x] Save action (compile + version + persist)
 
 ### Phase 4: Preview & Test
 
-- [ ] Live preview panel (iframe-based)
-- [ ] Desktop/Mobile toggle
-- [ ] Sample data auto-generation per kategori
-- [ ] Custom sample data editor
-- [ ] Test send dialog (email input + variable override)
-- [ ] Test send server action (rate-limited)
+- [x] Live preview panel (iframe-based)
+- [x] Desktop/Mobile toggle
+- [x] Sample data auto-generation per kategori
+- [x] Custom sample data editor
+- [x] Test send dialog (email input + variable override)
+- [x] Test send server action (rate-limited)
 
 ### Phase 5: Version History
 
-- [ ] Version list page (`/pengaturan/mail-templates/[id]/versions`)
-- [ ] Version preview (rendered HTML)
-- [ ] Rollback action (create new version from old snapshot)
-- [ ] Change note per version
+- [x] Version list page (`/pengaturan/mail-templates/[id]/versions`)
+- [x] Version preview (rendered HTML)
+- [x] Rollback action (create new version from old snapshot)
+- [x] Change note per version
 
 ### Phase 6: Layout Manager
 
-- [ ] Layout list page (`/pengaturan/mail-templates/layouts`)
-- [ ] Layout editor (header/footer HTML + CSS)
-- [ ] Set default layout
-- [ ] Preview layout with sample content
+- [x] Layout list page (`/pengaturan/mail-templates/layouts`)
+- [x] Layout editor (header/footer HTML + CSS)
+- [x] Set default layout
+- [x] Preview layout with sample content
 
 ### Phase 7: Send Logs
 
-- [ ] Send log list page (`/pengaturan/mail-templates/logs`)
-- [ ] Filter by template, status, date range
-- [ ] Summary statistics (total, success rate, top templates)
-- [ ] Log detail view (variables, error message)
-- [ ] Retry failed email action
-- [ ] Auto-prune cron integration
+- [x] Send log list page (`/pengaturan/mail-templates/logs`)
+- [x] Filter by template, status, date range
+- [x] Summary statistics (total, success rate, top templates)
+- [x] Log detail view (variables, error message)
+- [x] Retry failed email action
+- [x] Auto-prune cron integration
 
 ### Phase 8: Integration Refactor
 
-- [ ] Migrate `buildInviteEmail` → `sendTemplatedEmail("auth_invite")`
-- [ ] Migrate `buildResetPasswordEmail` → `sendTemplatedEmail("auth_reset_password")`
-- [ ] Migrate `buildSuratKeluarReviewEmail` → `sendTemplatedEmail("surat_keluar_review")`
-- [ ] Migrate `buildSuratKeluarRevisiEmail` → `sendTemplatedEmail("surat_keluar_revisi")`
-- [ ] Migrate `buildSuratKeluarSelesaiEmail` → `sendTemplatedEmail("surat_keluar_selesai")`
-- [ ] Migrate `buildDisposisiEmail` → `sendTemplatedEmail("disposisi_baru")`
-- [ ] Add new template calls for jadwal, honorarium, sertifikat, PPL
-- [ ] Navigation sidebar entry
-- [ ] Verify all notification preferences still respected
+- [x] Migrate `buildInviteEmail` → `sendTemplatedEmail("auth_invite")`
+- [x] Migrate `buildResetPasswordEmail` → `sendTemplatedEmail("auth_reset_password")`
+- [x] Migrate `buildSuratKeluarReviewEmail` → `sendTemplatedEmail("surat_keluar_review")`
+- [x] Migrate `buildSuratKeluarRevisiEmail` → `sendTemplatedEmail("surat_keluar_revisi")`
+- [x] Migrate `buildSuratKeluarSelesaiEmail` → `sendTemplatedEmail("surat_keluar_selesai")`
+- [x] Migrate `buildDisposisiEmail` → `sendTemplatedEmail("disposisi_baru")`
+- [x] Add new template calls for jadwal, honorarium, sertifikat, PPL
+- [x] Navigation sidebar entry
+- [x] Verify all notification preferences still respected
 
 ### Phase 9: Polish
 
-- [ ] Import/Export template as JSON
-- [ ] Keyboard shortcuts di editor (Ctrl+S save, Ctrl+P preview)
-- [ ] Empty states & loading skeletons
-- [ ] Error boundaries
-- [ ] Mobile-responsive admin UI
-- [ ] Documentation/help tooltips di editor
+- [x] Import/Export template as JSON
+- [x] Keyboard shortcuts di editor (Ctrl+S save, Ctrl+P preview)
+- [x] Empty states & loading skeletons
+- [x] Error boundaries
+- [x] Mobile-responsive admin UI
+- [x] Documentation/help tooltips di editor
 
 ---
 

@@ -529,6 +529,14 @@ export const navigationSections: NavigationSection[] = [
         requiredCapability: "pengaturan:view",
       },
       {
+        href: "/pengaturan/mail-templates",
+        label: "Mail Templates",
+        icon: Mail,
+        active: true,
+        allowedRoles: ["admin"],
+        requiredCapability: "mail_template:view",
+      },
+      {
         href: "/audit-log",
         label: "Audit Log",
         icon: ShieldCheck,

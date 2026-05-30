@@ -13,7 +13,7 @@ import {
   disposisiUpdateStatusSchema,
 } from "@/lib/validators/disposisi.schema";
 import { requirePermission, requireSession } from "./auth";
-import { sendEmail, buildDisposisiEmail } from "@/lib/email";
+import { sendTemplatedEmail } from "@/lib/email/template-engine";
 import { markSuratMasukDiproses } from "./suratMasuk";
 import { notifyDisposisiBaru, notifyDisposisiDeadline } from "./notifications";
 import { syncDisposisiDeadline } from "./calendar";
@@ -194,15 +194,18 @@ export async function createDisposisi(data: unknown) {
 
   if (penerima && surat) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-    const email = buildDisposisiEmail({
-      penerimaNama: penerima.namaLengkap,
-      pengirimNama: pengirim?.namaLengkap ?? "Pengirim",
-      perihalSurat: surat.perihal,
-      instruksi: parsed.instruksi ?? null,
-      batasWaktu: parsed.batasWaktu ?? null,
-      inboxUrl: `${appUrl}/disposisi`,
+    void sendTemplatedEmail("disposisi_baru", {
+      to: penerima.email,
+      toName: penerima.namaLengkap,
+      variables: {
+        "recipient.nama": penerima.namaLengkap,
+        "disposisi.dari": pengirim?.namaLengkap ?? "Pengirim",
+        "surat.perihal": surat.perihal,
+        "disposisi.instruksi": parsed.instruksi ?? "",
+        "disposisi.batas_waktu": parsed.batasWaktu ?? "",
+        "disposisi.url": `${appUrl}/disposisi`,
+      },
     });
-    void sendEmail({ to: penerima.email, toName: penerima.namaLengkap, ...email });
   }
 
   await writeAuditLog({

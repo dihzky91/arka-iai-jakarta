@@ -107,6 +107,9 @@ export const CAPABILITIES = [
   "ppl_evaluasi:view",
   "ppl_evaluasi:manage",
   "ppl_evaluasi:export",
+  "mail_template:view",
+  "mail_template:manage",
+  "mail_template:logs",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
@@ -266,6 +269,9 @@ export const CAPABILITY_GROUPS: Array<{
       "pengaturan:manage",
       "audit_log:view",
       "audit_log:manage",
+      "mail_template:view",
+      "mail_template:manage",
+      "mail_template:logs",
     ],
   },
 ];
@@ -379,6 +385,9 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "ppl_evaluasi:view": "Lihat kegiatan PPL & evaluasi",
   "ppl_evaluasi:manage": "Kelola kegiatan PPL, narasumber & kuesioner",
   "ppl_evaluasi:export": "Export data evaluasi & program tahunan",
+  "mail_template:view": "Lihat mail template & logs",
+  "mail_template:manage": "Kelola mail template & layout",
+  "mail_template:logs": "Akses send logs email",
 };
 
 export const DEFAULT_ROLE_CAPABILITIES: Record<

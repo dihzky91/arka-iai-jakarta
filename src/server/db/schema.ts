@@ -809,7 +809,6 @@ export const projects = pgTable(
     description: text("description"),
     startDate: date("start_date"),
     endDate: date("end_date"),
-    price: numeric("price", { precision: 15, scale: 2 }),
     priceMember: numeric("price_member", { precision: 15, scale: 2 }),
     priceNonMember: numeric("price_non_member", { precision: 15, scale: 2 }),
     tipePelaksanaan: tipePelaksanaanEnum("tipe_pelaksanaan"),
@@ -3098,3 +3097,122 @@ export const peopleLink = pgTable("people_link", {
 
 export type PeopleLink = typeof peopleLink.$inferSelect;
 export type NewPeopleLink = typeof peopleLink.$inferInsert;
+
+// ─── EMAIL TEMPLATE MANAGER ─────────────────────────────────────────────────
+
+export const emailTemplateCategoryEnum = pgEnum("email_template_category", [
+  "persuratan",
+  "akademik",
+  "keuangan",
+  "auth",
+  "sistem",
+  "ppl",
+  "custom",
+]);
+
+export const emailLayouts = pgTable("email_layouts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  headerHtml: text("header_html"),
+  footerHtml: text("footer_html"),
+  cssInline: text("css_inline"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const emailTemplates = pgTable(
+  "email_templates",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    templateKey: varchar("template_key", { length: 100 }).notNull().unique(),
+    templateName: varchar("template_name", { length: 300 }).notNull(),
+    description: text("description"),
+    category: emailTemplateCategoryEnum("category").notNull(),
+    subject: varchar("subject", { length: 500 }).notNull(),
+    bodyBlocks: jsonb("body_blocks").notNull(), // TemplateBlock[]
+    compiledHtml: text("compiled_html").notNull(),
+    compiledText: text("compiled_text"),
+    layoutId: text("layout_id").references(() => emailLayouts.id, {
+      onDelete: "set null",
+    }),
+    isSystem: boolean("is_system").default(false).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    version: integer("version").default(1).notNull(),
+    createdBy: text("created_by").references(() => users.id),
+    updatedBy: text("updated_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("et_category_idx").on(t.category),
+    index("et_active_idx").on(t.isActive),
+  ],
+);
+
+export const emailTemplateVersions = pgTable(
+  "email_template_versions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    templateId: text("template_id")
+      .notNull()
+      .references(() => emailTemplates.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    subject: varchar("subject", { length: 500 }).notNull(),
+    bodyBlocks: jsonb("body_blocks").notNull(),
+    compiledHtml: text("compiled_html").notNull(),
+    compiledText: text("compiled_text"),
+    changedBy: text("changed_by").references(() => users.id),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+    changeNote: text("change_note"),
+  },
+  (t) => [index("etv_template_version_idx").on(t.templateId, t.version)],
+);
+
+export const emailSendStatusEnum = pgEnum("email_send_status", [
+  "sent",
+  "failed",
+  "bounced",
+]);
+
+export const emailSendLogs = pgTable(
+  "email_send_logs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    templateKey: varchar("template_key", { length: 100 }),
+    recipientEmail: varchar("recipient_email", { length: 300 }).notNull(),
+    recipientName: varchar("recipient_name", { length: 200 }),
+    subject: varchar("subject", { length: 500 }).notNull(),
+    status: emailSendStatusEnum("status").notNull(),
+    provider: emailProviderEnum("provider").notNull(),
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata"), // variables used, trigger context
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("esl_template_idx").on(t.templateKey),
+    index("esl_status_idx").on(t.status),
+    index("esl_sent_at_idx").on(t.sentAt),
+  ],
+);
+
+// ─── TYPE EXPORTS (Email Template Manager) ────────────────────────────────────
+
+export type EmailLayout = typeof emailLayouts.$inferSelect;
+export type NewEmailLayout = typeof emailLayouts.$inferInsert;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type NewEmailTemplate = typeof emailTemplates.$inferInsert;
+export type EmailTemplateVersion = typeof emailTemplateVersions.$inferSelect;
+export type NewEmailTemplateVersion = typeof emailTemplateVersions.$inferInsert;
+export type EmailSendLog = typeof emailSendLogs.$inferSelect;
+export type NewEmailSendLog = typeof emailSendLogs.$inferInsert;

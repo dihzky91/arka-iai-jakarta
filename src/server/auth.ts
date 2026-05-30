@@ -12,11 +12,7 @@ import {
   verification as verificationTable,
   absensiKaryawan,
 } from "./db/schema";
-import {
-  buildInviteEmail,
-  buildResetPasswordEmail,
-  sendEmail,
-} from "@/lib/email";
+import { sendTemplatedEmail } from "@/lib/email/template-engine";
 import { env } from "@/lib/env";
 
 export const auth = betterAuth({
@@ -49,22 +45,18 @@ export const auth = betterAuth({
       // Better Auth meneruskan querystring callbackURL via param `url`.
       // Kita arahkan link ke halaman /reset-password agar UX konsisten.
       const isInvite = url.includes("invite=1");
-      const template = isInvite
-        ? buildInviteEmail({
-            namaLengkap: user.name ?? user.email,
-            resetUrl: url,
-          })
-        : buildResetPasswordEmail({
-            namaLengkap: user.name ?? user.email,
-            resetUrl: url,
-          });
+      const templateKey = isInvite ? "auth_invite" : "auth_reset_password";
 
-      await sendEmail({
+      void sendTemplatedEmail(templateKey, {
         to: user.email,
         toName: user.name ?? undefined,
-        subject: template.subject,
-        htmlBody: template.htmlBody,
-        textBody: template.textBody,
+        variables: {
+          "recipient.nama": user.name ?? user.email,
+          "auth.invite_url": url,
+          "auth.reset_url": url,
+          "auth.inviter_name": "Admin ARKA",
+          "auth.expiry": "1 jam",
+        },
       });
     },
   },

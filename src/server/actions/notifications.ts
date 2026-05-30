@@ -7,12 +7,7 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { checkNotificationPreference } from "./notificationPreferences";
 import { requireSession, requirePermission } from "./auth";
-import {
-  buildSuratKeluarReviewEmail,
-  buildSuratKeluarRevisiEmail,
-  buildSuratKeluarSelesaiEmail,
-  sendEmail,
-} from "@/lib/email";
+import { sendTemplatedEmail } from "@/lib/email/template-engine";
 
 export interface NotificationInput {
   userId: string;
@@ -248,14 +243,17 @@ export async function notifySuratKeluarApproval(
 
     if (pejabat?.email) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-      const email = buildSuratKeluarReviewEmail({
-        pejabatNama: pejabat.namaLengkap,
-        pengirimNama,
-        perihal,
-        tujuan,
-        reviewUrl: `${appUrl}/surat-keluar/review/${suratId}`,
+      void sendTemplatedEmail("surat_keluar_review", {
+        to: pejabat.email,
+        toName: pejabat.namaLengkap,
+        variables: {
+          "recipient.nama": pejabat.namaLengkap,
+          "surat.pengirim": pengirimNama,
+          "surat.perihal": perihal,
+          "surat.tujuan": tujuan ?? "",
+          "surat.review_url": `${appUrl}/surat-keluar/review/${suratId}`,
+        },
       });
-      void sendEmail({ to: pejabat.email, toName: pejabat.namaLengkap, ...email });
     }
   }
 }
@@ -290,14 +288,17 @@ export async function notifySuratKeluarRevisi(
 
     if (creator?.email) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-      const email = buildSuratKeluarRevisiEmail({
-        pembuatNama: creator.namaLengkap,
-        pejabatNama,
-        perihal,
-        catatan,
-        suratUrl: `${appUrl}/surat-keluar`,
+      void sendTemplatedEmail("surat_keluar_revisi", {
+        to: creator.email,
+        toName: creator.namaLengkap,
+        variables: {
+          "recipient.nama": creator.namaLengkap,
+          "pejabat.nama": pejabatNama,
+          "surat.perihal": perihal,
+          "catatan.revisi": catatan,
+          "surat.url": `${appUrl}/surat-keluar`,
+        },
       });
-      void sendEmail({ to: creator.email, toName: creator.namaLengkap, ...email });
     }
   }
 }
@@ -331,13 +332,16 @@ export async function notifySuratKeluarSelesai(
 
     if (creator?.email) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-      const email = buildSuratKeluarSelesaiEmail({
-        pembuatNama: creator.namaLengkap,
-        perihal,
-        nomorSurat,
-        suratUrl: `${appUrl}/surat-keluar`,
+      void sendTemplatedEmail("surat_keluar_selesai", {
+        to: creator.email,
+        toName: creator.namaLengkap,
+        variables: {
+          "recipient.nama": creator.namaLengkap,
+          "surat.perihal": perihal,
+          "surat.nomor": nomorSurat ?? "",
+          "surat.url": `${appUrl}/surat-keluar`,
+        },
       });
-      void sendEmail({ to: creator.email, toName: creator.namaLengkap, ...email });
     }
   }
 }
