@@ -14,6 +14,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { kesehatanSchema, type KesehatanInput } from "@/lib/validators/pegawai.schema";
 import { getKesehatan, upsertKesehatan } from "@/server/actions/pegawai";
@@ -82,17 +89,22 @@ export function KesehatanTab({
           <FormField control={form.control} name="golonganDarah" render={({ field }) => (
             <FormItem>
               <FormLabel>Golongan Darah</FormLabel>
-              <FormControl>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                  value={field.value ?? ""}
-                  onChange={(e) => field.onChange(e.target.value || undefined)}
-                  disabled={!canEdit || isPending}
-                >
-                  <option value="">Pilih</option>
-                  {GOLONGAN_DARAH_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </FormControl>
+              <Select
+                value={field.value ?? ""}
+                onValueChange={(value) => field.onChange(value || undefined)}
+                disabled={!canEdit || isPending}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {GOLONGAN_DARAH_OPTIONS.map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )} />

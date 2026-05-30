@@ -52,6 +52,9 @@ vi.mock("@/server/actions/auth", () => ({
   requireSession: vi.fn().mockResolvedValue({
     user: { id: "user-1", name: "Test User" },
   }),
+  requirePermission: vi.fn().mockResolvedValue({
+    user: { id: "user-1", name: "Test User" },
+  }),
 }));
 
 vi.mock("@/server/db", () => ({

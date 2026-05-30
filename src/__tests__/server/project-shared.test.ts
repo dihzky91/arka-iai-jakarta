@@ -117,7 +117,6 @@ describe("project shared utilities", () => {
         description: null,
         startDate: "2024-02-01",
         endDate: "2024-02-02",
-        price: "100000",
         priceMember: null,
         priceNonMember: null,
         tipePelaksanaan: "offline",

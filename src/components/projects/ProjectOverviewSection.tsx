@@ -219,7 +219,6 @@ export function Overview({
             <Info label="Lokasi" value={project.lokasi ?? "-"} />
             <Info label="Harga Anggota" value={project.priceMember ? `Rp ${Number(project.priceMember).toLocaleString("id-ID")}` : "-"} />
             <Info label="Harga Non-Anggota" value={project.priceNonMember ? `Rp ${Number(project.priceNonMember).toLocaleString("id-ID")}` : "-"} />
-            <Info label="Biaya" value={project.price ? `Rp ${Number(project.price).toLocaleString("id-ID")}` : "-"} />
             <Info label="Kapasitas" value={project.maxPeserta ? `${project.maxPeserta} peserta` : "Tidak terbatas"} />
             <Info label="Waiting List" value={project.isWaitlistEnabled ? "Aktif" : "Nonaktif"} />
             <Info label="Event" value={project.eventName ?? "-"} />

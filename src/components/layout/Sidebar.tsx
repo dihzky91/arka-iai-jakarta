@@ -174,12 +174,14 @@ export function Sidebar({
                       if (desktopCollapsed) setDesktopCollapsed(false);
                     }}
                     className={cn(
-                      "group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-200",
+                      "group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar-bg",
                       isActive
                         ? "bg-primary text-white shadow-md shadow-primary/20 scale-105"
                         : "text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground"
                     )}
                     title={section.title}
+                    aria-label={section.title}
+                    aria-current={isActive ? "true" : undefined}
                   >
                     <section.icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.5 : 2} />
                   </button>
@@ -267,8 +269,9 @@ export function Sidebar({
                               )}
                             <Link
                               href={item.href}
+                              aria-current={isActive ? "page" : undefined}
                               className={cn(
-                                "group flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-normal transition-all duration-200",
+                                "group flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-normal transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar-bg",
                                 isActive
                                   ? "bg-muted/80 font-medium text-primary"
                                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground"
@@ -374,8 +377,9 @@ export function Sidebar({
                           <Link
                             href={item.href}
                             onClick={() => onMobileOpenChange?.(false)}
+                            aria-current={isActive ? "page" : undefined}
                             className={cn(
-                              "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-normal transition-all",
+                              "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-normal transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                               isActive
                                 ? "bg-primary/10 font-medium text-primary"
                                 : "text-muted-foreground hover:bg-muted"

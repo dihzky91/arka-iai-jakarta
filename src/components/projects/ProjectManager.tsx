@@ -79,7 +79,6 @@ const formSchema = z
     description: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
-    price: z.coerce.number().optional().nullable(),
     priceMember: z.coerce.number().optional().nullable(),
     priceNonMember: z.coerce.number().optional().nullable(),
     tipePelaksanaan: z.string().optional().nullable(),
@@ -148,7 +147,6 @@ function toFormValues(project?: ProjectListRow): FormValues {
     description: project?.description ?? "",
     startDate: project?.startDate ?? "",
     endDate: project?.endDate ?? "",
-    price: project?.price ? Number(project.price) : null,
     priceMember: project?.priceMember ? Number(project.priceMember) : null,
     priceNonMember: project?.priceNonMember ? Number(project.priceNonMember) : null,
     tipePelaksanaan: project?.tipePelaksanaan ?? null,
@@ -270,7 +268,6 @@ export function ProjectManager({
         description: values.description || null,
         startDate: values.startDate || null,
         endDate: values.endDate || null,
-        price: values.price ?? null,
         priceMember: values.priceMember ?? null,
         priceNonMember: values.priceNonMember ?? null,
         tipePelaksanaan: values.tipePelaksanaan || null,
@@ -606,15 +603,11 @@ export function ProjectManager({
                 <FormError message={form.formState.errors.endDate?.message} />
               </div>
               <div className="space-y-2">
-                <Label>Biaya (umum)</Label>
-                <Input type="number" min={0} {...form.register("price")} />
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
                 <Label>Harga Anggota</Label>
                 <Input type="number" min={0} {...form.register("priceMember")} />
               </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Harga Non-Anggota</Label>
                 <Input type="number" min={0} {...form.register("priceNonMember")} />

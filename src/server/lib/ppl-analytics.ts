@@ -157,10 +157,12 @@ export function computeGridAnalytics(
           ) / 100
         : 0;
 
-    // Distribution: count how many times each column was selected
-    const distribution: Record<string, number> = {};
+    // Distribution: count how many times each column was selected.
+    // Use a Map to stay safe against option labels that collide with object
+    // prototype keys (e.g. "__proto__", "constructor").
+    const counts = new Map<string, number>();
     for (const col of config.columns) {
-      distribution[col] = 0;
+      counts.set(col, 0);
     }
     for (const response of responses) {
       const value = response[rowLabel];
@@ -168,9 +170,14 @@ export function computeGridAnalytics(
         // value is a column index (0-based), map to column label
         const colLabel = config.columns[value];
         if (colLabel !== undefined) {
-          distribution[colLabel] = (distribution[colLabel] ?? 0) + 1;
+          counts.set(colLabel, (counts.get(colLabel) ?? 0) + 1);
         }
       }
+    }
+
+    const distribution: Record<string, number> = {};
+    for (const [col, count] of counts) {
+      distribution[col] = count;
     }
 
     return { rowLabel, mean, distribution };
@@ -208,15 +215,17 @@ export function computeChoiceAnalytics(
 ): ChoiceAnalytics {
   const totalResponses = responses.length;
 
-  // Count occurrences of each option
-  const counts: Record<string, number> = {};
+  // Count occurrences of each option. Use a Map so option labels that collide
+  // with object prototype keys (e.g. "__proto__", "constructor") are counted
+  // correctly instead of resolving up the prototype chain.
+  const counts = new Map<string, number>();
   for (const opt of options) {
-    counts[opt] = 0;
+    counts.set(opt, 0);
   }
   for (const response of responses) {
     for (const selected of response) {
-      if (selected in counts) {
-        counts[selected]!++;
+      if (counts.has(selected)) {
+        counts.set(selected, counts.get(selected)! + 1);
       }
     }
   }
@@ -226,7 +235,7 @@ export function computeChoiceAnalytics(
   const denominator = totalResponses;
 
   const optionResults = options.map((label) => {
-    const count = counts[label] ?? 0;
+    const count = counts.get(label) ?? 0;
     const percentage =
       denominator > 0
         ? Math.round((count / denominator) * 1000) / 10

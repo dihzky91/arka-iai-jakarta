@@ -40,6 +40,12 @@ export function DashboardShell({
   return (
     <>
     <ThemeApplicator initialTheme={colorTheme} />
+    <a
+      href="#konten-utama"
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+    >
+      Lewati ke konten utama
+    </a>
     <div className="min-h-screen bg-background lg:flex">
       <Sidebar
         unreadDisposisiCount={unreadDisposisiCount}
@@ -61,7 +67,11 @@ export function DashboardShell({
           colorTheme={colorTheme}
           onOpenSidebar={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 bg-linear-to-b from-background via-muted/30 to-background px-4 py-5 sm:px-5 sm:py-6 lg:px-6">
+        <main
+          id="konten-utama"
+          tabIndex={-1}
+          className="flex-1 bg-linear-to-b from-background via-muted/30 to-background px-4 py-5 outline-none sm:px-5 sm:py-6 lg:px-6"
+        >
           {children}
         </main>
       </div>

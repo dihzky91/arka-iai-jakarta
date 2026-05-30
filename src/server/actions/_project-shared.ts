@@ -44,7 +44,6 @@ export const projectSchema = z
     description: z.string().optional().nullable(),
     startDate: isoDateSchema,
     endDate: isoDateSchema,
-    price: z.coerce.number().nonnegative().optional().nullable(),
     priceMember: z.coerce.number().nonnegative().optional().nullable(),
     priceNonMember: z.coerce.number().nonnegative().optional().nullable(),
     tipePelaksanaan: z.enum(TIPE_PELAKSANAAN).optional().nullable(),
@@ -85,7 +84,6 @@ export type ProjectListRow = {
   description: string | null;
   startDate: string | null;
   endDate: string | null;
-  price: string | null;
   priceMember: string | null;
   priceNonMember: string | null;
   tipePelaksanaan: TipePelaksanaan | null;
@@ -277,7 +275,6 @@ export function mapProjectBase(row: {
   description: string | null;
   startDate: string | null;
   endDate: string | null;
-  price: string | null;
   priceMember: string | null;
   priceNonMember: string | null;
   tipePelaksanaan: string | null;

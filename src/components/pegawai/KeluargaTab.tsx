@@ -32,6 +32,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   keluargaCreateSchema,
   keluargaUpdateSchema,
   type KeluargaCreateInput,
@@ -259,17 +266,22 @@ function KeluargaFormDialog({
       <FormField control={form.control as never} name="hubungan" render={({ field }) => (
         <FormItem>
           <FormLabel>Hubungan</FormLabel>
-          <FormControl>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-              value={field.value ?? ""}
-              onChange={field.onChange}
-              disabled={isPending}
-            >
-              <option value="">Pilih hubungan</option>
-              {HUBUNGAN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </FormControl>
+          <Select
+            value={field.value ?? ""}
+            onValueChange={field.onChange}
+            disabled={isPending}
+          >
+            <FormControl>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih hubungan" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {HUBUNGAN_OPTIONS.map((o) => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <FormMessage />
         </FormItem>
       )} />

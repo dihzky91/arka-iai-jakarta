@@ -24,9 +24,15 @@ describe("Property 6: Response Answers Round-Trip", () => {
     })
   );
 
-  // Generator for a valid answers record with string keys
+  // Generator for a valid answers record with string keys.
+  // Exclude reserved object keys (__proto__, constructor, prototype): Zod's
+  // record parser intentionally strips these to prevent prototype pollution,
+  // so they would not survive a round-trip by design.
+  const RESERVED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
   const validAnswers = fc.dictionary(
-    fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-zA-Z0-9_-]+$/.test(s)),
+    fc
+      .string({ minLength: 1, maxLength: 20 })
+      .filter((s) => /^[a-zA-Z0-9_-]+$/.test(s) && !RESERVED_KEYS.has(s)),
     answerValue,
     { minKeys: 1, maxKeys: 10 }
   );
