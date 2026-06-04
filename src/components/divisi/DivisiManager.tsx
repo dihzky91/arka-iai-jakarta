@@ -10,9 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -147,23 +144,15 @@ export function DivisiManager({ initialData, canManage }: DivisiManagerProps) {
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Daftar Divisi</CardTitle>
-              <CardDescription className="mt-1">
-                Kelola struktur divisi internal dan pantau jumlah pegawai pada setiap unit.
-              </CardDescription>
-            </div>
-            {canManage ? (
+        <CardContent className="pt-6">
+          {canManage ? (
+            <div className="mb-4 flex justify-end">
               <Button onClick={() => setFormState({ open: true, mode: "create" })}>
                 <Plus className="h-4 w-4" />
                 Tambah Divisi
               </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
+            </div>
+          ) : null}
           <DataTable
             columns={columns}
             data={initialData}

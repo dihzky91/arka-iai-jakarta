@@ -16,7 +16,7 @@ export default async function Page() {
   return (
     <PageWrapper
       title="Divisi"
-      description="Daftar divisi organisasi IAI Wilayah Jakarta."
+      description="Kelola struktur divisi internal dan pantau jumlah pegawai pada setiap unit."
     >
       <DivisiManager initialData={data} canManage={canManage} />
     </PageWrapper>

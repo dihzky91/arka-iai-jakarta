@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Hash, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -196,13 +196,7 @@ export function GenerateBatchForm({
   return (
     <div className="max-w-2xl space-y-6">
       <Card className="rounded-[24px] border border-border/60 shadow-sm">
-        <CardHeader className="border-b border-border/60">
-          <CardTitle className="flex items-center gap-2">
-            <Hash className="h-5 w-5 text-primary" />
-            Generate Batch Nomor Sertifikat
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
             <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-1">
               <button

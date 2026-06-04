@@ -13,9 +13,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Select,
@@ -183,14 +180,6 @@ export function KegiatanListClient({ initialData }: KegiatanListClientProps) {
 
   return (
     <Card className="rounded-[24px]">
-      <CardHeader className="border-b border-border/60">
-        <div>
-          <CardTitle>Daftar Kegiatan PPL</CardTitle>
-          <CardDescription className="mt-1">
-            Kegiatan PPL yang sedang aktif. Gunakan filter untuk menyaring data.
-          </CardDescription>
-        </div>
-      </CardHeader>
       <CardContent className="pt-6">
         <div className="space-y-4">
           {/* Filters */}

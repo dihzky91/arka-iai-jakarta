@@ -26,7 +26,7 @@ export default async function Page() {
   return (
     <PageWrapper
       title="Data Pegawai"
-      description="Daftar dan manajemen pegawai."
+      description="Kelola data dasar pegawai dan lanjutkan pengisian detail per tab."
     >
       <PegawaiManager
         initialData={pegawaiResult.rows}

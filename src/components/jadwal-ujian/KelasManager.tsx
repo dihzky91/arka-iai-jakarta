@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -176,23 +176,15 @@ export function KelasManager({ initialData, canManage, programOptions, tipeOptio
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Daftar Kelas</CardTitle>
-              <CardDescription className="mt-1">
-                Kelola kelas ujian berdasarkan program, tipe, dan mode pembelajaran.
-              </CardDescription>
-            </div>
-            {canManage && (
+        <CardContent className="pt-6 space-y-4">
+          {canManage && (
+            <div className="flex justify-end">
               <Button onClick={() => setFormState({ open: true, mode: "create" })} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Tambah Kelas
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-4">
+            </div>
+          )}
           <div className="grid gap-2 sm:flex sm:items-center sm:gap-3">
             <span className="text-sm text-muted-foreground">Filter program:</span>
             <Select value={filterProgram} onValueChange={setFilterProgram}>

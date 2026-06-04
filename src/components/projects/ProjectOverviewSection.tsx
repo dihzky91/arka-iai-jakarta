@@ -1,7 +1,7 @@
 "use client";
-import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
+import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatTanggal } from "@/lib/utils";
 import { formatSKP } from "@/lib/skp-calculator";
@@ -17,7 +17,6 @@ import {
   type InvoiceKuitansiSummary,
   type ProjectCertificateInfo,
 } from "@/server/actions/projects";
-import { CircularProgress } from "./CircularProgress";
 import { Avatar } from "./ProjectAvatar";
 import { BrevetInfoCard } from "./BrevetInfoCard";
 import { HonorariumCard } from "./HonorariumCard";
@@ -70,11 +69,12 @@ export function Overview({
   const recentActivity = activity.slice(-5).reverse();
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_0.9fr]">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <section className="space-y-4">
+        {/* Progress + Task Checklist Preview */}
         <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
           <div className="flex items-center gap-4">
-            <CircularProgress value={project.progress} />
+            <span className="text-2xl font-semibold tabular-nums text-foreground">{project.progress}%</span>
             <div className="flex flex-wrap gap-1.5">
               <Badge variant="outline" className="text-xs">{todoCount} To Do</Badge>
               <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/70 dark:bg-blue-950/30 dark:text-blue-300 text-xs">
@@ -85,19 +85,54 @@ export function Overview({
               </Badge>
             </div>
           </div>
+          {/* Deskripsi inline */}
+          {project.description ? (
+            <div className="mt-3 max-h-32 overflow-y-auto border-t border-border/40 pt-3">
+              <div
+                className="prose prose-sm max-w-none text-foreground"
+                dangerouslySetInnerHTML={{ __html: project.description }}
+              />
+            </div>
+          ) : null}
         </div>
-        {recentActivity.length > 0 ? (
+
+        {/* Checklist Preview — top tasks */}
+        {tasks.length > 0 ? (
           <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold">Aktivitas Terbaru</h3>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Checklist Preview</h3>
             <div className="space-y-2">
+              {tasks.slice(0, 5).map((task) => (
+                <div key={task.id} className="flex items-start gap-2.5">
+                  <div className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${task.status === "done" ? "border-emerald-500 bg-emerald-500" : "border-border"}`}>
+                    {task.status === "done" ? (
+                      <CheckCircle2 className="h-3 w-3 text-white" />
+                    ) : null}
+                  </div>
+                  <span className={`text-sm ${task.status === "done" ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                    {task.title}
+                  </span>
+                </div>
+              ))}
+              {tasks.length > 5 ? (
+                <p className="text-xs text-muted-foreground">+{tasks.length - 5} task lainnya</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Aktivitas Terbaru */}
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aktivitas Terbaru</h3>
+          {recentActivity.length > 0 ? (
+            <div className="space-y-3">
               {recentActivity.map((row) => (
-                <div key={row.id} className="flex items-start gap-2 text-sm">
-                  <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40" />
+                <div key={row.id} className="flex items-start gap-2.5 text-sm">
+                  <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary/50" />
                   <div className="min-w-0">
-                    <span className="font-medium">{row.userName ?? "User"}</span>
-                    <span className="text-muted-foreground">
-                      {" "}{row.description ?? row.action}
-                    </span>
+                    <p>
+                      <span className="font-medium">{row.userName ?? "User"}</span>{" "}
+                      <span className="text-muted-foreground">{row.description ?? row.action}</span>
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(row.createdAt), { addSuffix: true, locale: id })}
                     </p>
@@ -105,32 +140,51 @@ export function Overview({
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aktivitas project akan tercatat saat ada perubahan task, file, atau komentar.
+            </p>
+          )}
+        </div>
+
+        {/* Anggota Terdaftar — dengan nama + role */}
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Anggota Terdaftar</h3>
+            {members.length > 0 ? (
+              <button
+                type="button"
+                className="text-xs font-medium text-primary hover:underline"
+                onClick={() => {/* setActiveTab handled by parent */}}
+              >
+                Kelola Anggota
+              </button>
+            ) : null}
           </div>
-        ) : null}
+          {members.length > 0 ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {members.slice(0, 6).map((member) => (
+                <div key={member.userId} className="flex items-center gap-2.5 rounded-lg border border-border/40 px-3 py-2">
+                  <Avatar name={member.namaLengkap} avatarUrl={member.avatarUrl} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{member.namaLengkap}</p>
+                    <p className="truncate text-xs text-muted-foreground capitalize">{member.role ?? "member"}</p>
+                  </div>
+                </div>
+              ))}
+              {members.length > 6 ? (
+                <div className="flex items-center justify-center rounded-lg border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground">
+                  +{members.length - 6} anggota lainnya
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">Belum ada anggota.</p>
+          )}
+        </div>
       </section>
-      <section className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Deskripsi</h2>
-        {project.description ? (
-          <div
-            className="prose prose-sm mt-4 max-w-none text-foreground"
-            dangerouslySetInnerHTML={{ __html: project.description }}
-          />
-        ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            Belum ada deskripsi.
-          </p>
-        )}
-        {files.length > 0 ? (
-          <div className="mt-4">
-            <Link
-              href={`/projects/${project.id}?tab=files`}
-              className="text-sm text-primary hover:underline"
-            >
-              {files.length} file terlampir →
-            </Link>
-          </div>
-        ) : null}
-      </section>
+
+      {/* Sidebar metadata */}
       <section className="space-y-4">
         {brevetSummary && projectId && onRefresh ? (
           <BrevetInfoCard
@@ -224,22 +278,6 @@ export function Overview({
             <Info label="Event" value={project.eventName ?? "-"} />
             <Info label="Dibuat oleh" value={project.createdByName ?? "-"} />
           </dl>
-        </div>
-        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
-          <h3 className="text-sm font-semibold">Anggota</h3>
-          <div className="mt-3 flex items-center gap-1">
-            {members.slice(0, 5).map((member) => (
-              <Avatar key={member.userId} name={member.namaLengkap} avatarUrl={member.avatarUrl} />
-            ))}
-            {members.length > 5 ? (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-muted text-[10px] font-medium text-muted-foreground">
-                +{members.length - 5}
-              </div>
-            ) : null}
-            {members.length === 0 ? (
-              <span className="text-xs text-muted-foreground">Belum ada anggota</span>
-            ) : null}
-          </div>
         </div>
       </section>
     </div>

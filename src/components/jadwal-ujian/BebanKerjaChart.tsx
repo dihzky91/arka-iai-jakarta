@@ -10,7 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -66,51 +66,41 @@ export function BebanKerjaChart({ initialData }: BebanKerjaChartProps) {
   return (
     <div className="space-y-6">
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Beban Kerja Pengawas</CardTitle>
-              <CardDescription className="mt-1">
-                Distribusi jumlah penugasan per pengawas dalam periode yang dipilih.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={bulan} onValueChange={setBulan}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Semua Bulan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Semua Bulan</SelectItem>
-                  {MONTHS.map((m, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={tahun} onValueChange={setTahun}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {YEARS.map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={program} onValueChange={setProgram}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Semua Program" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Semua Program</SelectItem>
-                  {PROGRAM_OPTIONS.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
         <CardContent className="pt-6">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Select value={bulan} onValueChange={setBulan}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Semua Bulan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Semua Bulan</SelectItem>
+                {MONTHS.map((m, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={tahun} onValueChange={setTahun}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEARS.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={program} onValueChange={setProgram}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Semua Program" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Semua Program</SelectItem>
+                {PROGRAM_OPTIONS.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-4 mb-4">
             <div className="text-sm text-muted-foreground">
               Total tugas:{" "}

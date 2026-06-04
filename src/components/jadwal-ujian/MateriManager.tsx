@@ -6,7 +6,7 @@ import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,23 +118,15 @@ export function MateriManager({ initialData, canManage, programOptions }: Materi
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Daftar Materi Ujian</CardTitle>
-              <CardDescription className="mt-1">
-                Master mata ujian yang tersedia saat membuat jadwal. Satu sesi dapat memiliki maksimal 2 materi.
-              </CardDescription>
-            </div>
-            {canManage && (
+        <CardContent className="pt-6">
+          {canManage && (
+            <div className="mb-4 flex justify-end">
               <Button onClick={() => setFormState({ open: true, mode: "create" })} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
                 Tambah Materi
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
+            </div>
+          )}
           <DataTable
             columns={columns}
             data={initialData}

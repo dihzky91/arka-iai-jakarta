@@ -21,7 +21,7 @@ export default async function Page() {
   return (
     <PageWrapper
       title="Pejabat Penandatangan"
-      description="Daftar pejabat penandatangan surat."
+      description="Kelola daftar pejabat aktif yang dapat dipilih pada dokumen persuratan."
     >
       <PejabatManager
         initialData={data}

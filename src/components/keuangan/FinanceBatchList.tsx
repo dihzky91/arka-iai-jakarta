@@ -23,9 +23,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -491,12 +488,6 @@ export function FinanceBatchList({
 
   return (
     <Card>
-      <CardHeader className="border-b border-border">
-        <CardTitle>Antrian Pembayaran Honorarium</CardTitle>
-        <CardDescription>
-          Batch yang sudah dikirim ke keuangan oleh admin/staff.
-        </CardDescription>
-      </CardHeader>
       <CardContent className="space-y-5 pt-6">
         <div className="grid gap-3 md:grid-cols-[160px_160px_200px_1fr]">
           <div>

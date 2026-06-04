@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -114,12 +114,6 @@ export function JadwalPengawasView({ pengawasList, allPenugasan }: JadwalPengawa
 
   return (
     <Card className="rounded-[24px]">
-      <CardHeader className="border-b border-border">
-        <CardTitle>Jadwal Pengawas</CardTitle>
-        <CardDescription className="mt-1">
-          Lihat jadwal penugasan semua pengawas. Filter berdasarkan nama pengawas atau periode.
-        </CardDescription>
-      </CardHeader>
       <CardContent className="pt-6 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <Select value={filterPengawasId} onValueChange={setFilterPengawasId}>

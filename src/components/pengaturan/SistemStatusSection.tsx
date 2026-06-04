@@ -1,12 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import {
   CheckCircle2,
-  Cloud,
+  ChevronDown,
   Database,
   HardDrive,
   Info,
   Mail,
-  ShieldCheck,
-  SlidersHorizontal,
   TriangleAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,8 @@ export function SistemStatusSection({
   isAdmin,
   whatsappTemplates,
 }: SistemStatusSectionProps) {
+  const [infraOpen, setInfraOpen] = useState(false);
+
   const storageProvider = normalizeStorageProvider(env.STORAGE_PROVIDER);
   const allowedMimeTypes = env.STORAGE_ALLOWED_MIME_TYPES.split(",")
     .map((item) => item.trim())
@@ -160,11 +163,13 @@ export function SistemStatusSection({
 
   return (
     <div className="space-y-6">
+      {/* Section 1: Actionable — Konfigurasi & Test */}
       <section className="grid gap-6 xl:grid-cols-2">
         <KonfigurasiSistemCard initial={systemSettings} isAdmin={isAdmin} />
         <TestConnectionCard isAdmin={isAdmin} emailProvider={systemSettings.emailProvider} />
       </section>
 
+      {/* Section 2: WhatsApp */}
       <section>
         <WhatsappBotStatusCard
           enabled={systemSettings.whatsappBotEnabled}
@@ -179,131 +184,89 @@ export function SistemStatusSection({
         />
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <SummaryCard
-          icon={HardDrive}
-          label="Storage"
-          value={storageProvider}
-          status={
-            storageProvider === "local" ? "Development ready" : "Provider eksternal"
-          }
-        />
-        <SummaryCard
-          icon={Cloud}
-          label="Cloudinary"
-          value={cloudinaryReady ? "Siap" : "Opsional"}
-          status={cloudinaryReady ? "Env lengkap" : "Belum diputuskan"}
-        />
-        <SummaryCard
-          icon={ShieldCheck}
-          label="Hardening"
-          value="Hardening"
-          status="Polish, deploy, RBAC, dan E2E"
-        />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <SettingsCard
-          icon={HardDrive}
-          title="Storage File"
-          description="Konfigurasi upload file untuk surat masuk, surat keluar, lampiran, dan file final."
-          items={storageItems}
-        />
-        <SettingsCard
-          icon={Mail}
-          title="Integrasi Eksternal"
-          description="Status provider tambahan. Nilai rahasia tidak ditampilkan di UI."
-          items={integrationItems}
-        />
-        <SettingsCard
-          icon={Database}
-          title="Sistem"
-          description="Status dasar runtime aplikasi dan komponen wajib server."
-          items={systemItems}
-        />
-        <Card className="rounded-[24px]">
-          <CardHeader>
+      {/* Section 3: Status Infrastruktur — Collapsible */}
+      <section>
+        <div className="rounded-[24px] border border-border bg-card">
+          <button
+            type="button"
+            onClick={() => setInfraOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-muted/40 rounded-[24px]"
+            aria-expanded={infraOpen}
+          >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <SlidersHorizontal className="h-5 w-5" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                <Info className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle>Catatan Pengelolaan</CardTitle>
-                <CardDescription>
-                  Batas aman antara pengaturan UI dan konfigurasi server.
-                </CardDescription>
+                <p className="text-sm font-semibold text-foreground">
+                  Status Infrastruktur
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Storage, integrasi eksternal, runtime — read-only dari environment.
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-6 text-muted-foreground">
-            <div className="rounded-2xl border border-border bg-muted/35 p-4">
-              Provider, batas file, dan status integrasi bisa dipantau di sini.
-              Perubahan secret seperti database URL, auth secret, API key, dan API
-              secret tetap dilakukan melalui file environment atau panel hosting.
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200",
+                infraOpen && "rotate-180",
+              )}
+            />
+          </button>
+
+          {infraOpen && (
+            <div className="space-y-6 px-6 pb-6 pt-2">
+              {/* Status cards grid */}
+              <div className="grid gap-6 xl:grid-cols-2">
+                <SettingsCard
+                  icon={HardDrive}
+                  title="Storage File"
+                  description="Konfigurasi upload file untuk surat masuk, surat keluar, lampiran, dan file final."
+                  items={storageItems}
+                />
+                <SettingsCard
+                  icon={Mail}
+                  title="Integrasi Eksternal"
+                  description="Status provider tambahan. Nilai rahasia tidak ditampilkan di UI."
+                  items={integrationItems}
+                />
+                <SettingsCard
+                  icon={Database}
+                  title="Sistem"
+                  description="Status dasar runtime aplikasi dan komponen wajib server."
+                  items={systemItems}
+                />
+              </div>
+
+              {/* MIME types — inline */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  Tipe File Diizinkan
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {allowedMimeTypes.map((mimeType) => (
+                    <Badge key={mimeType} variant="secondary" className="rounded-full">
+                      {mimeType}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Inline info note — replaces "Catatan Pengelolaan" card */}
+              <div className="flex items-start gap-3 rounded-2xl border border-border bg-muted/35 px-4 py-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Perubahan secret seperti database URL, auth secret, API key, dan API
+                  secret tetap dilakukan melalui file environment atau panel hosting.
+                  Jika Cloudinary belum diputuskan, sistem tetap bisa berjalan dengan
+                  storage lokal.
+                </p>
+              </div>
             </div>
-            <div className="rounded-2xl border border-border bg-muted/35 p-4">
-              Jika Cloudinary belum diputuskan, sistem tetap bisa berjalan dengan
-              storage lokal selama skenario upload sudah tervalidasi untuk kebutuhan
-              operasional.
-            </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </section>
-
-      <Card className="rounded-[24px]">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Info className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Tipe File Diizinkan</CardTitle>
-              <CardDescription>
-                MIME type yang diterima validator upload saat ini.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {allowedMimeTypes.map((mimeType) => (
-              <Badge key={mimeType} variant="secondary" className="rounded-full">
-                {mimeType}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
-  );
-}
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-  status,
-}: {
-  icon: typeof HardDrive;
-  label: string;
-  value: string;
-  status: string;
-}) {
-  return (
-    <Card className="gap-4 rounded-[24px]">
-      <CardContent className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-            {label}
-          </p>
-          <p className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl">{value}</p>
-          <p className="mt-2 text-sm text-muted-foreground">{status}</p>
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:h-11 sm:w-11">
-          <Icon className="h-5 w-5" />
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

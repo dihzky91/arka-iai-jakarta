@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,20 +156,17 @@ export function InstrukturTable({ initialData, canManage }: InstrukturTableProps
 
   return (
     <>
-      <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <CardTitle>Daftar Instruktur</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={columns}
-            data={initialData}
-            searchColumnId="name"
-            searchPlaceholder="Cari instruktur..."
-            emptyMessage="Belum ada instruktur."
-          />
-        </CardContent>
-      </Card>
+    <Card className="rounded-[24px]">
+      <CardContent className="pt-6">
+        <DataTable
+          columns={columns}
+          data={initialData}
+          searchColumnId="name"
+          searchPlaceholder="Cari instruktur..."
+          emptyMessage="Belum ada instruktur."
+        />
+      </CardContent>
+    </Card>
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !isDeleting) setDeleteTarget(null); }}>
         <DialogContent>

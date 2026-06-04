@@ -5,6 +5,7 @@ import { systemSettings } from "@/server/db/schema";
 import { env } from "@/lib/env";
 import { sendEmailMailjet, isMailjetReady, getMissingMailjetEnv } from "./mailjet";
 import { sendEmailBrevo, isBrevoReady, getMissingBrevoEnv } from "./brevo";
+import { sendEmailSmtp, isSmtpReady } from "./smtp";
 import type { EmailPayload, EmailProviderType } from "./types";
 
 export type { EmailPayload, EmailProviderType } from "./types";
@@ -56,7 +57,17 @@ function resolveEffectiveProvider(
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+/**
+ * Di development, jika SMTP_HOST di-set (atau NODE_ENV=development dan Mailpit jalan),
+ * semua email akan dikirim via SMTP ke Mailpit (localhost:1025).
+ * Ini memastikan tidak ada email keluar ke dunia nyata saat development.
+ */
 export async function sendEmail(payload: EmailPayload): Promise<void> {
+  // Override: gunakan SMTP/Mailpit di development
+  if (process.env.NODE_ENV !== "production" && isSmtpReady()) {
+    return sendEmailSmtp(payload);
+  }
+
   const dbProvider = await getEmailProviderFromDb();
   const effective = resolveEffectiveProvider(dbProvider);
 

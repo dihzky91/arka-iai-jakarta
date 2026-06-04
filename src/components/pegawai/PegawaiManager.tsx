@@ -187,22 +187,14 @@ export function PegawaiManager({
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="gap-0 overflow-hidden rounded-[24px]">
-          <CardHeader className="border-b border-border/60">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Direktori Pegawai</CardTitle>
-                <CardDescription>
-                  Kelola data dasar pegawai dan lanjutkan pengisian detail per tab.
-                </CardDescription>
-              </div>
+          <CardContent className="px-0 pt-5">
+            <div className="mb-3 flex flex-col gap-4 px-6 sm:flex-row sm:items-center sm:justify-between">
               {canManage ? (
                 <Button onClick={() => setFormState({ open: true, mode: "create" })}>
                   <Plus className="h-4 w-4" />
                   Tambah Pegawai
                 </Button>
               ) : null}
-            </div>
-            <div className="pt-2">
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -210,8 +202,6 @@ export function PegawaiManager({
                 className="max-w-md"
               />
             </div>
-          </CardHeader>
-          <CardContent className="px-0">
             <div className="divide-y divide-border/60">
               {filteredData.length ? (
                 filteredData.map((row) => {

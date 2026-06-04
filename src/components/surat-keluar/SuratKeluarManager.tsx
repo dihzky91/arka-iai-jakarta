@@ -21,7 +21,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardHeader,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -481,8 +480,8 @@ export function SuratKeluarManager({
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <CardContent className="pt-6">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-end">
             {canCreate ? (
               <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
                 <Button variant="outline" onClick={handleExportCsv} className="w-full sm:w-auto">
@@ -514,8 +513,6 @@ export function SuratKeluarManager({
               </Button>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
           <div className="mb-4 flex flex-wrap gap-2">
             <Button
               variant={jenisFilter === null ? "default" : "outline"}

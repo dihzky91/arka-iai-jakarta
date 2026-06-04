@@ -20,9 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -481,15 +478,6 @@ export function KelasOtomatisTable({
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border/60">
-          <div>
-            <CardTitle>Daftar Kelas Pelatihan</CardTitle>
-            <CardDescription className="mt-1">
-              Kelas yang sudah dijadwalkan secara otomatis berdasarkan
-              kurikulum.
-            </CardDescription>
-          </div>
-        </CardHeader>
         <CardContent className="pt-6">
           <DataTable
             columns={columns}

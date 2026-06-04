@@ -1,20 +1,26 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import ws from "ws";
 import * as schema from "./schema";
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  // Jangan crash saat build/dev awal — cukup warning. Query pertama akan gagal dengan jelas.
   console.warn(
     "[db] DATABASE_URL belum di-set. Isi .env.local sebelum menjalankan query DB.",
   );
 }
 
-// fetchConnectionCache kini selalu aktif secara default di Neon driver terbaru
+// WebSocket diperlukan di Node.js (development & SSR).
+// Di edge runtime (Vercel Edge, Cloudflare Workers), WebSocket sudah tersedia secara native.
+if (typeof globalThis.WebSocket === "undefined") {
+  neonConfig.webSocketConstructor = ws;
+}
 
-const sql = neon(databaseUrl ?? "postgresql://invalid:invalid@invalid/invalid");
+const pool = new Pool({
+  connectionString: databaseUrl ?? "postgresql://invalid:invalid@invalid/invalid",
+});
 
-export const db = drizzle(sql, { schema });
+export const db = drizzle(pool, { schema });
 export { schema };
 export type DB = typeof db;

@@ -120,7 +120,12 @@ async function replaceCapabilities(roleId: number, capabilities: Capability[]) {
 }
 
 export async function createRole(data: RoleCreateInput) {
-  const parsed = roleCreateSchema.parse(data);
+  const result = roleCreateSchema.safeParse(data);
+  if (!result.success) {
+    const message = result.error.errors.map((e) => e.message).join(" ");
+    return { ok: false as const, error: message };
+  }
+  const parsed = result.data;
   const session = await requireCapability("roles:manage");
 
   const [existing] = await db
@@ -158,7 +163,12 @@ export async function createRole(data: RoleCreateInput) {
 }
 
 export async function updateRole(data: RoleUpdateInput) {
-  const parsed = roleUpdateSchema.parse(data);
+  const result = roleUpdateSchema.safeParse(data);
+  if (!result.success) {
+    const message = result.error.errors.map((e) => e.message).join(" ");
+    return { ok: false as const, error: message };
+  }
+  const parsed = result.data;
   const session = await requireCapability("roles:manage");
 
   const [role] = await db
@@ -200,7 +210,12 @@ export async function updateRole(data: RoleUpdateInput) {
 }
 
 export async function updateRoleCapabilities(data: UpdateRoleCapabilitiesInput) {
-  const parsed = updateRoleCapabilitiesSchema.parse(data);
+  const result = updateRoleCapabilitiesSchema.safeParse(data);
+  if (!result.success) {
+    const message = result.error.errors.map((e) => e.message).join(" ");
+    return { ok: false as const, error: message };
+  }
+  const parsed = result.data;
   const session = await requireCapability("roles:manage");
 
   const [role] = await db
@@ -224,7 +239,12 @@ export async function updateRoleCapabilities(data: UpdateRoleCapabilitiesInput) 
 }
 
 export async function deleteRole(data: RoleDeleteInput) {
-  const parsed = roleDeleteSchema.parse(data);
+  const result = roleDeleteSchema.safeParse(data);
+  if (!result.success) {
+    const message = result.error.errors.map((e) => e.message).join(" ");
+    return { ok: false as const, error: message };
+  }
+  const parsed = result.data;
   const session = await requireCapability("roles:manage");
 
   const [role] = await db
@@ -265,7 +285,12 @@ function legacyRoleFromKode(kode: string): "staff" | "pejabat" | "viewer" {
 }
 
 export async function updateUserAccess(data: UpdateUserAccessInput) {
-  const parsed = updateUserAccessSchema.parse(data);
+  const result = updateUserAccessSchema.safeParse(data);
+  if (!result.success) {
+    const message = result.error.errors.map((e) => e.message).join(" ");
+    return { ok: false as const, error: message };
+  }
+  const parsed = result.data;
   const session = await requireCapability("users:manage");
   const actor = await requireSession();
 

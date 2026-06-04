@@ -1,72 +1,66 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Bell, Check, Trash2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Bell } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { groupNotificationsByTime } from "@/lib/format-relative-time";
 import {
+  deleteNotification,
   getNotifications,
   getUnreadNotificationCount,
-  markNotificationAsRead,
   markAllNotificationsAsRead,
-  deleteNotification,
+  markNotificationAsRead,
 } from "@/server/actions/notifications";
 import type { Notification } from "@/server/db/schema";
-import { formatTanggalWaktuJakarta } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+
+import { NotificationEmptyState } from "./NotificationEmptyState";
+import { NotificationItem } from "./NotificationItem";
 
 interface NotificationBellProps {
   userId: string;
 }
 
-const PAGE_SIZE = 10;
+const PANEL_ITEM_LIMIT = 15;
 
 export function NotificationBell({ userId }: NotificationBellProps) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [open, setOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const [notifs, count] = await Promise.all([
-        getNotifications({ limit: PAGE_SIZE }),
+        getNotifications({ limit: PANEL_ITEM_LIMIT }),
         getUnreadNotificationCount(),
       ]);
       setNotifications(notifs);
       setUnreadCount(count);
-      setHasMore(notifs.length === PAGE_SIZE);
     } catch (err) {
-      // Session expired atau belum login — skip silently.
-      // Interval berikutnya akan retry setelah user login ulang.
+      // Session expired atau belum login: interval berikutnya akan retry.
       console.warn("[NotificationBell] Failed to fetch notifications:", err);
     }
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    void fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [fetchNotifications, userId]);
 
-  const handleLoadMore = async () => {
-    setLoadingMore(true);
-    const offset = notifications.length;
-    const more = await getNotifications({ limit: PAGE_SIZE, offset });
-    setNotifications((prev) => [...prev, ...more]);
-    setHasMore(more.length === PAGE_SIZE);
-    setLoadingMore(false);
-  };
+  const groupedNotifications = useMemo(
+    () => groupNotificationsByTime(notifications),
+    [notifications],
+  );
 
   const handleMarkAsRead = async (id: string) => {
     await markNotificationAsRead(id);
@@ -79,161 +73,107 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   };
 
   const handleDelete = async (id: string) => {
+    const deletedNotification = notifications.find((notification) => notification.id === id);
+
     await deleteNotification(id);
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    if (!notifications.find((n) => n.id === id)?.isRead) {
+    setNotifications((prev) => prev.filter((notification) => notification.id !== id));
+
+    if (deletedNotification && !deletedNotification.isRead) {
       setUnreadCount((prev) => Math.max(0, prev - 1));
     }
   };
 
-  const handleClick = async (notif: Notification) => {
-    if (!notif.isRead) {
-      await handleMarkAsRead(notif.id);
+  const handleOpenNotification = async (notification: Notification) => {
+    if (!notification.isRead) {
+      await handleMarkAsRead(notification.id);
     }
 
-    if (notif.entitasType && notif.entitasId) {
+    if (notification.entitasType && notification.entitasId) {
       const routes: Record<string, string> = {
         disposisi: "/disposisi",
-        surat_keluar: "/surat-keluar",
-        surat_masuk: "/surat-masuk",
         honorarium_batch: "/jadwal-otomatis/honorarium",
         project: "/projects",
+        surat_keluar: "/surat-keluar",
+        surat_masuk: "/surat-masuk",
       };
-      const baseRoute = routes[notif.entitasType];
+      const baseRoute = routes[notification.entitasType];
+
       if (baseRoute) {
-        router.push(`${baseRoute}/${notif.entitasId}`);
+        router.push(`${baseRoute}/${notification.entitasId}`);
       }
     }
 
     setOpen(false);
   };
 
-  const getNotificationIcon = (type: string) => {
-    const styles: Record<string, string> = {
-      disposisi_baru: "text-blue-500",
-      disposisi_deadline: "text-amber-500",
-      surat_keluar_approval: "text-purple-500",
-      surat_keluar_revisi: "text-red-500",
-      surat_keluar_selesai: "text-green-500",
-      surat_masuk_baru: "text-cyan-500",
-      project_invitation: "text-indigo-500",
-      mention: "text-pink-500",
-      project_update: "text-teal-500",
-      honorarium_status: "text-emerald-500",
-      system: "text-gray-500",
-    };
-    return styles[type] || "text-gray-500";
-  };
-
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="Buka notifikasi">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <div className="flex items-center justify-between px-3 py-2 border-b">
-          <span className="font-semibold">Notifikasi</span>
+
+      <DropdownMenuContent
+        align="end"
+        className="w-[calc(100vw-2rem)] overflow-hidden p-0 sm:w-96"
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+          <h2 className="text-base font-medium leading-none">Notifikasi</h2>
           {unreadCount > 0 && (
             <Button
-              variant="ghost"
+              type="button"
+              variant="link"
               size="sm"
-              onClick={handleMarkAllAsRead}
-              className="h-auto py-1 px-2 text-xs"
+              className="h-auto px-0 py-0 text-xs"
+              onClick={() => void handleMarkAllAsRead()}
             >
               Tandai semua dibaca
             </Button>
           )}
         </div>
 
-        <ScrollArea className="h-80">
+        <ScrollArea className="h-[28rem] max-h-[calc(100vh-10rem)]">
           {notifications.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground text-sm">
-              Tidak ada notifikasi
-            </div>
+            <NotificationEmptyState />
           ) : (
-            <>
-              {notifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  className={`px-3 py-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0 ${
-                    !notif.isRead ? "bg-muted/30" : ""
-                  }`}
-                  onClick={() => handleClick(notif)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 ${getNotificationIcon(notif.type)}`}>
-                      <div className="h-2 w-2 rounded-full bg-current" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${!notif.isRead ? "text-foreground" : "text-muted-foreground"}`}>
-                        {notif.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                        {notif.message}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {formatTanggalWaktuJakarta(notif.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {!notif.isRead && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMarkAsRead(notif.id);
-                          }}
-                        >
-                          <Check className="h-3 w-3" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(notif.id);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+            <div>
+              {groupedNotifications.map((group) => (
+                <section key={group.key}>
+                  <div className="px-4 pb-1.5 pt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {group.label}
                   </div>
-                </div>
+                  {group.notifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      onOpen={(selectedNotification) => void handleOpenNotification(selectedNotification)}
+                      onMarkAsRead={(id) => void handleMarkAsRead(id)}
+                      onDelete={(id) => void handleDelete(id)}
+                    />
+                  ))}
+                </section>
               ))}
-              {hasMore && (
-                <div className="px-3 py-2 flex justify-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                    className="text-xs w-full"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        Memuat...
-                      </>
-                    ) : (
-                      "Muat lebih banyak"
-                    )}
-                  </Button>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </ScrollArea>
+
+        <div className="border-t border-border/60 px-4 py-3">
+          <Button
+            asChild
+            variant="link"
+            className="h-auto px-0 py-0 text-sm font-medium"
+          >
+            <Link href="/notifikasi" onClick={() => setOpen(false)}>
+              Lihat semua notifikasi →
+            </Link>
+          </Button>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

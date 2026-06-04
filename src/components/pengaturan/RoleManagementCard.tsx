@@ -32,6 +32,8 @@ import {
   type RoleManagementRow,
 } from "@/server/actions/roles";
 
+const KODE_REGEX = /^[a-z0-9_-]+$/;
+
 interface RoleManagementCardProps {
   roles: RoleManagementRow[];
   capabilityGroups: Array<{ label: string; capabilities: Capability[] }>;
@@ -44,6 +46,11 @@ type Draft = {
   kode: string;
   isSystem?: boolean;
   capabilities: Capability[];
+};
+
+type FieldErrors = {
+  nama?: string;
+  kode?: string;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -60,6 +67,7 @@ export function RoleManagementCard({
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isPending, startTransition] = useTransition();
 
   const selectedSet = useMemo(
@@ -69,6 +77,7 @@ export function RoleManagementCard({
 
   function openCreate() {
     setDraft(EMPTY_DRAFT);
+    setFieldErrors({});
     setDialogOpen(true);
   }
 
@@ -80,6 +89,7 @@ export function RoleManagementCard({
       isSystem: role.isSystem,
       capabilities: role.capabilities,
     });
+    setFieldErrors({});
     setDialogOpen(true);
   }
 
@@ -93,10 +103,29 @@ export function RoleManagementCard({
   }
 
   function handleSubmit() {
+    const errors: FieldErrors = {};
+    const trimmedNama = draft.nama.trim();
+    const trimmedKode = draft.kode.trim();
+
+    if (trimmedNama.length < 2) {
+      errors.nama = "Nama role minimal 2 karakter.";
+    }
+    if (trimmedKode.length < 2) {
+      errors.kode = "Kode role minimal 2 karakter.";
+    } else if (!KODE_REGEX.test(trimmedKode)) {
+      errors.kode = "Kode hanya boleh huruf kecil, angka, underscore, atau dash.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setFieldErrors({});
     startTransition(async () => {
       const payload = {
-        nama: draft.nama,
-        kode: draft.kode,
+        nama: trimmedNama,
+        kode: trimmedKode,
         capabilities: draft.capabilities,
       };
       const result = draft.id
@@ -107,7 +136,7 @@ export function RoleManagementCard({
         toast.error(result.error);
         return;
       }
-      toast.success(draft.id ? "Role diperbarui." : "Role dibuat.");
+      toast.success(draft.id ? "Role berhasil diperbarui." : "Role berhasil dibuat.");
       setDialogOpen(false);
       router.refresh();
     });
@@ -189,10 +218,15 @@ export function RoleManagementCard({
               <Input
                 id="role-name"
                 value={draft.nama}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, nama: event.target.value }))
-                }
+                aria-invalid={!!fieldErrors.nama}
+                onChange={(event) => {
+                  setDraft((current) => ({ ...current, nama: event.target.value }));
+                  if (fieldErrors.nama) setFieldErrors((e) => ({ ...e, nama: undefined }));
+                }}
               />
+              {fieldErrors.nama && (
+                <p className="text-xs text-destructive">{fieldErrors.nama}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="role-code">Kode</Label>
@@ -200,10 +234,18 @@ export function RoleManagementCard({
                 id="role-code"
                 value={draft.kode}
                 disabled={draft.isSystem}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, kode: event.target.value }))
-                }
+                aria-invalid={!!fieldErrors.kode}
+                placeholder="contoh: staff-kursus"
+                onChange={(event) => {
+                  setDraft((current) => ({ ...current, kode: event.target.value.toLowerCase().replace(/\s+/g, "-") }));
+                  if (fieldErrors.kode) setFieldErrors((e) => ({ ...e, kode: undefined }));
+                }}
               />
+              {fieldErrors.kode ? (
+                <p className="text-xs text-destructive">{fieldErrors.kode}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Huruf kecil, angka, underscore, atau dash.</p>
+              )}
             </div>
           </div>
 

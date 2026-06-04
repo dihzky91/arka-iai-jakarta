@@ -1,6 +1,6 @@
 ﻿"use server";
 
-import { and, count, desc, eq, lt, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -99,12 +99,48 @@ export async function listInvitations(): Promise<InvitationRow[]> {
     .orderBy(desc(userInvitations.createdAt))
     .limit(200);
 
+  // Self-healing: reconcile stale pending invitations
+  const reconciledIds = await reconcilePendingInvitations(rows);
+
   return rows.map((r) => ({
     ...r,
+    status: reconciledIds.has(r.id) ? "accepted" : r.status,
     roleName: r.roleName ?? null,
     divisiNama: r.divisiNama ?? null,
     invitedByName: r.invitedByName ?? "Sistem",
   }));
+}
+
+/**
+ * Auto-reconcile: jika ada invitation pending tetapi user terkait sudah aktif,
+ * mark invitation sebagai accepted. Returns set of reconciled invitation IDs.
+ */
+async function reconcilePendingInvitations(invitationRows: Array<{ id: string; email: string; status: string }>): Promise<Set<string>> {
+  const pendingRows = invitationRows.filter((r) => r.status === "pending");
+  if (pendingRows.length === 0) return new Set();
+
+  const pendingEmails = pendingRows.map((r) => r.email);
+  const activeUsers = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(and(inArray(users.email, pendingEmails), eq(users.isActive, true)));
+
+  const activeEmailSet = new Set(activeUsers.map((u) => u.email));
+  const toReconcile = pendingRows.filter((r) => activeEmailSet.has(r.email));
+
+  const reconciledIds = new Set<string>();
+  if (toReconcile.length > 0) {
+    const now = new Date();
+    for (const inv of toReconcile) {
+      await db
+        .update(userInvitations)
+        .set({ status: "accepted", usedAt: now })
+        .where(eq(userInvitations.id, inv.id));
+      reconciledIds.add(inv.id);
+    }
+  }
+
+  return reconciledIds;
 }
 
 export async function listUsersForManagement(options?: {

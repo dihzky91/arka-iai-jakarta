@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Archive, CalendarX, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -168,14 +168,8 @@ export function UjianTable({
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
+        <CardContent className="space-y-4 pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Jadwal Ujian</CardTitle>
-              <CardDescription className="mt-1">
-                Daftar seluruh jadwal ujian, pengawas, dan status konflik penugasan.
-              </CardDescription>
-            </div>
             <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
               <Button
                 variant={showPastExams ? "secondary" : "outline"}
@@ -202,8 +196,6 @@ export function UjianTable({
               )}
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
           <div className="grid gap-3 lg:grid-cols-[auto_1fr]">
             <Select value={filterProgram} onValueChange={setFilterProgram}>
               <SelectTrigger className="w-full sm:w-48">

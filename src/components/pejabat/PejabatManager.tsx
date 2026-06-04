@@ -8,9 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -88,22 +85,14 @@ export function PejabatManager({
       </section>
 
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>Pejabat Penandatangan</CardTitle>
-              <CardDescription>
-                Kelola daftar pejabat aktif yang dapat dipilih pada dokumen persuratan.
-              </CardDescription>
-            </div>
+        <CardContent className="pt-6">
+          <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {canManage ? (
               <Button onClick={() => setFormState({ open: true, mode: "create" })}>
                 <Plus className="h-4 w-4" />
                 Tambah Pejabat
               </Button>
             ) : null}
-          </div>
-          <div className="pt-2">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -111,8 +100,7 @@ export function PejabatManager({
               className="max-w-md"
             />
           </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredData.length ? (
             filteredData.map((row) => (
               <Card key={row.id} className="rounded-[24px] border border-border shadow-none">
@@ -170,6 +158,7 @@ export function PejabatManager({
               Tidak ada data pejabat yang sesuai dengan pencarian.
             </div>
           )}
+          </div>
         </CardContent>
       </Card>
 

@@ -25,7 +25,7 @@ export default async function Page() {
   return (
     <PageWrapper
       title="Arsip Surat Masuk"
-      description="Daftar surat masuk yang tercatat."
+      description="Catat surat masuk, buka detail arsip, dan teruskan ke alur disposisi saat perlu tindak lanjut."
     >
       <SuratMasukManager
         initialData={data}

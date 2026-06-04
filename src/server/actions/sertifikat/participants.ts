@@ -686,8 +686,9 @@ export async function reissueParticipant(
   }
 
   try {
+    // 1. Revoke old participant
+    // 2. Create new participant with new noSertifikat (auto-generate)
     const newRow = await db.transaction(async (tx) => {
-      // 1. Revoke old participant
       await tx
         .update(participants)
         .set({
@@ -699,7 +700,6 @@ export async function reissueParticipant(
         })
         .where(eq(participants.id, parsedOldId));
 
-      // 2. Create new participant with new noSertifikat (auto-generate)
       const newNoSertifikat = await generateNoSertifikat(old.eventId, tx);
 
       const [created] = await tx

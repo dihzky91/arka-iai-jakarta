@@ -16,9 +16,6 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Select,
@@ -348,21 +345,13 @@ export function NarasumberListClient({ initialData }: NarasumberListClientProps)
   return (
     <>
       <Card className="rounded-[24px]">
-        <CardHeader className="border-b border-border/60">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Daftar Narasumber</CardTitle>
-              <CardDescription className="mt-1">
-                Kelola profil narasumber, keahlian, dan fee honorarium.
-              </CardDescription>
-            </div>
+        <CardContent className="pt-6">
+          <div className="mb-4 flex justify-end">
             <Button onClick={openCreateDialog}>
               <Plus className="h-4 w-4" />
               Tambah Narasumber
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
           <div className="space-y-4">
             {/* Filters */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

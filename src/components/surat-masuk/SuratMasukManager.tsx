@@ -11,9 +11,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -297,15 +294,8 @@ export function SuratMasukManager({
         </section>
 
         <Card className="rounded-[24px]">
-          <CardHeader className="border-b border-border">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle>Arsip Surat Masuk</CardTitle>
-                <CardDescription className="mt-1">
-                  Catat surat masuk, buka detail arsip, dan teruskan ke alur
-                  disposisi saat perlu tindak lanjut.
-                </CardDescription>
-              </div>
+          <CardContent className="pt-6">
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-end">
               {canManage ? (
                 <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
                   <Button
@@ -331,8 +321,6 @@ export function SuratMasukManager({
                 </Button>
               )}
             </div>
-          </CardHeader>
-          <CardContent className="pt-6">
             <DataTable
               columns={columns}
               data={initialData}
