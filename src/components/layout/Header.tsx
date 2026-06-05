@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { ChevronDown, LogOut, Menu, Palette, Search, ShieldCheck, User } from "lucide-react";
@@ -196,6 +197,12 @@ export function Header({ userName, userId, userRole, isSuperAdmin, colorTheme = 
                 </TooltipProvider>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profil" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Profil Saya
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 Keluar

@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import {
   getNavigationItem,
@@ -324,80 +324,182 @@ export function Sidebar({
         </div>
       </aside>
 
-      {/* MOBILE DIALOG */}
-      <Dialog open={mobileOpen} onOpenChange={onMobileOpenChange}>
-        <DialogContent
-          showCloseButton={false}
-          className="left-0 top-0 h-dvh w-[min(22rem,100vw-1rem)] max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-y-0 border-l-0 p-0 sm:max-w-none"
-          aria-describedby={undefined}
-        >
-          <DialogTitle className="sr-only">Navigasi utama</DialogTitle>
-          <div className="flex h-full min-h-0 flex-col bg-card">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                  <Landmark className="h-5 w-5" />
+      {/* MOBILE DRAWER */}
+      <Drawer open={mobileOpen} onOpenChange={onMobileOpenChange}>
+        <DrawerContent side="left" aria-describedby={undefined}>
+          <DrawerTitle className="sr-only">Navigasi utama</DrawerTitle>
+          <div className="flex h-full min-h-0 flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-primary text-primary-foreground">
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt={appName} className="h-full w-full object-contain" />
+                  ) : (
+                    <Landmark className="h-4 w-4" />
+                  )}
                 </div>
-                <span className="font-outfit font-medium text-foreground">{appName}</span>
+                <span className="font-outfit text-sm font-medium text-foreground">{appName}</span>
               </div>
               <button
                 type="button"
                 onClick={() => onMobileOpenChange?.(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Tutup navigasi"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-              {visibleSections.map((section) => (
-                <div key={section.title} className="space-y-3">
-                  <h3 className="font-outfit text-sm font-medium text-foreground flex items-center gap-2">
-                     <section.icon className="h-4 w-4 text-primary" />
-                     {section.title}
-                  </h3>
-                  <ul className="space-y-1">
-                    {(() => {
-                      const matchingItems = section.items.filter(
-                        (i) => i.active && (pathname === i.href || pathname.startsWith(`${i.href}/`))
-                      );
-                      const bestMatchHref = matchingItems.sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
-                      let lastGroup: string | undefined;
-                      return section.items.map((item) => {
-                      const isActive = bestMatchHref === item.href;
-                      const showGroupLabel = item.group && item.group !== lastGroup;
-                      if (item.group) lastGroup = item.group;
-                      return (
-                        <li key={item.href}>
-                          {showGroupLabel && (
-                            <p className="mb-0.5 mt-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground first:mt-0">
-                              {item.group}
-                            </p>
-                          )}
-                          <Link
-                            href={item.href}
-                            onClick={() => onMobileOpenChange?.(false)}
-                            aria-current={isActive ? "page" : undefined}
-                            className={cn(
-                              "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-normal transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                              isActive
-                                ? "bg-primary/10 font-medium text-primary"
-                                : "text-muted-foreground hover:bg-muted"
-                            )}
-                          >
-                            <span className="flex-1">{item.label}</span>
-                          </Link>
-                        </li>
-                      );
-                    });
-                    })()}
-                  </ul>
+            {/* Collapsible Sections */}
+            <nav className="flex-1 overflow-y-auto py-3">
+              {visibleSections.map((section) => {
+                const sectionHasActiveItem = section.items.some(
+                  (i) => i.active && (pathname === i.href || pathname.startsWith(`${i.href}/`))
+                );
+                return (
+                  <MobileNavSection
+                    key={section.title}
+                    section={section}
+                    pathname={pathname}
+                    defaultOpen={sectionHasActiveItem}
+                    unreadDisposisiCount={unreadDisposisiCount}
+                    unreadAnnouncementCount={unreadAnnouncementCount}
+                    onNavigate={() => onMobileOpenChange?.(false)}
+                  />
+                );
+              })}
+            </nav>
+
+            {/* Footer */}
+            <div className="border-t border-border/60 px-4 py-3">
+              <div className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3 py-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-medium">
+                  {userRole?.charAt(0).toUpperCase() || "A"}
                 </div>
-              ))}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-foreground truncate capitalize">{userRole || "Administrator"}</p>
+                </div>
+              </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
     </>
+  );
+}
+
+// --- Collapsible section for mobile navigation ---
+
+interface MobileNavSectionProps {
+  section: NavigationSection;
+  pathname: string;
+  defaultOpen: boolean;
+  unreadDisposisiCount: number;
+  unreadAnnouncementCount: number;
+  onNavigate: () => void;
+}
+
+function MobileNavSection({
+  section,
+  pathname,
+  defaultOpen,
+  unreadDisposisiCount,
+  unreadAnnouncementCount,
+  onNavigate,
+}: MobileNavSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  // Compute best matching item for active state
+  const matchingItems = section.items.filter(
+    (i) => i.active && (pathname === i.href || pathname.startsWith(`${i.href}/`))
+  );
+  const bestMatchHref = [...matchingItems].sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+
+  return (
+    <div className="px-2">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
+          open ? "bg-muted/50" : "hover:bg-muted/30",
+        )}
+        aria-expanded={open}
+      >
+        <section.icon
+          className={cn(
+            "h-4 w-4 shrink-0",
+            bestMatchHref ? "text-primary" : "text-muted-foreground",
+          )}
+          strokeWidth={bestMatchHref ? 2.5 : 2}
+        />
+        <span className="flex-1 text-sm font-medium text-foreground">{section.title}</span>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open && (
+        <ul className="mt-1 space-y-0.5 pb-2 pl-3">
+          {section.items.map((item) => {
+            const isActive = bestMatchHref === item.href;
+            const unreadCount =
+              (item.href === "/disposisi" ? unreadDisposisiCount : 0) +
+              (item.href === "/pengumuman" ? unreadAnnouncementCount : 0);
+
+            if (!item.active) {
+              return (
+                <li key={item.href}>
+                  <div className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
+                    <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    <LockKeyhole className="h-3 w-3" />
+                  </div>
+                </li>
+              );
+            }
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive
+                      ? "bg-primary/10 font-medium text-primary"
+                      : "text-foreground/70 hover:bg-muted/50 hover:text-foreground",
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "h-4 w-4 shrink-0",
+                      isActive ? "text-primary" : "text-muted-foreground",
+                    )}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {unreadCount > 0 && (
+                    <Badge
+                      variant={isActive ? "default" : "secondary"}
+                      className="rounded-full px-1.5 h-4.5 min-w-4.5 flex items-center justify-center text-[10px]"
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Badge>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

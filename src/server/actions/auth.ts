@@ -270,13 +270,20 @@ function permissionToLegacyCapability(
   return PERMISSION_TO_CAPABILITY.jadwalUjian[action] ?? null;
 }
 
-// Guard helper: pastikan user sudah login.
-// Throw "Unauthorized" jika tidak ada session.
-export async function requireSession(): Promise<AuthSession> {
+// Ambil session tanpa throw - dipakai di layout/middleware untuk cek login state.
+export const getSession = cache(async (): Promise<AuthSession | null> => {
   const headersList = await headers();
   const session = await auth.api.getSession({
     headers: headersList,
   });
+  return session ?? null;
+});
+
+// Guard helper: pastikan user sudah login.
+// Throw "Unauthorized" jika tidak ada session.
+// Menggunakan getSession() yang sudah di-cache supaya tidak hit auth API berulang.
+export async function requireSession(): Promise<AuthSession> {
+  const session = await getSession();
   if (!session) throw new Error("Unauthorized");
   return session;
 }
@@ -287,7 +294,8 @@ type AccessRow = {
   isSuperAdmin: boolean;
 };
 
-async function getUserAccess(userId: string): Promise<AccessRow | null> {
+// Di-cache per request supaya multiple permission check tidak query DB berulang.
+const getUserAccess = cache(async (userId: string): Promise<AccessRow | null> => {
   const [row] = await db
     .select({
       role: users.role,
@@ -305,7 +313,7 @@ async function getUserAccess(userId: string): Promise<AccessRow | null> {
         isSuperAdmin: row.isSuperAdmin === true,
       }
     : null;
-}
+});
 
 async function userHasCapability(
   access: AccessRow,
@@ -430,13 +438,4 @@ export const getCurrentUserAccess = cache(async (): Promise<{
           ]
         : [],
   };
-});
-
-// Ambil session tanpa throw - dipakai di layout/middleware untuk cek login state.
-export const getSession = cache(async (): Promise<AuthSession | null> => {
-  const headersList = await headers();
-  const session = await auth.api.getSession({
-    headers: headersList,
-  });
-  return session ?? null;
 });

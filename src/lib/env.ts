@@ -22,9 +22,12 @@ function readEnvOptional(key: string): string {
 }
 
 // ─── PRODUCTION FAIL-FAST ─────────────────────────────────────────────────────
-// Di production, env kritis WAJIB ada. App harus crash saat startup, bukan saat
-// query pertama gagal dengan error yang tidak jelas.
-if (IS_PRODUCTION) {
+// Di production RUNTIME, env kritis WAJIB ada. App harus crash saat startup,
+// bukan saat query pertama gagal dengan error yang tidak jelas.
+// Skip saat build phase (NEXT_PHASE=phase-production-build) supaya next build tetap jalan.
+const IS_BUILD_PHASE = process.env.NEXT_PHASE === "phase-production-build";
+
+if (IS_PRODUCTION && !IS_BUILD_PHASE) {
   const REQUIRED_IN_PRODUCTION = [
     "DATABASE_URL",
     "BETTER_AUTH_SECRET",

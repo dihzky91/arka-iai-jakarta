@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { JadwalUjianPengaturan } from "@/components/jadwal-ujian/JadwalUjianPengaturan";
-import { getSession } from "@/server/actions/auth";
 import { listKonfig } from "@/server/actions/jadwal-ujian/config";
 
 export const metadata: Metadata = {
@@ -10,10 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const session = await getSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (role !== "admin") notFound();
-
+  // listKonfig() sudah memanggil requirePermission("jadwalUjian", "configure")
+  // yang akan throw Forbidden jika user bukan admin/punya capability.
+  // Tidak perlu manual getSession() + role check lagi.
   const rows = await listKonfig();
 
   return (

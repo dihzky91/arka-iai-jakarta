@@ -42,6 +42,13 @@ export async function getMyProfile(): Promise<ProfileRow | null> {
 }
 
 const profileUpdateSchema = z.object({
+  namaLengkap: z
+    .string()
+    .trim()
+    .min(2, "Nama minimal 2 karakter")
+    .max(100, "Nama maksimal 100 karakter")
+    .optional()
+    .or(z.literal("")),
   emailPribadi: z
     .string()
     .trim()
@@ -62,6 +69,7 @@ export async function updateMyProfile(formData: FormData) {
   const session = await requireSession();
 
   const parsed = profileUpdateSchema.safeParse({
+    namaLengkap: formData.get("namaLengkap") ?? "",
     emailPribadi: formData.get("emailPribadi") ?? "",
     noHp: formData.get("noHp") ?? "",
   });
@@ -101,9 +109,12 @@ export async function updateMyProfile(formData: FormData) {
     avatarUrl = result.url;
   }
 
+  const namaLengkap = parsed.data.namaLengkap || undefined;
+
   await db
     .update(users)
     .set({
+      ...(namaLengkap && { namaLengkap }),
       emailPribadi: parsed.data.emailPribadi || null,
       noHp: parsed.data.noHp || null,
       ...(avatarUrl !== undefined && { avatarUrl }),
@@ -117,6 +128,7 @@ export async function updateMyProfile(formData: FormData) {
     entitasType: "user",
     entitasId: session.user.id,
     detail: {
+      namaLengkapChanged: !!namaLengkap,
       emailPribadiChanged: !!parsed.data.emailPribadi,
       noHpChanged: !!parsed.data.noHp,
       avatarChanged: !!avatarUrl,
@@ -124,6 +136,7 @@ export async function updateMyProfile(formData: FormData) {
   });
 
   revalidatePath("/pengaturan");
+  revalidatePath("/profil");
   revalidatePath("/dashboard");
   return { ok: true as const };
 }
