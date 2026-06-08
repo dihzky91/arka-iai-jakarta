@@ -579,7 +579,7 @@ function InviteDialog({
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="nama@iai-jakarta.or.id"
+                      placeholder="nama@email.com"
                       {...field}
                     />
                   </FormControl>

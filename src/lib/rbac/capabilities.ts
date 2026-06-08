@@ -107,6 +107,8 @@ export const CAPABILITIES = [
   "ppl_evaluasi:view",
   "ppl_evaluasi:manage",
   "ppl_evaluasi:export",
+  "tft:view",
+  "tft:manage",
   "mail_template:view",
   "mail_template:manage",
   "mail_template:logs",
@@ -263,6 +265,13 @@ export const CAPABILITY_GROUPS: Array<{
     ],
   },
   {
+    label: "TFT / Rekrutmen Instruktur",
+    capabilities: [
+      "tft:view",
+      "tft:manage",
+    ],
+  },
+  {
     label: "Sistem",
     capabilities: [
       "pengaturan:view",
@@ -385,6 +394,8 @@ export const CAPABILITY_LABELS: Record<Capability, string> = {
   "ppl_evaluasi:view": "Lihat kegiatan PPL & evaluasi",
   "ppl_evaluasi:manage": "Kelola kegiatan PPL, narasumber & kuesioner",
   "ppl_evaluasi:export": "Export data evaluasi & program tahunan",
+  "tft:view": "Lihat data TFT / rekrutmen instruktur",
+  "tft:manage": "Kelola periode TFT, pendaftar & penilaian",
   "mail_template:view": "Lihat mail template & logs",
   "mail_template:manage": "Kelola mail template & layout",
   "mail_template:logs": "Akses send logs email",

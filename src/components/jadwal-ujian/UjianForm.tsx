@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ujianCreateSchema, type UjianCreateInput } from "@/lib/validators/jadwalUjian.schema";
-import { createUjian, updateUjian, type UjianRow } from "@/server/actions/jadwal-ujian/ujian";
+import { createUjian, updateUjian, checkBatchConflicts, type UjianRow } from "@/server/actions/jadwal-ujian/ujian";
 import { getPenugasanByUjian } from "@/server/actions/jadwal-ujian/penugasan";
 import type { KelasRow } from "@/server/actions/jadwal-ujian/kelas";
 import type { PengawasRow } from "@/server/actions/jadwal-ujian/pengawas";
@@ -61,6 +61,10 @@ export function UjianForm({ open, onOpenChange, mode, initialData, kelasList, pe
   const [isPending, startTransition] = useTransition();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedMateri, setSelectedMateri] = useState<string[]>([]);
+  const [conflictConfirm, setConflictConfirm] = useState<{
+    values: UjianCreateInput;
+    konflikPengawas: { id: string; nama: string }[];
+  } | null>(null);
 
   const form = useForm<UjianCreateInput>({
     resolver: zodResolver(ujianCreateSchema),
@@ -133,6 +137,28 @@ export function UjianForm({ open, onOpenChange, mode, initialData, kelasList, pe
   function onSubmit(values: UjianCreateInput) {
     startTransition(async () => {
       const pengawasIds = Array.from(selectedIds);
+
+      // Pre-check konflik sebelum simpan (kecuali sudah di-confirm)
+      if (pengawasIds.length > 0 && !conflictConfirm) {
+        const excludeId = mode === "edit" && initialData ? initialData.id : undefined;
+        const conflicts = await checkBatchConflicts({
+          pengawasIds,
+          tanggalUjian: values.tanggalUjian,
+          jamMulai: values.jamMulai,
+          jamSelesai: values.jamSelesai,
+          excludeUjianId: excludeId,
+        });
+
+        if (conflicts.length > 0) {
+          const konflikPengawas = conflicts.map((c) => ({
+            id: c.pengawasId,
+            nama: pengawasList.find((p) => p.id === c.pengawasId)?.nama ?? c.pengawasId,
+          }));
+          setConflictConfirm({ values, konflikPengawas });
+          return;
+        }
+      }
+
       const res =
         mode === "edit" && initialData
           ? await updateUjian({ ...values, id: initialData.id, pengawasIds })
@@ -151,10 +177,34 @@ export function UjianForm({ open, onOpenChange, mode, initialData, kelasList, pe
         warnings.push(`Konflik pengawas: ${namaKonflik}`);
       }
       if (warnings.length > 0) {
-        toast.warning(`Jadwal disimpan, namun terdeteksi konflik. ${warnings.join(" | ")}`);
+        toast.warning(`Jadwal disimpan dengan konflik (force). ${warnings.join(" | ")}`);
       } else {
         toast.success(mode === "edit" ? "Jadwal ujian diperbarui." : "Jadwal ujian berhasil dibuat.");
       }
+      setConflictConfirm(null);
+      onOpenChange(false);
+    });
+  }
+
+  function handleForceSubmit() {
+    if (!conflictConfirm) return;
+    // Langsung submit tanpa pre-check lagi
+    const { values } = conflictConfirm;
+    startTransition(async () => {
+      const pengawasIds = Array.from(selectedIds);
+      const res =
+        mode === "edit" && initialData
+          ? await updateUjian({ ...values, id: initialData.id, pengawasIds })
+          : await createUjian({ ...values, pengawasIds });
+
+      if (!res.ok) {
+        toast.error(res.error);
+        setConflictConfirm(null);
+        return;
+      }
+
+      toast.warning("Jadwal disimpan meskipun ada konflik pengawas.");
+      setConflictConfirm(null);
       onOpenChange(false);
     });
   }
@@ -374,7 +424,7 @@ export function UjianForm({ open, onOpenChange, mode, initialData, kelasList, pe
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-800">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                 <p className="text-xs">
-                  Konflik jadwal akan terdeteksi otomatis saat menyimpan dan ditampilkan sebagai peringatan.
+                  Konflik jadwal akan dicek otomatis saat menyimpan. Jika ada konflik, Anda akan diminta konfirmasi.
                 </p>
               </div>
             )}
@@ -390,6 +440,49 @@ export function UjianForm({ open, onOpenChange, mode, initialData, kelasList, pe
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Dialog konfirmasi konflik batch */}
+      {conflictConfirm && (
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Konflik Jadwal Terdeteksi
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p>Pengawas berikut memiliki jadwal yang bentrok:</p>
+                <ul className="space-y-1">
+                  {conflictConfirm.konflikPengawas.map((p) => (
+                    <li key={p.id} className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm font-medium">
+                      {p.nama}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Apakah tetap ingin menyimpan jadwal dengan pengawas yang bentrok?
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConflictConfirm(null)}
+              disabled={isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleForceSubmit}
+              disabled={isPending}
+            >
+              {isPending ? "Menyimpan..." : "Tetap Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      )}
     </Dialog>
   );
 }

@@ -221,7 +221,7 @@ export function PegawaiForm({
                 <FormItem>
                   <FormLabel>Email Kantor</FormLabel>
                   <FormControl>
-                    <Input placeholder="nama@iai-jakarta.or.id" {...field} />
+                    <Input placeholder="nama@email.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

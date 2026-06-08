@@ -413,6 +413,16 @@ export const navigationSections: NavigationSection[] = [
         allowedRoles: ["admin"],
         requiredCapability: "jadwal_ujian:configure",
       },
+      // — Rekrutmen
+      {
+        href: "/jadwal-otomatis/tft",
+        label: "TFT / Rekrutmen",
+        icon: UserCheck,
+        active: true,
+        group: "Rekrutmen",
+        allowedRoles: ["admin", "staff"],
+        requiredCapability: "tft:view",
+      },
     ],
   },
   {

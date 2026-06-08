@@ -94,6 +94,7 @@ export type UjianFilter = z.infer<typeof ujianFilterSchema>;
 export const assignPengawasSchema = z.object({
   ujianId: z.string().min(1),
   pengawasId: z.string().min(1),
+  forceAssign: z.boolean().optional(),
 });
 
 export type AssignPengawasInput = z.infer<typeof assignPengawasSchema>;

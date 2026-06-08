@@ -40,7 +40,8 @@ export type PermissionModule =
   | "invoice"
   | "kuitansi"
   | "penilaianKinerja"
-  | "pplEvaluasi";
+  | "pplEvaluasi"
+  | "tft";
 
 export type PermissionAction =
   | "view"
@@ -247,6 +248,13 @@ const PERMISSION_TO_CAPABILITY: Record<
     delete: "ppl_evaluasi:manage",
     manage: "ppl_evaluasi:manage",
     export: "ppl_evaluasi:export",
+  },
+  tft: {
+    view: "tft:view",
+    create: "tft:manage",
+    update: "tft:manage",
+    delete: "tft:manage",
+    manage: "tft:manage",
   },
 };
 

@@ -3216,3 +3216,170 @@ export type EmailTemplateVersion = typeof emailTemplateVersions.$inferSelect;
 export type NewEmailTemplateVersion = typeof emailTemplateVersions.$inferInsert;
 export type EmailSendLog = typeof emailSendLogs.$inferSelect;
 export type NewEmailSendLog = typeof emailSendLogs.$inferInsert;
+
+// ─── TFT (Training for Trainers) ─────────────────────────────────────────────
+
+export const statusPeriodeTftEnum = pgEnum("status_periode_tft", [
+  "draft",
+  "buka",
+  "tutup",
+  "penilaian",
+  "selesai",
+]);
+
+export const statusPendaftarTftEnum = pgEnum("status_pendaftar_tft", [
+  "baru",
+  "review",
+  "diterima",
+  "ditolak",
+]);
+
+export const programTftEnum = pgEnum("program_tft", [
+  "brevet_ab",
+  "brevet_c",
+  "all",
+]);
+
+export const periodeTft = pgTable("periode_tft", {
+  id: text("id").primaryKey(),
+  judul: varchar("judul", { length: 300 }).notNull(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  deskripsi: text("deskripsi"),
+  tanggalMulai: date("tanggal_mulai").notNull(),
+  tanggalSelesai: date("tanggal_selesai").notNull(),
+  waktuMulai: varchar("waktu_mulai", { length: 5 }),
+  waktuSelesai: varchar("waktu_selesai", { length: 5 }),
+  lokasi: varchar("lokasi", { length: 300 }),
+  batasPendaftaran: timestamp("batas_pendaftaran"),
+  status: statusPeriodeTftEnum("status").default("draft").notNull(),
+  program: programTftEnum("program").notNull(),
+  maxPeserta: integer("max_peserta"),
+  skorMinimum: numeric("skor_minimum", { precision: 5, scale: 2 }),
+  catatanInternal: text("catatan_internal"),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const pendaftarTft = pgTable(
+  "pendaftar_tft",
+  {
+    id: text("id").primaryKey(),
+    periodeId: text("periode_id")
+      .notNull()
+      .references(() => periodeTft.id, { onDelete: "cascade" }),
+    namaLengkap: varchar("nama_lengkap", { length: 200 }).notNull(),
+    email: varchar("email", { length: 150 }).notNull(),
+    noHp: varchar("no_hp", { length: 30 }).notNull(),
+    pekerjaan: text("pekerjaan"),
+    alamatPekerjaan: text("alamat_pekerjaan"),
+    alamatDomisili: text("alamat_domisili"),
+    materiBrevetAb: text("materi_brevet_ab")
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    materiBrevetC: text("materi_brevet_c")
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    bersediaHadir: boolean("bersedia_hadir").default(true).notNull(),
+    cvStorageKey: text("cv_storage_key"),
+    cvOriginalName: varchar("cv_original_name", { length: 300 }),
+    status: statusPendaftarTftEnum("status").default("baru").notNull(),
+    skorAkhir: numeric("skor_akhir", { precision: 5, scale: 2 }),
+    catatanAdmin: text("catatan_admin"),
+    reviewedBy: text("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at"),
+    instructorId: text("instructor_id").references(() => instructors.id, { onDelete: "set null" }),
+    submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    periodeIdx: index("idx_pendaftar_tft_periode").on(t.periodeId),
+    emailIdx: index("idx_pendaftar_tft_email").on(t.email),
+    statusIdx: index("idx_pendaftar_tft_status").on(t.status),
+    uniquePeriodeEmail: uniqueIndex("uniq_pendaftar_tft_periode_email").on(t.periodeId, t.email),
+  }),
+);
+
+export const kriteriaPenilaianTft = pgTable(
+  "kriteria_penilaian_tft",
+  {
+    id: text("id").primaryKey(),
+    periodeId: text("periode_id")
+      .notNull()
+      .references(() => periodeTft.id, { onDelete: "cascade" }),
+    nama: varchar("nama", { length: 200 }).notNull(),
+    deskripsi: text("deskripsi"),
+    bobot: numeric("bobot", { precision: 5, scale: 2 }).notNull(),
+    skorMin: numeric("skor_min", { precision: 5, scale: 2 }).default("0").notNull(),
+    skorMax: numeric("skor_max", { precision: 5, scale: 2 }).default("100").notNull(),
+    urutan: integer("urutan").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    periodeIdx: index("idx_kriteria_tft_periode").on(t.periodeId),
+  }),
+);
+
+export const penilaiTft = pgTable(
+  "penilai_tft",
+  {
+    id: text("id").primaryKey(),
+    periodeId: text("periode_id")
+      .notNull()
+      .references(() => periodeTft.id, { onDelete: "cascade" }),
+    nama: varchar("nama", { length: 200 }).notNull(),
+    jabatan: varchar("jabatan", { length: 200 }),
+    instansi: varchar("instansi", { length: 200 }),
+    catatan: text("catatan"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    periodeIdx: index("idx_penilai_tft_periode").on(t.periodeId),
+  }),
+);
+
+export const nilaiTft = pgTable(
+  "nilai_tft",
+  {
+    id: text("id").primaryKey(),
+    periodeId: text("periode_id")
+      .notNull()
+      .references(() => periodeTft.id, { onDelete: "cascade" }),
+    pendaftarId: text("pendaftar_id")
+      .notNull()
+      .references(() => pendaftarTft.id, { onDelete: "cascade" }),
+    penilaiId: text("penilai_id")
+      .notNull()
+      .references(() => penilaiTft.id, { onDelete: "cascade" }),
+    kriteriaId: text("kriteria_id")
+      .notNull()
+      .references(() => kriteriaPenilaianTft.id, { onDelete: "cascade" }),
+    skor: numeric("skor", { precision: 5, scale: 2 }).notNull(),
+    catatan: text("catatan"),
+    inputBy: text("input_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    periodeIdx: index("idx_nilai_tft_periode").on(t.periodeId),
+    pendaftarIdx: index("idx_nilai_tft_pendaftar").on(t.pendaftarId),
+    penilaiIdx: index("idx_nilai_tft_penilai").on(t.penilaiId),
+    uniqueNilai: uniqueIndex("uniq_nilai_tft").on(t.pendaftarId, t.penilaiId, t.kriteriaId),
+  }),
+);
+
+// ─── TYPE EXPORTS (TFT) ──────────────────────────────────────────────────────
+
+export type PeriodeTft = typeof periodeTft.$inferSelect;
+export type NewPeriodeTft = typeof periodeTft.$inferInsert;
+export type PendaftarTft = typeof pendaftarTft.$inferSelect;
+export type NewPendaftarTft = typeof pendaftarTft.$inferInsert;
+export type KriteriaPenilaianTft = typeof kriteriaPenilaianTft.$inferSelect;
+export type NewKriteriaPenilaianTft = typeof kriteriaPenilaianTft.$inferInsert;
+export type PenilaiTft = typeof penilaiTft.$inferSelect;
+export type NewPenilaiTft = typeof penilaiTft.$inferInsert;
+export type NilaiTft = typeof nilaiTft.$inferSelect;
+export type NewNilaiTft = typeof nilaiTft.$inferInsert;

@@ -176,7 +176,7 @@ export function LoginPageClient({
               Masuk ke akun Anda
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Gunakan email kantor untuk mengakses dashboard.
+              Gunakan email untuk akses.
             </p>
           </div>
 
@@ -191,7 +191,7 @@ export function LoginPageClient({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nama@iai-jakarta.or.id"
+                  placeholder="nama@email.com"
                   autoComplete="email"
                   aria-invalid={!!error || undefined}
                   className="h-11 pl-10"

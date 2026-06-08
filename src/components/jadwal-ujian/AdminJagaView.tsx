@@ -1107,7 +1107,7 @@ export function AdminJagaView({
           <CardContent className="pt-6">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {beban.map((b) => (
-                <div key={b.pengawasId} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                <div key={b.pengawasId} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{b.namaPengawas}</p>
                     <p className="text-xs text-muted-foreground">{b.jumlah} penugasan</p>
@@ -1120,7 +1120,7 @@ export function AdminJagaView({
       )}
 
       {/* Tabel */}
-      <Card className="rounded-[24px]">
+      <Card className="rounded-[24px] border-0 shadow-none">
         <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>

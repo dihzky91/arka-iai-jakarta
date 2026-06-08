@@ -498,6 +498,41 @@ export async function updateUjian(data: UjianUpdateInput & { pengawasIds?: strin
   return { ok: true as const, data: row, konflikPengawasIds: konflikIds, konflikAdminJagaIds };
 }
 
+// ─── PRE-CHECK KONFLIK (BATCH) ───────────────────────────────────────────────
+
+export type BatchConflictResult = {
+  pengawasId: string;
+  hasConflict: boolean;
+};
+
+/**
+ * Pre-check konflik untuk batch pengawas sebelum create/update.
+ * Dipanggil dari client untuk menampilkan dialog konfirmasi.
+ */
+export async function checkBatchConflicts(params: {
+  pengawasIds: string[];
+  tanggalUjian: string;
+  jamMulai: string;
+  jamSelesai: string;
+  excludeUjianId?: string;
+}): Promise<BatchConflictResult[]> {
+  await requireSession();
+  const { pengawasIds, tanggalUjian, jamMulai, jamSelesai, excludeUjianId } = params;
+  if (pengawasIds.length === 0) return [];
+
+  const konflikMap = await buildKonflikMap(
+    pengawasIds,
+    tanggalUjian,
+    jamMulai,
+    jamSelesai,
+    excludeUjianId ?? "",
+  );
+
+  return pengawasIds
+    .filter((id) => konflikMap[id])
+    .map((id) => ({ pengawasId: id, hasConflict: true }));
+}
+
 export async function deleteUjian(id: string) {
   const session = await requirePermission("jadwalUjian", "configure");
 

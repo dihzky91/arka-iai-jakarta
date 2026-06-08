@@ -73,6 +73,54 @@ async function detectConflict(
   });
 }
 
+export type ConflictDetail = {
+  ujianId: string;
+  mataPelajaran: string[];
+  namaKelas: string;
+  jamMulai: string;
+  jamSelesai: string;
+};
+
+async function getConflictingSchedules(
+  pengawasId: string,
+  tanggalUjian: string,
+  jamMulai: string,
+  jamSelesai: string,
+  excludeUjianId?: string,
+): Promise<ConflictDetail[]> {
+  const existing = await db
+    .select({
+      ujianId: penugasanPengawas.ujianId,
+      mataPelajaran: jadwalUjian.mataPelajaran,
+      namaKelas: kelasUjian.namaKelas,
+      jamMulai: jadwalUjian.jamMulai,
+      jamSelesai: jadwalUjian.jamSelesai,
+    })
+    .from(penugasanPengawas)
+    .leftJoin(jadwalUjian, eq(penugasanPengawas.ujianId, jadwalUjian.id))
+    .leftJoin(kelasUjian, eq(jadwalUjian.kelasId, kelasUjian.id))
+    .where(
+      and(
+        eq(penugasanPengawas.pengawasId, pengawasId),
+        eq(jadwalUjian.tanggalUjian, tanggalUjian),
+      ),
+    );
+
+  return existing
+    .filter((e) => {
+      if (excludeUjianId && e.ujianId === excludeUjianId) return false;
+      if (!e.jamMulai || !e.jamSelesai) return false;
+      return timesOverlap(jamMulai, jamSelesai, e.jamMulai, e.jamSelesai);
+    })
+    .map((e) => ({
+      ujianId: e.ujianId,
+      mataPelajaran: (e.mataPelajaran ?? []) as string[],
+      namaKelas: e.namaKelas ?? "",
+      jamMulai: e.jamMulai!,
+      jamSelesai: e.jamSelesai!,
+    }));
+}
+
 // â”€â”€â”€ QUERIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getPenugasanByUjian(ujianId: string): Promise<PenugasanRow[]> {
@@ -195,6 +243,24 @@ export async function assignPengawas(data: AssignPengawasInput) {
     parsed.ujianId,
   );
 
+  // Soft block: tolak jika konflik dan belum di-force
+  if (konflik && !parsed.forceAssign) {
+    // Ambil detail jadwal yang bentrok untuk ditampilkan ke user
+    const conflictingSchedules = await getConflictingSchedules(
+      parsed.pengawasId,
+      ujian.tanggalUjian,
+      ujian.jamMulai,
+      ujian.jamSelesai,
+      parsed.ujianId,
+    );
+    return {
+      ok: false as const,
+      error: "Pengawas memiliki konflik jadwal di waktu yang sama.",
+      konflikDetected: true,
+      conflictDetails: conflictingSchedules,
+    };
+  }
+
   try {
     const id = nanoid();
     const rows = await db
@@ -219,6 +285,7 @@ export async function assignPengawas(data: AssignPengawasInput) {
         pengawasId: parsed.pengawasId,
         mataPelajaran: ujian.mataPelajaran,
         konflik,
+        forceAssign: parsed.forceAssign ?? false,
       },
     });
 

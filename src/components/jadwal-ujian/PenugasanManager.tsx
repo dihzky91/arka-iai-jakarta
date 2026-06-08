@@ -27,6 +27,7 @@ import {
   assignPengawas,
   unassignPengawas,
   type PenugasanRow,
+  type ConflictDetail,
 } from "@/server/actions/jadwal-ujian/penugasan";
 import type { PengawasRow } from "@/server/actions/jadwal-ujian/pengawas";
 import { APP_TIME_ZONE, parseIsoDateInJakarta } from "@/lib/utils";
@@ -42,6 +43,12 @@ interface PenugasanManagerProps {
   canManage: boolean;
 }
 
+interface ConflictConfirmState {
+  pengawasId: string;
+  pengawasNama: string;
+  details: ConflictDetail[];
+}
+
 export function PenugasanManager({
   ujianId,
   mataPelajaran,
@@ -54,7 +61,9 @@ export function PenugasanManager({
 }: PenugasanManagerProps) {
   const [selectedPengawasId, setSelectedPengawasId] = useState("");
   const [unassignTarget, setUnassignTarget] = useState<PenugasanRow | null>(null);
+  const [conflictConfirm, setConflictConfirm] = useState<ConflictConfirmState | null>(null);
   const [isAssigning, startAssignTransition] = useTransition();
+  const [isForceAssigning, startForceAssignTransition] = useTransition();
   const [isUnassigning, startUnassignTransition] = useTransition();
 
   const assignedIds = new Set(initialPenugasan.map((p) => p.pengawasId));
@@ -65,14 +74,43 @@ export function PenugasanManager({
     startAssignTransition(async () => {
       const res = await assignPengawas({ ujianId, pengawasId: selectedPengawasId });
       if (!res.ok) {
+        // Jika konflik terdeteksi, tampilkan dialog konfirmasi
+        if ("konflikDetected" in res && res.konflikDetected) {
+          const nama = pengawasList.find((p) => p.id === selectedPengawasId)?.nama ?? "Pengawas";
+          setConflictConfirm({
+            pengawasId: selectedPengawasId,
+            pengawasNama: nama,
+            details: ("conflictDetails" in res ? res.conflictDetails : []) as ConflictDetail[],
+          });
+          return;
+        }
         toast.error(res.error);
         return;
       }
       if (res.konflik) {
-        toast.warning("Pengawas berhasil ditugaskan, namun terdeteksi konflik jadwal di waktu yang sama.");
+        toast.warning("Pengawas berhasil ditugaskan (force), namun terdeteksi konflik jadwal di waktu yang sama.");
       } else {
         toast.success("Pengawas berhasil ditugaskan.");
       }
+      setSelectedPengawasId("");
+    });
+  }
+
+  function handleForceAssign() {
+    if (!conflictConfirm) return;
+    startForceAssignTransition(async () => {
+      const res = await assignPengawas({
+        ujianId,
+        pengawasId: conflictConfirm.pengawasId,
+        forceAssign: true,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        setConflictConfirm(null);
+        return;
+      }
+      toast.warning(`${conflictConfirm.pengawasNama} ditugaskan meski ada konflik jadwal.`);
+      setConflictConfirm(null);
       setSelectedPengawasId("");
     });
   }
@@ -202,6 +240,7 @@ export function PenugasanManager({
         </CardContent>
       </Card>
 
+      {/* Dialog: Konfirmasi lepas penugasan */}
       <Dialog
         open={!!unassignTarget}
         onOpenChange={(open) => { if (!open && !isUnassigning) setUnassignTarget(null); }}
@@ -224,6 +263,60 @@ export function PenugasanManager({
             </Button>
             <Button variant="destructive" onClick={handleUnassignConfirm} disabled={isUnassigning}>
               {isUnassigning ? "Memproses..." : "Lepas Penugasan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Konfirmasi force assign saat konflik */}
+      <Dialog
+        open={!!conflictConfirm}
+        onOpenChange={(open) => { if (!open && !isForceAssigning) setConflictConfirm(null); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Konflik Jadwal Terdeteksi
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p>
+                  <span className="font-medium text-foreground">{conflictConfirm?.pengawasNama}</span>{" "}
+                  sudah ditugaskan di jadwal lain yang waktunya bentrok:
+                </p>
+                {conflictConfirm?.details && conflictConfirm.details.length > 0 && (
+                  <ul className="space-y-2">
+                    {conflictConfirm.details.map((d, i) => (
+                      <li key={i} className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm">
+                        <span className="font-medium">{d.mataPelajaran.join(" & ")}</span>
+                        <span className="text-muted-foreground"> — {d.namaKelas}</span>
+                        <br />
+                        <span className="text-xs text-muted-foreground">{d.jamMulai}–{d.jamSelesai}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Apakah tetap ingin menugaskan pengawas ini meski jadwal bentrok?
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConflictConfirm(null)}
+              disabled={isForceAssigning}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleForceAssign}
+              disabled={isForceAssigning}
+            >
+              {isForceAssigning ? "Menugaskan..." : "Tetap Tugaskan"}
             </Button>
           </DialogFooter>
         </DialogContent>
