@@ -2,13 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileText } from "lucide-react";
+import { CheckCircle2, FileText, Clock, XCircle, Users, CalendarOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { submitPendaftaranTft } from "@/server/actions/tft/pendaftar";
+import type { PertanyaanTftRow } from "@/server/actions/tft/pertanyaan";
+
+export type ClosedReason = "belum_dibuka" | "ditutup" | "lewat_batas" | "kuota_penuh" | "selesai";
 
 interface TftPublicFormProps {
   periode: {
@@ -23,12 +26,14 @@ interface TftPublicFormProps {
     lokasi: string | null;
     program: "brevet_ab" | "brevet_c" | "all";
   };
-  isClosed: boolean;
+  closedReason: ClosedReason | null;
+  isAdminPreview?: boolean;
   materiAb: string[];
   materiC: string[];
+  pertanyaan: PertanyaanTftRow[];
 }
 
-export function TftPublicForm({ periode, isClosed, materiAb, materiC }: TftPublicFormProps) {
+export function TftPublicForm({ periode, closedReason, isAdminPreview, materiAb, materiC, pertanyaan }: TftPublicFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState(false);
@@ -44,6 +49,22 @@ export function TftPublicForm({ periode, isClosed, materiAb, materiC }: TftPubli
   const [selectedMateriC, setSelectedMateriC] = useState<string[]>([]);
   const [bersediaHadir, setBersediaHadir] = useState<boolean | null>(null);
   const [cvFile, setCvFile] = useState<File | null>(null);
+
+  // Dynamic question answers
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
+  const [customArrayAnswers, setCustomArrayAnswers] = useState<Record<string, string[]>>({});
+
+  function setAnswer(pertanyaanId: string, value: string) {
+    setCustomAnswers((prev) => ({ ...prev, [pertanyaanId]: value }));
+  }
+
+  function toggleArrayAnswer(pertanyaanId: string, value: string) {
+    setCustomArrayAnswers((prev) => {
+      const current = prev[pertanyaanId] ?? [];
+      const updated = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+      return { ...prev, [pertanyaanId]: updated };
+    });
+  }
 
   function toggleMateri(list: string[], setList: (v: string[]) => void, item: string) {
     setList(list.includes(item) ? list.filter((m) => m !== item) : [...list, item]);
@@ -72,6 +93,24 @@ export function TftPublicForm({ periode, isClosed, materiAb, materiC }: TftPubli
     if (periode.program === "all" && selectedMateriAb.length === 0 && selectedMateriC.length === 0) {
       toast.error("Pilih minimal satu materi yang dikuasai.");
       return;
+    }
+
+    // Validate required custom questions
+    for (const p of pertanyaan) {
+      if (p.wajib) {
+        if (p.tipe === "checkbox") {
+          const arr = customArrayAnswers[p.id];
+          if (!arr || arr.length === 0) {
+            toast.error(`"${p.label}" wajib diisi.`);
+            return;
+          }
+        } else {
+          if (!customAnswers[p.id]?.trim()) {
+            toast.error(`"${p.label}" wajib diisi.`);
+            return;
+          }
+        }
+      }
     }
 
     startTransition(async () => {
@@ -112,14 +151,43 @@ export function TftPublicForm({ periode, isClosed, materiAb, materiC }: TftPubli
   }
 
   // ─── CLOSED STATE ──────────────────────────────────────────────────────────
-  if (isClosed) {
+  if (closedReason) {
+    const closedConfig: Record<ClosedReason, { icon: React.ReactNode; title: string; message: string }> = {
+      belum_dibuka: {
+        icon: <Clock className="mx-auto h-12 w-12 text-amber-500" />,
+        title: "Pendaftaran Belum Dibuka",
+        message: `Pendaftaran untuk ${periode.judul} belum dibuka. Silakan cek kembali nanti.`,
+      },
+      ditutup: {
+        icon: <XCircle className="mx-auto h-12 w-12 text-gray-400" />,
+        title: "Pendaftaran Ditutup",
+        message: `Pendaftaran untuk ${periode.judul} telah ditutup. Terima kasih atas minat Anda.`,
+      },
+      lewat_batas: {
+        icon: <CalendarOff className="mx-auto h-12 w-12 text-gray-400" />,
+        title: "Batas Waktu Pendaftaran Terlewati",
+        message: `Batas waktu pendaftaran untuk ${periode.judul} telah terlewati. Terima kasih atas minat Anda.`,
+      },
+      kuota_penuh: {
+        icon: <Users className="mx-auto h-12 w-12 text-blue-500" />,
+        title: "Kuota Pendaftaran Penuh",
+        message: `Kuota pendaftaran untuk ${periode.judul} telah penuh. Terima kasih atas minat Anda.`,
+      },
+      selesai: {
+        icon: <CheckCircle2 className="mx-auto h-12 w-12 text-gray-400" />,
+        title: "Periode Telah Selesai",
+        message: `Periode pendaftaran ${periode.judul} telah selesai.`,
+      },
+    };
+
+    const cfg = closedConfig[closedReason];
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-gray-900">Pendaftaran Ditutup</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Pendaftaran untuk <strong>{periode.judul}</strong> telah ditutup. Terima kasih atas minat Anda.
-          </p>
+          {cfg.icon}
+          <h1 className="mt-4 text-xl font-semibold text-gray-900">{cfg.title}</h1>
+          <p className="mt-2 text-sm text-gray-600">{cfg.message}</p>
         </div>
       </div>
     );
@@ -147,6 +215,15 @@ export function TftPublicForm({ periode, isClosed, materiAb, materiC }: TftPubli
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="mx-auto w-full max-w-2xl">
+        {/* Admin Preview Banner */}
+        {isAdminPreview && (
+          <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-4 text-center">
+            <p className="text-sm font-medium text-amber-800">
+              🔒 Mode Preview Admin — Form ini belum dibuka untuk publik. Submission dalam mode preview tidak akan tersimpan.
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="rounded-2xl bg-white p-8 shadow-sm">
           <div className="text-center">
@@ -338,6 +415,110 @@ export function TftPublicForm({ periode, isClosed, materiAb, materiC }: TftPubli
               </div>
             </div>
           </div>
+
+          {/* Dynamic Custom Questions */}
+          {pertanyaan.map((p) => (
+            <div key={p.id} className="rounded-2xl bg-white p-6 shadow-sm">
+              <label className="text-sm font-medium text-gray-900">
+                {p.label} {p.wajib && <span className="text-red-500">*</span>}
+              </label>
+              {p.deskripsi && <p className="mt-1 text-xs text-gray-500">{p.deskripsi}</p>}
+
+              {/* Text */}
+              {p.tipe === "text" && (
+                <Input
+                  className="mt-2"
+                  value={customAnswers[p.id] ?? ""}
+                  onChange={(e) => setAnswer(p.id, e.target.value)}
+                  required={p.wajib}
+                />
+              )}
+
+              {/* Textarea */}
+              {p.tipe === "textarea" && (
+                <Textarea
+                  className="mt-2"
+                  value={customAnswers[p.id] ?? ""}
+                  onChange={(e) => setAnswer(p.id, e.target.value)}
+                  rows={3}
+                  required={p.wajib}
+                />
+              )}
+
+              {/* Number */}
+              {p.tipe === "number" && (
+                <Input
+                  className="mt-2"
+                  type="number"
+                  value={customAnswers[p.id] ?? ""}
+                  onChange={(e) => setAnswer(p.id, e.target.value)}
+                  required={p.wajib}
+                />
+              )}
+
+              {/* Radio */}
+              {p.tipe === "radio" && (
+                <div className="mt-3 space-y-2">
+                  {p.opsi.map((opsi) => (
+                    <div key={opsi} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        id={`q-${p.id}-${opsi}`}
+                        name={`q-${p.id}`}
+                        checked={customAnswers[p.id] === opsi}
+                        onChange={() => setAnswer(p.id, opsi)}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <label htmlFor={`q-${p.id}-${opsi}`} className="text-sm cursor-pointer">{opsi}</label>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Checkbox */}
+              {p.tipe === "checkbox" && (
+                <div className="mt-3 space-y-2">
+                  {p.opsi.map((opsi) => (
+                    <div key={opsi} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`q-${p.id}-${opsi}`}
+                        checked={(customArrayAnswers[p.id] ?? []).includes(opsi)}
+                        onCheckedChange={() => toggleArrayAnswer(p.id, opsi)}
+                      />
+                      <label htmlFor={`q-${p.id}-${opsi}`} className="text-sm cursor-pointer select-none">{opsi}</label>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Select */}
+              {p.tipe === "select" && (
+                <select
+                  className="mt-2 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+                  value={customAnswers[p.id] ?? ""}
+                  onChange={(e) => setAnswer(p.id, e.target.value)}
+                  required={p.wajib}
+                >
+                  <option value="">— Pilih —</option>
+                  {p.opsi.map((opsi) => (
+                    <option key={opsi} value={opsi}>{opsi}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* File */}
+              {p.tipe === "file" && (
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    onChange={(e) => setAnswer(p.id, e.target.files?.[0]?.name ?? "")}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    required={p.wajib}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
 
           {/* Upload CV */}
           <div className="rounded-2xl bg-white p-6 shadow-sm">

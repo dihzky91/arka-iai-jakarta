@@ -330,6 +330,8 @@ export function TemplateEditor({ template, layouts, variables }: Props) {
             mode={previewMode}
             category={template.category}
             customSampleData={customSampleData}
+            layoutId={layoutId}
+            layouts={layouts}
           />
 
           {/* Sample Data Editor */}

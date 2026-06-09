@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { Plus, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,13 @@ export function TftListView({ periodes }: TftListViewProps) {
   const [tanggalSelesai, setTanggalSelesai] = useState("");
   const [program, setProgram] = useState<"brevet_ab" | "brevet_c" | "all">("brevet_ab");
   const [lokasi, setLokasi] = useState("");
+  const [waktuMulai, setWaktuMulai] = useState("");
+  const [waktuSelesai, setWaktuSelesai] = useState("");
+  const [batasPendaftaran, setBatasPendaftaran] = useState("");
+  const [maxPeserta, setMaxPeserta] = useState("");
+  const [skorMinimum, setSkorMinimum] = useState("");
+  const [deskripsi, setDeskripsi] = useState("");
+  const [catatanInternal, setCatatanInternal] = useState("");
 
   function openCreate() {
     setJudul("");
@@ -85,6 +92,13 @@ export function TftListView({ periodes }: TftListViewProps) {
     setTanggalSelesai("");
     setProgram("brevet_ab");
     setLokasi("");
+    setWaktuMulai("");
+    setWaktuSelesai("");
+    setBatasPendaftaran("");
+    setMaxPeserta("");
+    setSkorMinimum("");
+    setDeskripsi("");
+    setCatatanInternal("");
     setCreateOpen(true);
   }
 
@@ -106,6 +120,13 @@ export function TftListView({ periodes }: TftListViewProps) {
         tanggalSelesai,
         program,
         lokasi: lokasi || undefined,
+        waktuMulai: waktuMulai || undefined,
+        waktuSelesai: waktuSelesai || undefined,
+        batasPendaftaran: batasPendaftaran || undefined,
+        maxPeserta: maxPeserta ? Number(maxPeserta) : undefined,
+        skorMinimum: skorMinimum ? Number(skorMinimum) : undefined,
+        deskripsi: deskripsi || undefined,
+        catatanInternal: catatanInternal || undefined,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -205,7 +226,7 @@ export function TftListView({ periodes }: TftListViewProps) {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Buat Periode TFT Baru</DialogTitle>
             <DialogDescription>Isi data dasar periode Training for Trainers.</DialogDescription>
@@ -253,9 +274,42 @@ export function TftListView({ periodes }: TftListViewProps) {
                 <Input type="date" value={tanggalSelesai} onChange={(e) => setTanggalSelesai(e.target.value)} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Waktu Mulai</p>
+                <Input type="time" value={waktuMulai} onChange={(e) => setWaktuMulai(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Waktu Selesai</p>
+                <Input type="time" value={waktuSelesai} onChange={(e) => setWaktuSelesai(e.target.value)} />
+              </div>
+            </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Lokasi</p>
               <Input placeholder="Kantor IAI Jakarta" value={lokasi} onChange={(e) => setLokasi(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Batas Pendaftaran</p>
+              <Input type="datetime-local" value={batasPendaftaran} onChange={(e) => setBatasPendaftaran(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Kosongkan jika pendaftaran ditutup manual.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Max Peserta</p>
+                <Input type="number" min="1" value={maxPeserta} onChange={(e) => setMaxPeserta(e.target.value)} placeholder="Unlimited" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Skor Minimum</p>
+                <Input type="number" min="0" max="100" step="0.01" value={skorMinimum} onChange={(e) => setSkorMinimum(e.target.value)} placeholder="Misal: 70" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Deskripsi Publik</p>
+              <Textarea value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} rows={4} placeholder="Informasi kegiatan yang tampil di form publik..." />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Catatan Internal</p>
+              <Textarea value={catatanInternal} onChange={(e) => setCatatanInternal(e.target.value)} rows={2} placeholder="Catatan untuk admin..." />
             </div>
           </div>
           <DialogFooter>

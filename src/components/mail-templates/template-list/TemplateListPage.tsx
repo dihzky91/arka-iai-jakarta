@@ -55,6 +55,14 @@ export function TemplateListPage({ initialTemplates, layouts }: Props) {
   const [category, setCategory] = useState("all");
   const [templates, setTemplates] = useState(initialTemplates);
 
+  const layoutMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    layouts.forEach((l) => {
+      map[l.id] = l.name;
+    });
+    return map;
+  }, [layouts]);
+
   const filtered = useMemo(() => {
     return templates.filter((t) => {
       const matchCategory =
@@ -172,6 +180,7 @@ export function TemplateListPage({ initialTemplates, layouts }: Props) {
             <TemplateCard
               key={template.id}
               template={template}
+              layoutName={template.layoutId ? layoutMap[template.layoutId] : undefined}
               onToggleActive={() => handleToggleActive(template.id)}
               onDuplicate={() => handleDuplicate(template.id)}
               onDelete={() => handleDelete(template.id)}
@@ -191,11 +200,13 @@ export function TemplateListPage({ initialTemplates, layouts }: Props) {
 
 function TemplateCard({
   template,
+  layoutName,
   onToggleActive,
   onDuplicate,
   onDelete,
 }: {
   template: EmailTemplate;
+  layoutName?: string;
   onToggleActive: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -224,6 +235,11 @@ function TemplateCard({
           </Badge>
           <span>•</span>
           <span>v{template.version}</span>
+          <span>•</span>
+          <span className="inline-flex items-center gap-1">
+            <Layout className="h-3 w-3" />
+            {layoutName || "Default"}
+          </span>
         </div>
         {template.description && (
           <p className="mt-1.5 text-xs text-muted-foreground line-clamp-1">

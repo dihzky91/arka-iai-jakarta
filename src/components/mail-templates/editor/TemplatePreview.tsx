@@ -5,6 +5,7 @@ import { compileBlocksToHtml } from "@/lib/email/template-engine/compiler";
 import { resolveVariables } from "@/lib/email/template-engine/variable-resolver";
 import { getAllSampleData } from "@/lib/email/template-engine/variable-registry";
 import type { TemplateBlock } from "@/lib/email/template-engine/types";
+import type { EmailLayout } from "@/server/db/schema";
 
 interface Props {
   blocks: TemplateBlock[];
@@ -12,13 +13,28 @@ interface Props {
   mode: "desktop" | "mobile";
   category: string;
   customSampleData?: Record<string, string>;
+  layoutId?: string | null;
+  layouts?: EmailLayout[];
 }
 
-export function TemplatePreview({ blocks, subject, mode, category, customSampleData }: Props) {
+export function TemplatePreview({
+  blocks,
+  subject,
+  mode,
+  category,
+  customSampleData,
+  layoutId,
+  layouts,
+}: Props) {
   const sampleData = useMemo(() => {
     const defaults = getAllSampleData();
     return { ...defaults, ...(customSampleData ?? {}) };
   }, [customSampleData]);
+
+  const selectedLayout = useMemo(() => {
+    if (!layoutId || !layouts) return null;
+    return layouts.find((l) => l.id === layoutId) ?? null;
+  }, [layoutId, layouts]);
 
   const compiledHtml = useMemo(() => {
     if (blocks.length === 0) return "";
@@ -34,14 +50,45 @@ export function TemplatePreview({ blocks, subject, mode, category, customSampleD
     [subject, sampleData],
   );
 
-  // Build a simple wrapper for preview (without server-side layout)
+  // Build a dynamic wrapper for preview based on selected layout
   const fullHtml = useMemo(() => {
     const year = new Date().getFullYear();
+    const resolvedSampleData = {
+      ...sampleData,
+      "app.logo_url": "/iai-logo.png", // locally resolve the logo to our local IAI logo asset
+    };
+
+    if (selectedLayout) {
+      const resolvedHeader = resolveVariables(
+        selectedLayout.headerHtml ?? "",
+        resolvedSampleData,
+      );
+      const resolvedFooter = resolveVariables(
+        selectedLayout.footerHtml ?? "",
+        resolvedSampleData,
+      );
+
+      return `
+        <div style="background:#f4f4f5;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+            ${resolvedHeader ? resolvedHeader : ""}
+            <tr>
+              <td style="padding: 24px;">
+                ${compiledHtml}
+              </td>
+            </tr>
+            ${resolvedFooter ? resolvedFooter : ""}
+          </table>
+        </div>
+      `;
+    }
+
+    // Default clean fallback preview
     return `
       <div style="background:#f4f4f5;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-        <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
-          <div style="padding:20px 24px;border-bottom:2px solid #1d4ed8;">
-            <span style="font-size:18px;font-weight:bold;color:#1d4ed8;">ARKA</span>
+        <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+          <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;text-align:center;">
+            <img src="/iai-logo.png" alt="IAI Logo" style="max-height: 48px; display: block; margin: 0 auto;" />
           </div>
           <div style="padding:24px;">
             ${compiledHtml}
@@ -52,7 +99,7 @@ export function TemplatePreview({ blocks, subject, mode, category, customSampleD
         </div>
       </div>
     `;
-  }, [compiledHtml]);
+  }, [compiledHtml, selectedLayout, sampleData]);
 
   return (
     <div className="space-y-2">

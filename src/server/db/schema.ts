@@ -3371,6 +3371,62 @@ export const nilaiTft = pgTable(
   }),
 );
 
+// ─── PERTANYAAN CUSTOM TFT ───────────────────────────────────────────────────
+
+export const tipePertanyaanTftEnum = pgEnum("tipe_pertanyaan_tft", [
+  "text",
+  "textarea",
+  "radio",
+  "checkbox",
+  "select",
+  "number",
+  "file",
+]);
+
+export const pertanyaanTft = pgTable(
+  "pertanyaan_tft",
+  {
+    id: text("id").primaryKey(),
+    periodeId: text("periode_id")
+      .notNull()
+      .references(() => periodeTft.id, { onDelete: "cascade" }),
+    label: varchar("label", { length: 500 }).notNull(),
+    deskripsi: text("deskripsi"), // helper text di bawah field
+    tipe: tipePertanyaanTftEnum("tipe").notNull(),
+    wajib: boolean("wajib").default(false).notNull(),
+    opsi: text("opsi").array().default(sql`'{}'::text[]`), // untuk radio/checkbox/select
+    urutan: integer("urutan").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    periodeIdx: index("idx_pertanyaan_tft_periode").on(t.periodeId),
+  }),
+);
+
+export const jawabanTft = pgTable(
+  "jawaban_tft",
+  {
+    id: text("id").primaryKey(),
+    pendaftarId: text("pendaftar_id")
+      .notNull()
+      .references(() => pendaftarTft.id, { onDelete: "cascade" }),
+    pertanyaanId: text("pertanyaan_id")
+      .notNull()
+      .references(() => pertanyaanTft.id, { onDelete: "cascade" }),
+    nilai: text("nilai"), // single value for text/textarea/radio/select/number
+    nilaiArray: text("nilai_array").array().default(sql`'{}'::text[]`), // for checkbox (multi-select)
+    fileStorageKey: text("file_storage_key"), // for file type
+    fileOriginalName: varchar("file_original_name", { length: 300 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    pendaftarIdx: index("idx_jawaban_tft_pendaftar").on(t.pendaftarId),
+    pertanyaanIdx: index("idx_jawaban_tft_pertanyaan").on(t.pertanyaanId),
+    uniqueJawaban: uniqueIndex("uniq_jawaban_tft").on(t.pendaftarId, t.pertanyaanId),
+  }),
+);
+
 // ─── TYPE EXPORTS (TFT) ──────────────────────────────────────────────────────
 
 export type PeriodeTft = typeof periodeTft.$inferSelect;
@@ -3383,3 +3439,7 @@ export type PenilaiTft = typeof penilaiTft.$inferSelect;
 export type NewPenilaiTft = typeof penilaiTft.$inferInsert;
 export type NilaiTft = typeof nilaiTft.$inferSelect;
 export type NewNilaiTft = typeof nilaiTft.$inferInsert;
+export type PertanyaanTft = typeof pertanyaanTft.$inferSelect;
+export type NewPertanyaanTft = typeof pertanyaanTft.$inferInsert;
+export type JawabanTft = typeof jawabanTft.$inferSelect;
+export type NewJawabanTft = typeof jawabanTft.$inferInsert;

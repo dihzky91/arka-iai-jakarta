@@ -133,6 +133,90 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 ---
 
+## Progress Checklist
+
+> Terakhir di-audit: 9 Juni 2026
+
+### Phase 1: Pendaftaran
+
+#### 1.1 Database & Backend
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| DB migration (periode_tft, pendaftar_tft) | ✅ Selesai | `0064_tft_rekrutmen.sql` |
+| Drizzle schema (5 tabel + enums + indexes) | ✅ Selesai | Semua constraint sesuai blueprint |
+| Zod validator schemas | ✅ Selesai | `tft.schema.ts` |
+| Server actions: CRUD Periode | ✅ Selesai | create, update, delete, status, get; UI edit sudah tersambung |
+| Server actions: Pendaftar | ✅ Selesai | submit, list, review, convert, delete |
+| Validasi submit (max peserta, duplikat email, batas waktu, materi) | ✅ Selesai | |
+
+#### 1.2 Admin UI
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| List periode (grid cards + create + delete) | ✅ Selesai | |
+| Detail periode (tabs + status flow buttons) | ✅ Selesai | |
+| Tabel pendaftar + review approve/reject | ✅ Selesai | |
+| Convert ke Instruktur | ✅ Selesai | |
+| Copy link form publik | ✅ Selesai | |
+| Edit periode dialog/form | ✅ Selesai | `updatePeriodeTft` sudah tersambung ke UI |
+| Field lanjutan di Create | ⚠️ Partial | Waktu, batas pendaftaran, max, skor min, catatan, deskripsi textarea sudah; TipTap belum |
+| Download CV per pendaftar | ✅ Selesai | Link authenticated `/api/files/...` |
+| Export pendaftar ke Excel | ✅ Selesai | Client-side export via `xlsx` |
+| Bulk actions | ⚠️ Partial | "Terima yang lulus" sudah; multi-select approve/reject dan ZIP CV belum |
+
+#### 1.3 Form Publik
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Route + Form lengkap + validasi + CV upload | ✅ Selesai | |
+| Success state (inline) | ✅ Selesai | |
+| Pesan status kontekstual (draft/tutup/penuh = beda pesan) | ✅ Selesai | |
+| Rate limiting | ✅ Selesai | 5 submit/IP/jam via existing IP bucket |
+
+#### 1.4 Integrasi Instruktur
+
+| Item | Status |
+|------|--------|
+| Convert → instructor + expertise | ✅ Selesai |
+
+---
+
+### Phase 2: Penilaian
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| DB + server actions (kriteria, penilai, nilai) | ✅ Selesai | |
+| Input nilai spreadsheet UI | ✅ Selesai | Per-penilai, weighted total, save |
+| Recalculate skor_akhir | ✅ Selesai | |
+| Tab Hasil — ranking table | ✅ Selesai | |
+| PDF functions (`exportFormPenilaianPdf`, `exportRekapHasilPdf`) | ✅ Selesai | Code ada |
+| CRUD Kriteria di UI | ✅ Selesai | Tambah/edit/hapus + copy dari periode lain |
+| CRUD Penilai di UI | ✅ Selesai | Tambah/edit/hapus |
+| Tombol cetak PDF | ✅ Selesai | Form penilaian per penilai + rekap hasil |
+| Bulk "Terima semua yang lulus" | ✅ Selesai | Convert peserta lulus yang belum jadi instruktur |
+| Export rekap Excel | ✅ Selesai | Client-side export via `xlsx` |
+
+---
+
+### Phase 3: Notifikasi
+
+| Item | Status |
+|------|--------|
+| Semua item | ❌ Belum dimulai |
+
+---
+
+### Ringkasan Progress
+
+| Phase | Backend | Frontend | Overall |
+|-------|---------|----------|---------|
+| Phase 1 | ~95% | ~70% | ~80% |
+| Phase 2 | ~100% | ~40% | ~60% |
+| Phase 3 | 0% | 0% | 0% |
+
+---
+
 ## Fitur Detail
 
 ### Phase 1: Pendaftaran
@@ -386,27 +470,297 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 
 ---
 
-## Estimasi Effort
+## Progress Checklist
 
-| Komponen | Estimasi |
-|----------|----------|
-| **Phase 1: Pendaftaran** | |
-| DB migration + schema (periode_tft, pendaftar_tft) | 0.5 hari |
-| Server actions (CRUD periode, submit form, approve/reject) | 1 hari |
-| Admin UI: list periode + detail pendaftar | 1 hari |
-| Public form + validasi + upload | 1 hari |
-| Integrasi instruktur + export | 0.5 hari |
-| **Subtotal Phase 1** | **~4 hari** |
-| | |
-| **Phase 2: Penilaian** | |
-| DB migration (kriteria, penilai, nilai) | 0.5 hari |
-| CRUD kriteria + penilai + copy template | 0.5 hari |
-| Cetak form penilaian (PDF generation) | 1 hari |
-| Input nilai (spreadsheet-like UI + auto-calc) | 1.5 hari |
-| Rekap hasil + ranking + cetak PDF | 1 hari |
-| **Subtotal Phase 2** | **~4.5 hari** |
-| | |
-| **Total keseluruhan** | **~8.5 hari** |
+> Terakhir di-audit: 9 Juni 2026
+
+### Phase 1: Pendaftaran
+
+#### 1.1 Database & Backend
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| DB migration (periode_tft, pendaftar_tft) | ✅ Selesai | `0064_tft_rekrutmen.sql` |
+| Drizzle schema (5 tabel + enums + indexes) | ✅ Selesai | `schema.ts` — semua constraint sesuai blueprint |
+| Zod validator schemas | ✅ Selesai | `tft.schema.ts` — create, update, submit, review, nilai |
+| Server action: `createPeriodeTft` | ✅ Selesai | Slug uniqueness check |
+| Server action: `updatePeriodeTft` | ✅ Selesai | Sudah terhubung ke UI edit periode |
+| Server action: `deletePeriodeTft` | ✅ Selesai | Cascade delete |
+| Server action: `updateStatusPeriodeTft` | ✅ Selesai | draft → buka → tutup → penilaian → selesai |
+| Server action: `getPeriodeTftBySlug` | ✅ Selesai | Public (no auth) |
+| Server action: `submitPendaftaranTft` | ✅ Selesai | Validasi: status, batas waktu, max peserta, duplikat email, materi, CV upload |
+| Server action: `reviewPendaftar` | ✅ Selesai | Approve/reject + catatan |
+| Server action: `convertToInstructor` | ✅ Selesai | Create instructor + expertise |
+| Server action: `deletePendaftar` | ✅ Selesai | + delete CV dari storage |
+
+#### 1.2 Admin UI
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Route `/jadwal-otomatis/tft` (list) | ✅ Selesai | Grid cards + create + delete |
+| Route `/jadwal-otomatis/tft/[id]` (detail) | ✅ Selesai | Tabs: Pendaftar, Penilaian, Hasil |
+| Create dialog (data dasar) | ✅ Selesai | Judul, slug, program, tanggal, lokasi |
+| Delete dialog | ✅ Selesai | Konfirmasi sebelum hapus |
+| Tombol status (Buka/Tutup/Penilaian/Selesai) | ✅ Selesai | Kondisional per status |
+| Copy link form publik | ✅ Selesai | |
+| Statistik pendaftar (per status) | ✅ Selesai | Baru/Review/Diterima/Ditolak |
+| Tabel pendaftar | ✅ Selesai | Nama, email, HP, materi, hadir, status, skor, aksi |
+| Review pendaftar (approve/reject dialog) | ✅ Selesai | + catatan opsional |
+| Convert ke Instruktur (tombol) | ✅ Selesai | |
+| Edit periode dialog/form (full fields) | ✅ Selesai | Action sudah tersambung ke UI |
+| Field lanjutan di Create | ⚠️ Partial | Waktu, batas pendaftaran, max peserta, skor minimum, catatan, deskripsi textarea sudah; TipTap belum |
+| Download CV per pendaftar | ✅ Selesai | `cvStorageKey` ditautkan ke `/api/files/...` |
+| Export pendaftar ke Excel | ✅ Selesai | Tombol export di tab Pendaftar |
+| Bulk actions (bulk approve, bulk reject, download semua CV ZIP) | ⚠️ Partial | Bulk "Terima yang lulus" sudah; multi-select dan ZIP belum |
+| **TipTap editor untuk deskripsi** | ❌ Belum | `deskripsi` di-render HTML di form publik tapi tidak ada editor admin |
+
+#### 1.3 Form Publik
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Route `/daftar/tft/[slug]` | ✅ Selesai | |
+| Semua field form (nama, HP, email, pekerjaan, alamat, materi, hadir, CV) | ✅ Selesai | |
+| Validasi client-side | ✅ Selesai | Per-field validation |
+| Validasi server-side | ✅ Selesai | Max peserta, duplikat email, batas waktu, program materi |
+| Upload CV (PDF, 10MB) | ✅ Selesai | Storage provider |
+| Status closed (rendering) | ✅ Selesai | Pesan "Pendaftaran Ditutup" |
+| Success state (inline) | ✅ Selesai | Rendered inline setelah submit |
+| Pesan status kontekstual (draft → "belum dibuka", kuota penuh → "kuota penuh") | ✅ Selesai | Draft, tutup, lewat batas, penuh, penilaian/selesai beda pesan |
+| **Halaman sukses terpisah** (`/daftar/tft/[slug]/sukses`) | ❌ Belum | Inline saja (low priority) |
+| Rate limiting (5 submit/IP/jam) | ✅ Selesai | `submitPendaftaranTft` memakai existing IP bucket |
+
+#### 1.4 Integrasi Instruktur
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Convert pendaftar → instructor + expertise | ✅ Selesai | |
+| Update `instructor_id` di pendaftar | ✅ Selesai | |
+
+---
+
+### Phase 2: Penilaian
+
+#### 2.1 Database & Backend
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| DB migration (kriteria, penilai, nilai) | ✅ Selesai | Termasuk dalam `0064_tft_rekrutmen.sql` |
+| CRUD kriteria server actions | ✅ Selesai | create, update, delete, forceDelete, copyFromPeriode |
+| CRUD penilai server actions | ✅ Selesai | create, update, delete |
+| Save nilai (upsert per cell) | ✅ Selesai | + auto recalculate skor_akhir |
+| Get nilai by penilai | ✅ Selesai | |
+| Get all nilai | ✅ Selesai | |
+| Recalculate skor akhir (weighted avg) | ✅ Selesai | Per penilai → avg across penilai |
+
+#### 2.2 Admin UI: Penilaian
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Tab "Penilaian" — tampil daftar kriteria | ✅ Selesai | Read-only display |
+| Tab "Penilaian" — tampil daftar penilai | ✅ Selesai | Read-only display |
+| Route `/jadwal-otomatis/tft/[id]/input-nilai` | ✅ Selesai | |
+| Input nilai spreadsheet-style grid | ✅ Selesai | Per-penilai dropdown, weighted total, save |
+| Tombol CRUD kriteria di UI (tambah/edit/hapus) | ✅ Selesai | |
+| Tombol CRUD penilai di UI (tambah/edit/hapus) | ✅ Selesai | |
+| Validasi total bobot = 100% di UI | ✅ Selesai | Warning visual jika total belum 100% |
+| Copy kriteria dari periode lain (UI) | ✅ Selesai | Dropdown periode sumber + tombol salin |
+| Tombol "Cetak Form Penilaian" (PDF) | ✅ Selesai | Tombol per penilai |
+| Opsi cetak (per penilai / semua / filter peserta) | ⚠️ Partial | Per penilai sudah; semua/filter peserta belum |
+| **Finalisasi per penilai** (lock/unlock nilai) | ❌ Belum | |
+
+#### 2.3 Admin UI: Hasil
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Tab "Hasil" — ranking table | ✅ Selesai | Sorted by skor_akhir, threshold highlight |
+| Tombol "Cetak Rekap Hasil" (PDF) | ✅ Selesai | |
+| Bulk "Terima semua yang lulus" | ✅ Selesai | Convert peserta lulus yang belum jadi instruktur |
+| Export rekap ke Excel | ✅ Selesai | |
+| **Breakdown skor per kriteria** (expandable row) | ❌ Belum | |
+| Skor per penilai (kolom terpisah) | ✅ Selesai | Kolom dinamis per penilai di tab Hasil |
+
+---
+
+### Phase 3: Notifikasi (Opsional)
+
+| Item | Status | Keterangan |
+|------|--------|------------|
+| Notif in-app: pendaftar baru masuk | ❌ Belum | |
+| Email konfirmasi pendaftaran ke pendaftar | ❌ Belum | |
+| Email "diterima" ke pendaftar | ❌ Belum | |
+| Email "ditolak" ke pendaftar (opsional) | ❌ Belum | |
+
+---
+
+## Phase 4: Enhancement (Baru)
+
+> Fase lanjutan untuk menutup gap yang ditemukan dari audit 9 Juni 2026.
+
+### 4.1 Admin: Form Edit Periode (Prioritas Tinggi)
+
+**Masalah:** Admin tidak bisa mengedit detail periode setelah dibuat. Semua field lanjutan (waktu, batas pendaftaran, max peserta, skor minimum, catatan internal, deskripsi TipTap) juga tidak bisa diisi saat create.
+
+**Solusi:**
+- Tambah dialog/drawer "Edit Periode" di `TftDetailView` (atau akses dari list)
+- Form lengkap dengan semua field: judul, slug, tanggal mulai/selesai, waktu mulai/selesai, lokasi, batas pendaftaran (datetime-local), max peserta, skor minimum, catatan internal, deskripsi (TipTap rich text)
+- Call `updatePeriodeTft()` yang sudah ada
+- Perbanyak field di Create dialog juga (minimal: batas pendaftaran, max peserta)
+
+**Estimasi:** 0.5 hari
+
+---
+
+### 4.2 Admin: CRUD Kriteria & Penilai di UI (Prioritas Tinggi)
+
+**Masalah:** Server actions untuk CRUD kriteria dan penilai sudah lengkap, tapi UI hanya menampilkan list (read-only). Admin tidak bisa tambah/edit/hapus dari browser.
+
+**Solusi:**
+- Tambah tombol "Tambah Kriteria" + dialog (nama, deskripsi, bobot, range skor, urutan)
+- Tombol edit & hapus per kriteria
+- Validasi total bobot = 100% secara visual (warning jika belum tepat)
+- Tambah tombol "Tambah Penilai" + dialog (nama, jabatan, instansi, catatan)
+- Tombol edit & hapus per penilai
+- Tombol "Copy Kriteria dari Periode Lain" dengan dropdown pilih periode sumber
+
+**Estimasi:** 1 hari
+
+---
+
+### 4.3 Wiring PDF Export ke UI (Prioritas Sedang)
+
+**Masalah:** Fungsi `exportFormPenilaianPdf()` dan `exportRekapHasilPdf()` sudah ditulis di `pdf-export.ts` tapi tidak ada tombol di UI yang memanggilnya.
+
+**Solusi:**
+- Tab "Penilaian": tombol "Cetak Form Penilaian" dengan dropdown pilih penilai
+- Tab "Hasil": tombol "Cetak Rekap Hasil (PDF)"
+- Opsi cetak: per penilai / semua penilai
+
+**Estimasi:** 0.5 hari
+
+---
+
+### 4.4 CV Download & View (Prioritas Sedang)
+
+**Masalah:** `cvStorageKey` tersimpan tapi admin tidak bisa melihat/download CV dari tabel pendaftar.
+
+**Solusi:**
+- Tambah kolom "CV" di tabel pendaftar dengan link download
+- Link mengarah ke authenticated route `/api/files/[key]` (sudah ada di ARKA)
+- Opsional: preview in-dialog
+
+**Estimasi:** 0.5 hari
+
+---
+
+### 4.5 Pesan Status Kontekstual di Form Publik (Prioritas Sedang)
+
+**Masalah:** Semua kondisi non-"buka" menampilkan pesan generik "Pendaftaran Ditutup". Status `draft` seharusnya tidak bisa diakses publik / tampil pesan berbeda.
+
+**Solusi:**
+- `draft` → "Pendaftaran belum dibuka. Silakan cek kembali nanti."
+- `tutup` / lewat batas → "Pendaftaran telah ditutup. Terima kasih atas minat Anda."
+- Kuota penuh → "Kuota pendaftaran telah penuh."
+- `penilaian` / `selesai` → "Periode pendaftaran ini telah selesai."
+
+**Implementasi:** Update logika di `src/app/daftar/tft/[slug]/page.tsx` dan `TftPublicForm.tsx`
+
+**Estimasi:** 0.5 hari
+
+---
+
+### 4.6 Excel Export Pendaftar & Rekap (Prioritas Sedang)
+
+**Masalah:** Tidak ada fitur export data ke Excel.
+
+**Solusi:**
+- Tombol "Export Excel" di tab Pendaftar → download .xlsx semua pendaftar (atau filtered)
+- Tombol "Export Rekap" di tab Hasil → download .xlsx ranking + skor per kriteria
+- Gunakan package `xlsx` yang sudah ter-install
+
+**Estimasi:** 0.5 hari
+
+---
+
+### 4.7 Bulk Actions (Prioritas Rendah)
+
+**Masalah:** Admin harus review satu-satu, tidak bisa multi-select.
+
+**Solusi:**
+- Checkbox multi-select di tabel pendaftar
+- Aksi bulk: "Terima yang dipilih", "Tolak yang dipilih"
+- Di tab Hasil: "Terima semua yang lulus" (berdasarkan skor minimum)
+- Download semua CV (ZIP) — gunakan JSZip atau server-side archiver
+
+**Estimasi:** 1 hari
+
+---
+
+### 4.8 Rate Limiting Form Publik (Prioritas Rendah)
+
+**Masalah:** Form publik tidak dilindungi rate-limit, rawan spam.
+
+**Solusi:**
+- Tambah `rateLimit()` call di `submitPendaftaranTft` (max 5/IP/jam)
+- Gunakan rate-limiter yang sudah ada di `@/lib/rate-limit`
+
+**Estimasi:** 0.25 hari
+
+---
+
+### 4.9 TipTap Editor untuk Deskripsi Periode (Prioritas Rendah)
+
+**Masalah:** Field `deskripsi` di-render sebagai HTML di form publik (`dangerouslySetInnerHTML`) tapi tidak ada editor rich text di admin.
+
+**Solusi:**
+- Integrasikan TipTap editor (sudah ter-install di ARKA) di form edit periode
+- Output HTML disimpan di kolom `deskripsi`
+
+**Estimasi:** 0.5 hari
+
+---
+
+### Ringkasan Phase 4
+
+| Item Enhancement | Status | Keterangan |
+|-----------------|--------|------------|
+| 4.1 Form Edit Periode | ⚠️ Partial | Form edit/create sudah; TipTap belum |
+| 4.2 CRUD Kriteria & Penilai UI | ✅ Selesai | |
+| 4.3 Wiring PDF Export ke UI | ✅ Selesai | |
+| 4.4 CV Download & View | ✅ Selesai | |
+| 4.5 Pesan Status Kontekstual | ✅ Selesai | |
+| 4.6 Excel Export | ✅ Selesai | |
+| 4.7 Bulk Actions | ⚠️ Partial | Terima yang lulus sudah; multi-select/ZIP belum |
+| 4.8 Rate Limiting | ✅ Selesai | |
+| 4.9 TipTap Editor Deskripsi | ❌ Belum | Low priority |
+| **Sisa Phase 4** | | TipTap, opsi cetak semua/filter, finalisasi penilai, breakdown kriteria, multi-select/ZIP CV |
+
+---
+
+## Estimasi Effort (Updated)
+
+| Komponen | Estimasi | Status |
+|----------|----------|--------|
+| **Phase 1: Pendaftaran** | | |
+| DB migration + schema (periode_tft, pendaftar_tft) | 0.5 hari | ✅ Selesai |
+| Server actions (CRUD periode, submit form, approve/reject) | 1 hari | ✅ Selesai |
+| Admin UI: list periode + detail pendaftar | 1 hari | ✅ Selesai |
+| Public form + validasi + upload | 1 hari | ✅ Selesai |
+| Integrasi instruktur + export | 0.5 hari | ⚠️ Partial (convert ✅, export ❌) |
+| **Subtotal Phase 1** | **~4 hari** | **~90% selesai** |
+| | | |
+| **Phase 2: Penilaian** | | |
+| DB migration (kriteria, penilai, nilai) | 0.5 hari | ✅ Selesai |
+| CRUD kriteria + penilai + copy template | 0.5 hari | ⚠️ Backend ✅, UI ❌ |
+| Cetak form penilaian (PDF generation) | 1 hari | ⚠️ Code ✅, UI wiring ❌ |
+| Input nilai (spreadsheet-like UI + auto-calc) | 1.5 hari | ✅ Selesai |
+| Rekap hasil + ranking + cetak PDF | 1 hari | ⚠️ Ranking ✅, Cetak & bulk ❌ |
+| **Subtotal Phase 2** | **~4.5 hari** | **~60% selesai** |
+| | | |
+| **Phase 3: Notifikasi (Opsional)** | ~1 hari | ❌ Belum dimulai |
+| | | |
+| **Phase 4: Enhancement** | ~5.25 hari | ❌ Belum dimulai |
+| | | |
+| **Total keseluruhan** | **~14.75 hari** | |
 
 ---
 

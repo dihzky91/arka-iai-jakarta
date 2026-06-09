@@ -2,6 +2,7 @@
 
 import { asc, desc, eq, and, sql, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { nanoid } from "nanoid";
 import { db } from "@/server/db";
 import { writeAuditLog } from "@/server/lib/audit";
@@ -20,6 +21,12 @@ import {
   type ReviewPendaftarInput,
 } from "@/lib/validators/tft.schema";
 import { getStorageProvider } from "@/lib/storage";
+import {
+  checkIpRateLimit,
+  getClientIpFromHeaders,
+} from "@/lib/rate-limit/ip-bucket";
+
+const TFT_SUBMIT_RATE_LIMIT = { limit: 5, windowMs: 60 * 60_000 };
 
 export type PendaftarTftRow = {
   id: string;
@@ -85,6 +92,18 @@ export async function submitPendaftaranTft(
   data: PendaftarTftSubmitInput,
   cvFile?: { body: Buffer; fileName: string; contentType: string },
 ) {
+  const headersList = await headers();
+  const ip = getClientIpFromHeaders(headersList);
+  const rateLimit = checkIpRateLimit(ip, "tft_submit", TFT_SUBMIT_RATE_LIMIT);
+
+  if (!rateLimit.ok) {
+    const retryMinutes = Math.ceil(rateLimit.retryAfterMs / 60_000);
+    return {
+      ok: false as const,
+      error: `Terlalu banyak submit dari jaringan ini. Coba lagi dalam ${retryMinutes} menit.`,
+    };
+  }
+
   const parsed = pendaftarTftSubmitSchema.parse(data);
 
   // Validate periode exists and is open
@@ -110,11 +129,11 @@ export async function submitPendaftaranTft(
 
   // Check max peserta
   if (p.maxPeserta) {
-    const [{ total }] = await db
+    const result = await db
       .select({ total: count() })
       .from(pendaftarTft)
       .where(eq(pendaftarTft.periodeId, parsed.periodeId));
-    if (total >= p.maxPeserta) {
+    if (result[0] && result[0].total >= p.maxPeserta) {
       return { ok: false as const, error: "Kuota pendaftaran telah penuh." };
     }
   }
