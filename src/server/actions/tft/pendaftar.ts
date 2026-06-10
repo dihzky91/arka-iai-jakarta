@@ -90,7 +90,7 @@ export async function listPendaftarByPeriode(periodeId: string): Promise<Pendaft
 
 export async function submitPendaftaranTft(
   data: PendaftarTftSubmitInput,
-  cvFile?: { body: Buffer; fileName: string; contentType: string },
+  cvData?: { storageKey: string; originalName: string },
 ) {
   const headersList = await headers();
   const ip = getClientIpFromHeaders(headersList);
@@ -104,7 +104,12 @@ export async function submitPendaftaranTft(
     };
   }
 
-  const parsed = pendaftarTftSubmitSchema.parse(data);
+  const parseResult = pendaftarTftSubmitSchema.safeParse(data);
+  if (!parseResult.success) {
+    const firstError = parseResult.error.errors[0];
+    return { ok: false as const, error: firstError?.message ?? "Data tidak valid." };
+  }
+  const parsed = parseResult.data;
 
   // Validate periode exists and is open
   const periode = await db
@@ -160,19 +165,12 @@ export async function submitPendaftaranTft(
     return { ok: false as const, error: "Pilih minimal satu materi yang dikuasai." };
   }
 
-  // Upload CV if provided
+  // CV already uploaded via /api/tft/upload-cv route
   let cvStorageKey: string | null = null;
   let cvOriginalName: string | null = null;
-  if (cvFile) {
-    const storage = getStorageProvider();
-    const result = await storage.upload({
-      body: cvFile.body,
-      fileName: cvFile.fileName,
-      contentType: cvFile.contentType,
-      folder: `tft/${parsed.periodeId}/cv`,
-    });
-    cvStorageKey = result.key;
-    cvOriginalName = cvFile.fileName;
+  if (cvData) {
+    cvStorageKey = cvData.storageKey;
+    cvOriginalName = cvData.originalName;
   }
 
   const id = nanoid();

@@ -46,6 +46,7 @@ export type PenilaiTftRow = {
   jabatan: string | null;
   instansi: string | null;
   catatan: string | null;
+  finalizedAt: Date | null;
   createdAt: Date;
 };
 
@@ -255,6 +256,7 @@ export async function listPenilai(periodeId: string): Promise<PenilaiTftRow[]> {
       jabatan: penilaiTft.jabatan,
       instansi: penilaiTft.instansi,
       catatan: penilaiTft.catatan,
+      finalizedAt: penilaiTft.finalizedAt,
       createdAt: penilaiTft.createdAt,
     })
     .from(penilaiTft)
@@ -520,3 +522,59 @@ async function recalculateSkorAkhir(periodeId: string, pendaftarIds: string[]) {
 }
 
 export { recalculateSkorAkhir };
+
+// ─── FINALISASI PENILAI ──────────────────────────────────────────────────────
+
+export async function finalizePenilai(penilaiId: string) {
+  const session = await requirePermission("tft", "manage");
+
+  const existing = await db
+    .select({ id: penilaiTft.id, periodeId: penilaiTft.periodeId, nama: penilaiTft.nama })
+    .from(penilaiTft)
+    .where(eq(penilaiTft.id, penilaiId));
+
+  if (!existing[0]) return { ok: false as const, error: "Penilai tidak ditemukan." };
+
+  await db
+    .update(penilaiTft)
+    .set({ finalizedAt: new Date() })
+    .where(eq(penilaiTft.id, penilaiId));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "FINALIZE_PENILAI_TFT",
+    entitasType: "penilai_tft",
+    entitasId: penilaiId,
+    detail: { nama: existing[0].nama },
+  });
+
+  revalidatePath(`/jadwal-otomatis/tft/${existing[0].periodeId}`);
+  return { ok: true as const };
+}
+
+export async function unfinalizePenilai(penilaiId: string) {
+  const session = await requirePermission("tft", "manage");
+
+  const existing = await db
+    .select({ id: penilaiTft.id, periodeId: penilaiTft.periodeId, nama: penilaiTft.nama })
+    .from(penilaiTft)
+    .where(eq(penilaiTft.id, penilaiId));
+
+  if (!existing[0]) return { ok: false as const, error: "Penilai tidak ditemukan." };
+
+  await db
+    .update(penilaiTft)
+    .set({ finalizedAt: null })
+    .where(eq(penilaiTft.id, penilaiId));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "UNFINALIZE_PENILAI_TFT",
+    entitasType: "penilai_tft",
+    entitasId: penilaiId,
+    detail: { nama: existing[0].nama },
+  });
+
+  revalidatePath(`/jadwal-otomatis/tft/${existing[0].periodeId}`);
+  return { ok: true as const };
+}

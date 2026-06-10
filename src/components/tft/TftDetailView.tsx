@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Download, UserPlus, Check, X, AlertTriangle, Pencil, FileDown } from "lucide-react";
+import { Copy, Download, UserPlus, Check, X, AlertTriangle, Pencil, FileDown, ChevronDown, ChevronRight, Lock, Unlock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HtmlEditor } from "@/components/ui/html-editor";
 import {
   updateStatusPeriodeTft,
   updatePeriodeTft,
@@ -41,6 +42,7 @@ import {
 import {
   reviewPendaftar,
   convertToInstructor,
+  deletePendaftar,
   type PendaftarTftRow,
 } from "@/server/actions/tft/pendaftar";
 import {
@@ -51,11 +53,13 @@ import {
   createPenilai,
   updatePenilai,
   deletePenilai,
+  finalizePenilai,
+  unfinalizePenilai,
   type KriteriaTftRow,
   type PenilaiTftRow,
   type NilaiTftRow,
 } from "@/server/actions/tft/penilaian";
-import { exportFormPenilaianPdf, exportRekapHasilPdf } from "@/components/tft/pdf-export";
+import { exportFormPenilaianPdf, exportFormPenilaianAllPdf, exportRekapHasilPdf } from "@/components/tft/pdf-export";
 import {
   createPertanyaan,
   updatePertanyaan,
@@ -162,7 +166,13 @@ export function TftDetailView({
   const [pertanyaanOpsi, setPertanyaanOpsi] = useState("");
   const [pertanyaanUrutan, setPertanyaanUrutan] = useState("0");
 
-  function handleStatusChange(newStatus: "buka" | "tutup" | "penilaian" | "selesai") {
+  // ─── MULTI-SELECT (PENDAFTAR) ────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // ─── EXPANDABLE ROWS (HASIL) ─────────────────────────────────────────────
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  function handleStatusChange(newStatus: "draft" | "buka" | "tutup" | "penilaian" | "selesai") {
     startTransition(async () => {
       const res = await updateStatusPeriodeTft(periode.id, newStatus);
       if (!res.ok) { toast.error(res.error); return; }
@@ -192,6 +202,17 @@ export function TftDetailView({
       const res = await convertToInstructor(p.id);
       if (!res.ok) { toast.error(res.error); return; }
       toast.success(`${p.namaLengkap} berhasil ditambahkan sebagai instruktur.`);
+      router.refresh();
+    });
+  }
+
+  function handleDeletePendaftar(p: PendaftarTftRow) {
+    if (!confirm(`Hapus pendaftar "${p.namaLengkap}"? Data akan dihapus permanen.`)) return;
+    startTransition(async () => {
+      const res = await deletePendaftar(p.id);
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success(`${p.namaLengkap} dihapus.`);
+      setSelectedIds((prev) => { const s = new Set(prev); s.delete(p.id); return s; });
       router.refresh();
     });
   }
@@ -488,6 +509,16 @@ export function TftDetailView({
     toast.success(`PDF form penilaian untuk ${pn.nama} sedang diunduh.`);
   }
 
+  function handleCetakSemuaFormPenilaian() {
+    exportFormPenilaianAllPdf({
+      periode,
+      penilaiList: penilai,
+      pendaftar,
+      kriteria,
+    });
+    toast.success("PDF form semua penilai sedang diunduh.");
+  }
+
   function handleCetakRekapHasil() {
     exportRekapHasilPdf({
       periode,
@@ -495,6 +526,26 @@ export function TftDetailView({
       kriteria,
     });
     toast.success("PDF rekap hasil sedang diunduh.");
+  }
+
+  // ─── FINALISASI PENILAI HANDLERS ────────────────────────────────────────
+  function handleFinalizePenilai(pn: PenilaiTftRow) {
+    startTransition(async () => {
+      const res = await finalizePenilai(pn.id);
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success(`Penilaian ${pn.nama} telah difinalisasi.`);
+      router.refresh();
+    });
+  }
+
+  function handleUnfinalizePenilai(pn: PenilaiTftRow) {
+    if (!confirm(`Buka kembali nilai penilai "${pn.nama}"? Ini memungkinkan pengeditan kembali.`)) return;
+    startTransition(async () => {
+      const res = await unfinalizePenilai(pn.id);
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success(`Penilaian ${pn.nama} dibuka kembali.`);
+      router.refresh();
+    });
   }
 
   function getSkorPenilai(pendaftarId: string, penilaiId: string) {
@@ -622,6 +673,56 @@ export function TftDetailView({
     ditolak: pendaftar.filter((p) => p.status === "ditolak").length,
   };
 
+  // ─── MULTI-SELECT HANDLERS ──────────────────────────────────────────────
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === pendaftar.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendaftar.map((p) => p.id)));
+    }
+  }
+
+  function handleBulkReview(status: "diterima" | "ditolak") {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (!confirm(`${status === "diterima" ? "Terima" : "Tolak"} ${count} pendaftar yang dipilih?`)) return;
+    startTransition(async () => {
+      let success = 0;
+      let failed = 0;
+      for (const id of selectedIds) {
+        const res = await reviewPendaftar({ id, status, catatanAdmin: "" });
+        if (res.ok) success++;
+        else failed++;
+      }
+      if (failed > 0) {
+        toast.error(`${success} berhasil, ${failed} gagal.`);
+      } else {
+        toast.success(`${success} pendaftar berhasil di-${status === "diterima" ? "terima" : "tolak"}.`);
+      }
+      setSelectedIds(new Set());
+      router.refresh();
+    });
+  }
+
+  // ─── EXPANDABLE ROW TOGGLE ──────────────────────────────────────────────
+  function toggleExpand(id: string) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Header actions */}
@@ -649,18 +750,38 @@ export function TftDetailView({
               </Button>
             )}
             {periode.status === "buka" && (
-              <Button size="sm" variant="outline" onClick={() => handleStatusChange("tutup")} disabled={isPending}>
-                Tutup Pendaftaran
-              </Button>
+              <>
+                <Button size="sm" variant="outline" onClick={() => handleStatusChange("tutup")} disabled={isPending}>
+                  Tutup Pendaftaran
+                </Button>
+                <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => handleStatusChange("draft")} disabled={isPending}>
+                  Kembalikan ke Draft
+                </Button>
+              </>
             )}
             {periode.status === "tutup" && (
-              <Button size="sm" onClick={() => handleStatusChange("penilaian")} disabled={isPending}>
-                Mulai Penilaian
-              </Button>
+              <>
+                <Button size="sm" onClick={() => handleStatusChange("penilaian")} disabled={isPending}>
+                  Mulai Penilaian
+                </Button>
+                <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => handleStatusChange("buka")} disabled={isPending}>
+                  Buka Kembali
+                </Button>
+              </>
             )}
             {periode.status === "penilaian" && (
-              <Button size="sm" onClick={() => handleStatusChange("selesai")} disabled={isPending}>
-                Selesaikan Periode
+              <>
+                <Button size="sm" onClick={() => handleStatusChange("selesai")} disabled={isPending}>
+                  Selesaikan Periode
+                </Button>
+                <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => handleStatusChange("tutup")} disabled={isPending}>
+                  Kembali ke Tutup
+                </Button>
+              </>
+            )}
+            {periode.status === "selesai" && (
+              <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => handleStatusChange("penilaian")} disabled={isPending}>
+                Buka Kembali ke Penilaian
               </Button>
             )}
           </div>
@@ -687,7 +808,25 @@ export function TftDetailView({
           <Card className="rounded-[24px]">
             <CardContent className="pt-6">
               {pendaftar.length > 0 && (
-                <div className="mb-4 flex items-center justify-end">
+                <div className="mb-4 flex items-center justify-between">
+                  {selectedIds.size > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{selectedIds.size} dipilih</span>
+                      <Button variant="default" size="sm" onClick={() => handleBulkReview("diterima")} disabled={isPending}>
+                        <Check className="h-4 w-4" />
+                        Terima yang dipilih
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleBulkReview("ditolak")} disabled={isPending}>
+                        <X className="h-4 w-4" />
+                        Tolak yang dipilih
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                        Batal
+                      </Button>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
                   <Button variant="outline" size="sm" onClick={handleExportPendaftarExcel}>
                     <Download className="h-4 w-4" />
                     Export Pendaftar
@@ -703,6 +842,14 @@ export function TftDetailView({
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300"
+                            checked={selectedIds.size === pendaftar.length && pendaftar.length > 0}
+                            onChange={toggleSelectAll}
+                          />
+                        </TableHead>
                         <TableHead>Nama</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>No HP</TableHead>
@@ -717,6 +864,14 @@ export function TftDetailView({
                     <TableBody>
                       {pendaftar.map((p) => (
                         <TableRow key={p.id}>
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={selectedIds.has(p.id)}
+                              onChange={() => toggleSelect(p.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{p.namaLengkap}</TableCell>
                           <TableCell className="text-sm">{p.email}</TableCell>
                           <TableCell className="text-sm">{p.noHp}</TableCell>
@@ -783,6 +938,16 @@ export function TftDetailView({
                                   <UserPlus className="h-4 w-4" />
                                 </Button>
                               )}
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-destructive"
+                                onClick={() => handleDeletePendaftar(p)}
+                                disabled={isPending}
+                                title="Hapus pendaftar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -941,13 +1106,30 @@ export function TftDetailView({
                   <div className="space-y-2">
                     {penilai.map((pn) => (
                       <div key={pn.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium">{pn.nama}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {[pn.jabatan, pn.instansi].filter(Boolean).join(" — ") || "—"}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="text-sm font-medium">{pn.nama}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[pn.jabatan, pn.instansi].filter(Boolean).join(" — ") || "—"}
+                            </p>
+                          </div>
+                          {pn.finalizedAt && (
+                            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
+                              <Lock className="h-3 w-3 mr-0.5" />
+                              Finalized
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-1">
+                          {pn.finalizedAt ? (
+                            <Button variant="ghost" size="icon-sm" onClick={() => handleUnfinalizePenilai(pn)} title="Buka kembali nilai" disabled={isPending}>
+                              <Unlock className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <Button variant="ghost" size="icon-sm" onClick={() => handleFinalizePenilai(pn)} title="Finalisasi nilai" disabled={isPending}>
+                              <Lock className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           {kriteria.length > 0 && pendaftar.length > 0 && (
                             <Button variant="ghost" size="icon-sm" onClick={() => handleCetakFormPenilaian(pn)} title="Cetak form penilaian">
                               <FileDown className="h-3.5 w-3.5" />
@@ -966,13 +1148,21 @@ export function TftDetailView({
                 )}
               </div>
 
-              {kriteria.length > 0 && penilai.length > 0 && pendaftar.length > 0 && (
-                <Button
-                  onClick={() => router.push(`/jadwal-otomatis/tft/${periode.id}/input-nilai`)}
-                >
-                  Input Nilai
-                </Button>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {kriteria.length > 0 && penilai.length > 0 && pendaftar.length > 0 && (
+                  <>
+                    <Button
+                      onClick={() => router.push(`/jadwal-otomatis/tft/${periode.id}/input-nilai`)}
+                    >
+                      Input Nilai
+                    </Button>
+                    <Button variant="outline" onClick={handleCetakSemuaFormPenilaian}>
+                      <FileDown className="h-4 w-4" />
+                      Cetak Semua Form
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1019,6 +1209,7 @@ export function TftDetailView({
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-8"></TableHead>
                         <TableHead className="w-12">#</TableHead>
                         <TableHead>Nama</TableHead>
                         {penilai.map((pn) => (
@@ -1036,22 +1227,64 @@ export function TftDetailView({
                           const lulus = periode.skorMinimum
                             ? Number(p.skorAkhir) >= Number(periode.skorMinimum)
                             : null;
+                          const isExpanded = expandedRows.has(p.id);
                           return (
-                            <TableRow key={p.id}>
-                              <TableCell className="font-medium">{idx + 1}</TableCell>
-                              <TableCell>{p.namaLengkap}</TableCell>
-                              {penilai.map((pn) => (
-                                <TableCell key={pn.id} className="text-sm">
-                                  {getSkorPenilai(p.id, pn.id) || "-"}
+                            <React.Fragment key={p.id}>
+                              <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => toggleExpand(p.id)}>
+                                <TableCell className="px-2">
+                                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                                 </TableCell>
-                              ))}
-                              <TableCell>
-                                <span className={lulus === false ? "text-red-600" : lulus === true ? "text-emerald-600 font-medium" : ""}>
-                                  {p.skorAkhir}
-                                </span>
-                              </TableCell>
-                              <TableCell>{statusBadge(p.status)}</TableCell>
-                            </TableRow>
+                                <TableCell className="font-medium">{idx + 1}</TableCell>
+                                <TableCell>{p.namaLengkap}</TableCell>
+                                {penilai.map((pn) => (
+                                  <TableCell key={pn.id} className="text-sm">
+                                    {getSkorPenilai(p.id, pn.id) || "-"}
+                                  </TableCell>
+                                ))}
+                                <TableCell>
+                                  <span className={lulus === false ? "text-red-600" : lulus === true ? "text-emerald-600 font-medium" : ""}>
+                                    {p.skorAkhir}
+                                  </span>
+                                </TableCell>
+                                <TableCell>{statusBadge(p.status)}</TableCell>
+                              </TableRow>
+                              {isExpanded && (
+                                <TableRow>
+                                  <TableCell colSpan={4 + penilai.length} className="bg-muted/30 p-4">
+                                    <div className="overflow-x-auto">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">Breakdown Skor per Kriteria</p>
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="border-b">
+                                            <th className="pb-2 pr-4 text-left font-medium">Kriteria</th>
+                                            <th className="pb-2 pr-4 text-left font-medium">Bobot</th>
+                                            {penilai.map((pn) => (
+                                              <th key={pn.id} className="pb-2 px-2 text-center font-medium">{pn.nama}</th>
+                                            ))}
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {kriteria.map((k) => (
+                                            <tr key={k.id} className="border-b last:border-0">
+                                              <td className="py-1.5 pr-4">{k.nama}</td>
+                                              <td className="py-1.5 pr-4 text-muted-foreground">{k.bobot}%</td>
+                                              {penilai.map((pn) => {
+                                                const n = nilai.find((v) => v.pendaftarId === p.id && v.penilaiId === pn.id && v.kriteriaId === k.id);
+                                                return (
+                                                  <td key={pn.id} className="py-1.5 px-2 text-center">
+                                                    {n ? n.skor : "—"}
+                                                  </td>
+                                                );
+                                              })}
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                     </TableBody>
@@ -1167,7 +1400,7 @@ export function TftDetailView({
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Deskripsi (tampil di form publik)</p>
-              <Textarea value={editDeskripsi} onChange={(e) => setEditDeskripsi(e.target.value)} rows={4} placeholder="Deskripsi kegiatan TFT..." />
+              <HtmlEditor value={editDeskripsi} onChange={setEditDeskripsi} placeholder="Deskripsi kegiatan TFT..." minHeight={160} maxHeight={260} />
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Catatan Internal (admin only)</p>

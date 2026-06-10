@@ -2,11 +2,12 @@
 
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { Save, Lock, Unlock } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { saveNilai, type KriteriaTftRow, type PenilaiTftRow, type NilaiTftRow } from "@/server/actions/tft/penilaian";
+import { saveNilai, finalizePenilai, unfinalizePenilai, type KriteriaTftRow, type PenilaiTftRow, type NilaiTftRow } from "@/server/actions/tft/penilaian";
 import type { PendaftarTftRow } from "@/server/actions/tft/pendaftar";
 
 interface TftInputNilaiViewProps {
@@ -145,6 +146,31 @@ export function TftInputNilaiView({
   // Filter only pendaftar yang bersedia hadir
   const activePendaftar = pendaftar.filter((p) => p.bersediaHadir && p.status !== "ditolak");
 
+  // Check if selected penilai is finalized
+  const selectedPenilai = penilai.find((p) => p.id === selectedPenilaiId);
+  const isFinalized = !!selectedPenilai?.finalizedAt;
+
+  function handleFinalize() {
+    if (!selectedPenilaiId) return;
+    startTransition(async () => {
+      const res = await finalizePenilai(selectedPenilaiId);
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success("Nilai penilai telah difinalisasi.");
+      router.refresh();
+    });
+  }
+
+  function handleUnfinalize() {
+    if (!selectedPenilaiId) return;
+    if (!confirm("Buka kembali nilai? Ini memungkinkan pengeditan kembali.")) return;
+    startTransition(async () => {
+      const res = await unfinalizePenilai(selectedPenilaiId);
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success("Nilai dibuka kembali untuk pengeditan.");
+      router.refresh();
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -160,22 +186,46 @@ export function TftInputNilaiView({
                 <SelectContent>
                   {penilai.map((pn) => (
                     <SelectItem key={pn.id} value={pn.id}>
-                      {pn.nama}
+                      {pn.nama}{pn.finalizedAt ? " ✓" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {isFinalized && (
+                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs">
+                  <Lock className="h-3 w-3 mr-0.5" />
+                  Finalized
+                </Badge>
+              )}
             </div>
             <span className="text-sm text-muted-foreground">
               {filledCount}/{activePendaftar.length} peserta sudah dinilai
             </span>
-            <div className="ml-auto">
-              <Button onClick={handleSave} disabled={isPending || !selectedPenilaiId}>
+            <div className="ml-auto flex items-center gap-2">
+              {selectedPenilaiId && !isFinalized && (
+                <Button variant="outline" size="sm" onClick={handleFinalize} disabled={isPending}>
+                  <Lock className="h-4 w-4" />
+                  Finalisasi
+                </Button>
+              )}
+              {isFinalized && (
+                <Button variant="outline" size="sm" onClick={handleUnfinalize} disabled={isPending}>
+                  <Unlock className="h-4 w-4" />
+                  Buka Kembali
+                </Button>
+              )}
+              <Button onClick={handleSave} disabled={isPending || !selectedPenilaiId || isFinalized}>
                 <Save className="h-4 w-4" />
                 {isPending ? "Menyimpan..." : "Simpan Nilai"}
               </Button>
             </div>
           </div>
+          {isFinalized && (
+            <p className="mt-3 text-sm text-amber-600 flex items-center gap-1">
+              <Lock className="h-3.5 w-3.5" />
+              Penilai ini sudah difinalisasi. Nilai tidak dapat diedit. Klik &quot;Buka Kembali&quot; untuk mengaktifkan pengeditan.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -223,6 +273,7 @@ export function TftInputNilaiView({
                           placeholder="—"
                           value={getScore(p.id, k.id)}
                           onChange={(e) => updateScore(p.id, k.id, e.target.value)}
+                          disabled={isFinalized}
                         />
                       </td>
                     ))}

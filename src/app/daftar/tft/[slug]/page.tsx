@@ -35,9 +35,13 @@ export default async function Page({
   // Admin preview mode: bypass status check if logged-in admin
   let isAdminPreview = false;
   if (preview === "1") {
-    const session = await getSession();
-    if (session) {
-      isAdminPreview = true;
+    try {
+      const session = await getSession();
+      if (session) {
+        isAdminPreview = true;
+      }
+    } catch {
+      // Not logged in — ignore, treat as public access
     }
   }
 

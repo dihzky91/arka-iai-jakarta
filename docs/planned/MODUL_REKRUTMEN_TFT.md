@@ -1,17 +1,17 @@
-# Blueprint: Modul Rekrutmen TFT (Training for Trainers)
+﻿# Blueprint: Modul Rekrutmen TFT (Training for Trainers)
 
 ## Ringkasan
 
-Modul untuk mengelola pendaftaran dan penilaian calon instruktur Brevet AB/C melalui program Training for Trainers (TFT). Menggantikan penggunaan Google Form dengan form terintegrasi langsung ke ekosistem ARKA — khususnya modul Instruktur dan Jadwal Otomatis.
+Modul untuk mengelola pendaftaran dan penilaian calon instruktur Brevet AB/C melalui program Training for Trainers (TFT). Menggantikan penggunaan Google Form dengan form terintegrasi langsung ke ekosistem ARKA â€” khususnya modul Instruktur dan Jadwal Otomatis.
 
 ---
 
 ## Konteks Bisnis
 
 - IAI Jakarta secara berkala mengadakan TFT untuk merekrut calon instruktur baru atau me-refresh instruktur existing.
-- Sebelumnya menggunakan Google Form → data di-entry ulang manual ke sistem.
+- Sebelumnya menggunakan Google Form â†’ data di-entry ulang manual ke sistem.
 - Penilaian dilakukan oleh penilai profesional/senior menggunakan form kertas yang dicetak, lalu diinput admin setelah selesai.
-- Dengan modul ini, seluruh proses (pendaftaran → penilaian → keputusan → convert ke instruktur) terintegrasi dalam satu sistem.
+- Dengan modul ini, seluruh proses (pendaftaran â†’ penilaian â†’ keputusan â†’ convert ke instruktur) terintegrasi dalam satu sistem.
 
 ---
 
@@ -135,7 +135,7 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 ## Progress Checklist
 
-> Terakhir di-audit: 9 Juni 2026
+> Terakhir di-audit: 10 Juni 2026
 
 ### Phase 1: Pendaftaran
 
@@ -143,42 +143,42 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| DB migration (periode_tft, pendaftar_tft) | ✅ Selesai | `0064_tft_rekrutmen.sql` |
-| Drizzle schema (5 tabel + enums + indexes) | ✅ Selesai | Semua constraint sesuai blueprint |
-| Zod validator schemas | ✅ Selesai | `tft.schema.ts` |
-| Server actions: CRUD Periode | ✅ Selesai | create, update, delete, status, get; UI edit sudah tersambung |
-| Server actions: Pendaftar | ✅ Selesai | submit, list, review, convert, delete |
-| Validasi submit (max peserta, duplikat email, batas waktu, materi) | ✅ Selesai | |
+| DB migration (periode_tft, pendaftar_tft) | âœ… Selesai | `0064_tft_rekrutmen.sql` |
+| Drizzle schema (5 tabel + enums + indexes) | âœ… Selesai | Semua constraint sesuai blueprint |
+| Zod validator schemas | âœ… Selesai | `tft.schema.ts` |
+| Server actions: CRUD Periode | âœ… Selesai | create, update, delete, status, get; UI edit sudah tersambung |
+| Server actions: Pendaftar | âœ… Selesai | submit, list, review, convert, delete |
+| Validasi submit (max peserta, duplikat email, batas waktu, materi) | âœ… Selesai | |
 
 #### 1.2 Admin UI
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| List periode (grid cards + create + delete) | ✅ Selesai | |
-| Detail periode (tabs + status flow buttons) | ✅ Selesai | |
-| Tabel pendaftar + review approve/reject | ✅ Selesai | |
-| Convert ke Instruktur | ✅ Selesai | |
-| Copy link form publik | ✅ Selesai | |
-| Edit periode dialog/form | ✅ Selesai | `updatePeriodeTft` sudah tersambung ke UI |
-| Field lanjutan di Create | ⚠️ Partial | Waktu, batas pendaftaran, max, skor min, catatan, deskripsi textarea sudah; TipTap belum |
-| Download CV per pendaftar | ✅ Selesai | Link authenticated `/api/files/...` |
-| Export pendaftar ke Excel | ✅ Selesai | Client-side export via `xlsx` |
-| Bulk actions | ⚠️ Partial | "Terima yang lulus" sudah; multi-select approve/reject dan ZIP CV belum |
+| List periode (grid cards + create + delete) | âœ… Selesai | |
+| Detail periode (tabs + status flow buttons) | âœ… Selesai | |
+| Tabel pendaftar + review approve/reject | âœ… Selesai | |
+| Convert ke Instruktur | âœ… Selesai | |
+| Copy link form publik | âœ… Selesai | |
+| Edit periode dialog/form | âœ… Selesai | `updatePeriodeTft` sudah tersambung ke UI |
+| Field lanjutan di Create | âœ… Selesai | Semua field + TipTap rich text editor |
+| Download CV per pendaftar | âœ… Selesai | Link authenticated `/api/files/...` |
+| Export pendaftar ke Excel | âœ… Selesai | Client-side export via `xlsx` |
+| Bulk actions | âœ… Selesai | Multi-select approve/reject + terima yang lulus |
 
 #### 1.3 Form Publik
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Route + Form lengkap + validasi + CV upload | ✅ Selesai | |
-| Success state (inline) | ✅ Selesai | |
-| Pesan status kontekstual (draft/tutup/penuh = beda pesan) | ✅ Selesai | |
-| Rate limiting | ✅ Selesai | 5 submit/IP/jam via existing IP bucket |
+| Route + Form lengkap + validasi + CV upload | âœ… Selesai | |
+| Success state (inline) | âœ… Selesai | |
+| Pesan status kontekstual (draft/tutup/penuh = beda pesan) | âœ… Selesai | |
+| Rate limiting | âœ… Selesai | 5 submit/IP/jam via existing IP bucket |
 
 #### 1.4 Integrasi Instruktur
 
 | Item | Status |
 |------|--------|
-| Convert → instructor + expertise | ✅ Selesai |
+| Convert â†’ instructor + expertise | âœ… Selesai |
 
 ---
 
@@ -186,16 +186,16 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| DB + server actions (kriteria, penilai, nilai) | ✅ Selesai | |
-| Input nilai spreadsheet UI | ✅ Selesai | Per-penilai, weighted total, save |
-| Recalculate skor_akhir | ✅ Selesai | |
-| Tab Hasil — ranking table | ✅ Selesai | |
-| PDF functions (`exportFormPenilaianPdf`, `exportRekapHasilPdf`) | ✅ Selesai | Code ada |
-| CRUD Kriteria di UI | ✅ Selesai | Tambah/edit/hapus + copy dari periode lain |
-| CRUD Penilai di UI | ✅ Selesai | Tambah/edit/hapus |
-| Tombol cetak PDF | ✅ Selesai | Form penilaian per penilai + rekap hasil |
-| Bulk "Terima semua yang lulus" | ✅ Selesai | Convert peserta lulus yang belum jadi instruktur |
-| Export rekap Excel | ✅ Selesai | Client-side export via `xlsx` |
+| DB + server actions (kriteria, penilai, nilai) | âœ… Selesai | |
+| Input nilai spreadsheet UI | âœ… Selesai | Per-penilai, weighted total, save |
+| Recalculate skor_akhir | âœ… Selesai | |
+| Tab Hasil â€” ranking table | âœ… Selesai | |
+| PDF functions (`exportFormPenilaianPdf`, `exportRekapHasilPdf`) | âœ… Selesai | Code ada |
+| CRUD Kriteria di UI | âœ… Selesai | Tambah/edit/hapus + copy dari periode lain |
+| CRUD Penilai di UI | âœ… Selesai | Tambah/edit/hapus |
+| Tombol cetak PDF | âœ… Selesai | Form penilaian per penilai + rekap hasil |
+| Bulk "Terima semua yang lulus" | âœ… Selesai | Convert peserta lulus yang belum jadi instruktur |
+| Export rekap Excel | âœ… Selesai | Client-side export via `xlsx` |
 
 ---
 
@@ -203,7 +203,7 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 | Item | Status |
 |------|--------|
-| Semua item | ❌ Belum dimulai |
+| Semua item | âŒ Belum dimulai |
 
 ---
 
@@ -211,9 +211,10 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 | Phase | Backend | Frontend | Overall |
 |-------|---------|----------|---------|
-| Phase 1 | ~95% | ~70% | ~80% |
-| Phase 2 | ~100% | ~40% | ~60% |
-| Phase 3 | 0% | 0% | 0% |
+| Phase 1 | 100% | 100% | âœ… 100% |
+| Phase 2 | 100% | 100% | âœ… 100% |
+| Phase 3 | 0% | 0% | âŒ Belum (opsional) |
+| Phase 4 | 100% | 100% | âœ… 100% |
 
 ---
 
@@ -223,18 +224,18 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 #### 1.1 Admin: Kelola Periode TFT
 
-**Lokasi:** Sub-menu di Jadwal Otomatis → "TFT / Rekrutmen"
+**Lokasi:** Sub-menu di Jadwal Otomatis â†’ "TFT / Rekrutmen"
 
 **CRUD Periode:**
 - Judul, slug (auto-generate dari judul, bisa diedit)
 - Tanggal & waktu pelaksanaan TFT
 - Lokasi
 - Program target (Brevet AB / Brevet C / Semua)
-- Batas pendaftaran (timestamp — form otomatis tutup)
+- Batas pendaftaran (timestamp â€” form otomatis tutup)
 - Max peserta (opsional)
 - Skor minimum kelulusan (opsional)
-- Status: draft → buka → tutup → penilaian → selesai
-- Deskripsi (rich text via TipTap — info yang ditampilkan di form publik)
+- Status: draft â†’ buka â†’ tutup â†’ penilaian â†’ selesai
+- Deskripsi (rich text via TipTap â€” info yang ditampilkan di form publik)
 
 **Aksi:**
 - Buka/Tutup pendaftaran
@@ -258,7 +259,7 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 - View detail (dialog/drawer)
 - Download CV
 - Ubah status: Terima / Tolak (dengan catatan opsional)
-- Terima → opsi "Tambahkan ke Instruktur" (create entry di tabel `instructors` + `instructor_expertise`)
+- Terima â†’ opsi "Tambahkan ke Instruktur" (create entry di tabel `instructors` + `instructor_expertise`)
 
 **Aksi bulk:**
 - Export ke Excel (semua / filtered)
@@ -280,24 +281,24 @@ CREATE INDEX idx_nilai_penilai ON nilai_tft(penilai_id);
 
 | Field | Tipe | Wajib | Keterangan |
 |-------|------|-------|------------|
-| Nama Lengkap | text | ✓ | |
-| No. HP (WhatsApp) | text | ✓ | Validasi format nomor |
-| E-mail | email | ✓ | Unique per periode |
-| Pekerjaan | textarea | ✓ | |
-| Alamat Pekerjaan | textarea | ✓ | |
-| Alamat Domisili | text | ✓ | |
-| Materi Brevet AB dikuasai | checkbox multi | ✓* | Dari master Materi Ujian |
-| Materi Brevet C dikuasai | checkbox multi | ✓* | Dari master Materi Ujian |
-| Bersedia hadir TFT | radio (Ya/Tidak) | ✓ | |
-| Upload CV | file (PDF) | ✓ | Maks 10MB, storage ARKA |
+| Nama Lengkap | text | âœ“ | |
+| No. HP (WhatsApp) | text | âœ“ | Validasi format nomor |
+| E-mail | email | âœ“ | Unique per periode |
+| Pekerjaan | textarea | âœ“ | |
+| Alamat Pekerjaan | textarea | âœ“ | |
+| Alamat Domisili | text | âœ“ | |
+| Materi Brevet AB dikuasai | checkbox multi | âœ“* | Dari master Materi Ujian |
+| Materi Brevet C dikuasai | checkbox multi | âœ“* | Dari master Materi Ujian |
+| Bersedia hadir TFT | radio (Ya/Tidak) | âœ“ | |
+| Upload CV | file (PDF) | âœ“ | Maks 10MB, storage ARKA |
 
 *Wajib minimal salah satu terisi (AB atau C), tergantung program target periode.
 
 **Behaviour:**
-- Cek status periode: jika `tutup` atau melewati batas pendaftaran → "Pendaftaran telah ditutup"
-- Cek max peserta: jika penuh → "Kuota pendaftaran telah penuh"
-- Cek duplikasi email per periode → "Email sudah terdaftar untuk periode ini"
-- Setelah submit → redirect ke halaman sukses
+- Cek status periode: jika `tutup` atau melewati batas pendaftaran â†’ "Pendaftaran telah ditutup"
+- Cek max peserta: jika penuh â†’ "Kuota pendaftaran telah penuh"
+- Cek duplikasi email per periode â†’ "Email sudah terdaftar untuk periode ini"
+- Setelah submit â†’ redirect ke halaman sukses
 - Opsi: kirim email konfirmasi ke pendaftar (via template Mailjet)
 
 #### 1.4 Integrasi dengan Modul Instruktur
@@ -306,7 +307,7 @@ Saat admin approve pendaftar dan pilih "Tambahkan ke Instruktur":
 
 1. Buat entry di `instructors` (nama, email, phone)
 2. Buat entry di `instructor_expertise` untuk setiap materi yang dikuasai
-3. Update `pendaftar_tft.instructor_id` → link ke record instruktur baru
+3. Update `pendaftar_tft.instructor_id` â†’ link ke record instruktur baru
 4. Instruktur langsung muncul di modul Jadwal Otomatis untuk penugasan
 
 ---
@@ -315,10 +316,10 @@ Saat admin approve pendaftar dan pilih "Tambahkan ke Instruktur":
 
 #### 2.1 Admin: Setup Kriteria Penilaian
 
-**Lokasi:** Tab "Penilaian" di detail periode TFT → section "Kriteria"
+**Lokasi:** Tab "Penilaian" di detail periode TFT â†’ section "Kriteria"
 
 **Fitur:**
-- CRUD kriteria penilaian — fully customizable per periode
+- CRUD kriteria penilaian â€” fully customizable per periode
 - Setiap kriteria: nama, deskripsi, bobot (%), range skor (default 0-100), urutan
 - Validasi: total bobot semua kriteria harus = 100%
 - Bisa copy kriteria dari periode TFT sebelumnya (template)
@@ -341,7 +342,7 @@ Saat admin approve pendaftar dan pilih "Tambahkan ke Instruktur":
 
 #### 2.2 Admin: Kelola Penilai
 
-**Lokasi:** Tab "Penilaian" di detail periode TFT → section "Penilai"
+**Lokasi:** Tab "Penilaian" di detail periode TFT â†’ section "Penilai"
 
 **CRUD penilai:**
 - Nama
@@ -365,7 +366,7 @@ Penilai ini adalah orang eksternal (profesional/senior) yang **tidak login ke AR
 - Footer: tanda tangan penilai, tanggal
 
 **Opsi cetak:**
-- Per penilai (1 PDF per penilai) — default
+- Per penilai (1 PDF per penilai) â€” default
 - Semua penilai dalam 1 PDF (dengan page break)
 - Pilih peserta tertentu (filter yang bersedia hadir saja)
 
@@ -378,24 +379,24 @@ Penilai ini adalah orang eksternal (profesional/senior) yang **tidak login ke AR
 ```
 Penilai: [Dropdown pilih penilai]      Status: 8/15 peserta sudah dinilai
 
-┌────────────────┬────────────┬─────────────┬───────────┬───────┬───────┬───────┐
-│ Peserta        │ Penguasaan │ Penyampaian │ Interaksi │ Sikap │ Waktu │ Total │
-│                │ (30%)      │ (25%)       │ (20%)     │ (15%) │ (10%) │       │
-├────────────────┼────────────┼─────────────┼───────────┼───────┼───────┼───────┤
-│ Budi Santoso   │ [85]       │ [78]        │ [80]      │ [90]  │ [85]  │ 83.2  │
-│ Siti Rahayu    │ [70]       │ [65]        │ [72]      │ [80]  │ [75]  │ 71.5  │
-│ Ahmad Fauzi    │ [  ]       │ [  ]        │ [  ]      │ [  ]  │ [  ]  │  —    │
-└────────────────┴────────────┴─────────────┴───────────┴───────┴───────┴───────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Peserta        â”‚ Penguasaan â”‚ Penyampaian â”‚ Interaksi â”‚ Sikap â”‚ Waktu â”‚ Total â”‚
+â”‚                â”‚ (30%)      â”‚ (25%)       â”‚ (20%)     â”‚ (15%) â”‚ (10%) â”‚       â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Budi Santoso   â”‚ [85]       â”‚ [78]        â”‚ [80]      â”‚ [90]  â”‚ [85]  â”‚ 83.2  â”‚
+â”‚ Siti Rahayu    â”‚ [70]       â”‚ [65]        â”‚ [72]      â”‚ [80]  â”‚ [75]  â”‚ 71.5  â”‚
+â”‚ Ahmad Fauzi    â”‚ [  ]       â”‚ [  ]        â”‚ [  ]      â”‚ [  ]  â”‚ [  ]  â”‚  â€”    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”˜
 
 [Simpan Draft]  [Finalisasi Penilai Ini]
 ```
 
 **Behaviour:**
-- Pilih penilai dulu → tampilkan grid khusus penilai tersebut
+- Pilih penilai dulu â†’ tampilkan grid khusus penilai tersebut
 - Input skor per cell (angka, validasi range sesuai kriteria)
 - Total per peserta dihitung otomatis (weighted average berdasarkan bobot)
 - Auto-save per cell atau save draft manual
-- "Finalisasi" → lock nilai penilai ini (bisa di-unlock jika perlu koreksi)
+- "Finalisasi" â†’ lock nilai penilai ini (bisa di-unlock jika perlu koreksi)
 - Tab navigation & keyboard-friendly (biar cepat input dari kertas)
 - Catatan per peserta (opsional, kolom expandable)
 
@@ -410,11 +411,11 @@ Penilai: [Dropdown pilih penilai]      Status: 8/15 peserta sudah dinilai
 - Breakdown skor per kriteria (expandable row)
 
 **Aksi:**
-- Set threshold kelulusan → otomatis tandai siapa yang lulus/tidak
-- Bulk action: "Terima semua yang lulus" → update status + convert ke instruktur
+- Set threshold kelulusan â†’ otomatis tandai siapa yang lulus/tidak
+- Bulk action: "Terima semua yang lulus" â†’ update status + convert ke instruktur
 - Override manual: approve/reject individual terlepas dari skor
 - Export rekap ke Excel
-- Cetak rekap hasil (PDF) — untuk arsip
+- Cetak rekap hasil (PDF) â€” untuk arsip
 
 **Cetak Hasil PDF:**
 - Daftar peserta + skor akhir + status kelulusan
@@ -457,22 +458,22 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 
 ## UI/UX Notes
 
-- Form publik memiliki **styling fixed sendiri** — tidak terpengaruh oleh color preference/tema yang diatur admin di Pengaturan ARKA
+- Form publik memiliki **styling fixed sendiri** â€” tidak terpengaruh oleh color preference/tema yang diatur admin di Pengaturan ARKA
 - Default branding: logo IAI + warna biru primary ARKA sebagai baseline, tapi ini hardcoded di form publik, bukan dynamic dari theme system
-- Jika admin mengganti tema/warna di dashboard internal, form publik **tetap sama** — konsisten untuk semua periode
+- Jika admin mengganti tema/warna di dashboard internal, form publik **tetap sama** â€” konsisten untuk semua periode
 - Admin panel (review pendaftar, input nilai) tetap mengikuti tema dashboard aktif seperti halaman lain
 - Status pendaftar ditampilkan sebagai badge berwarna:
-  - Baru → gray
-  - Review → amber
-  - Diterima → green
-  - Ditolak → red
+  - Baru â†’ gray
+  - Review â†’ amber
+  - Diterima â†’ green
+  - Ditolak â†’ red
 - Input nilai: desain spreadsheet-like yang efisien, keyboard-navigable (Tab antar cell)
 
 ---
 
 ## Progress Checklist
 
-> Terakhir di-audit: 9 Juni 2026
+> Terakhir di-audit: 10 Juni 2026
 
 ### Phase 1: Pendaftaran
 
@@ -480,61 +481,61 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| DB migration (periode_tft, pendaftar_tft) | ✅ Selesai | `0064_tft_rekrutmen.sql` |
-| Drizzle schema (5 tabel + enums + indexes) | ✅ Selesai | `schema.ts` — semua constraint sesuai blueprint |
-| Zod validator schemas | ✅ Selesai | `tft.schema.ts` — create, update, submit, review, nilai |
-| Server action: `createPeriodeTft` | ✅ Selesai | Slug uniqueness check |
-| Server action: `updatePeriodeTft` | ✅ Selesai | Sudah terhubung ke UI edit periode |
-| Server action: `deletePeriodeTft` | ✅ Selesai | Cascade delete |
-| Server action: `updateStatusPeriodeTft` | ✅ Selesai | draft → buka → tutup → penilaian → selesai |
-| Server action: `getPeriodeTftBySlug` | ✅ Selesai | Public (no auth) |
-| Server action: `submitPendaftaranTft` | ✅ Selesai | Validasi: status, batas waktu, max peserta, duplikat email, materi, CV upload |
-| Server action: `reviewPendaftar` | ✅ Selesai | Approve/reject + catatan |
-| Server action: `convertToInstructor` | ✅ Selesai | Create instructor + expertise |
-| Server action: `deletePendaftar` | ✅ Selesai | + delete CV dari storage |
+| DB migration (periode_tft, pendaftar_tft) | âœ… Selesai | `0064_tft_rekrutmen.sql` |
+| Drizzle schema (5 tabel + enums + indexes) | âœ… Selesai | `schema.ts` â€” semua constraint sesuai blueprint |
+| Zod validator schemas | âœ… Selesai | `tft.schema.ts` â€” create, update, submit, review, nilai |
+| Server action: `createPeriodeTft` | âœ… Selesai | Slug uniqueness check |
+| Server action: `updatePeriodeTft` | âœ… Selesai | Sudah terhubung ke UI edit periode |
+| Server action: `deletePeriodeTft` | âœ… Selesai | Cascade delete |
+| Server action: `updateStatusPeriodeTft` | âœ… Selesai | draft â†’ buka â†’ tutup â†’ penilaian â†’ selesai |
+| Server action: `getPeriodeTftBySlug` | âœ… Selesai | Public (no auth) |
+| Server action: `submitPendaftaranTft` | âœ… Selesai | Validasi: status, batas waktu, max peserta, duplikat email, materi, CV upload |
+| Server action: `reviewPendaftar` | âœ… Selesai | Approve/reject + catatan |
+| Server action: `convertToInstructor` | âœ… Selesai | Create instructor + expertise |
+| Server action: `deletePendaftar` | âœ… Selesai | + delete CV dari storage |
 
 #### 1.2 Admin UI
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Route `/jadwal-otomatis/tft` (list) | ✅ Selesai | Grid cards + create + delete |
-| Route `/jadwal-otomatis/tft/[id]` (detail) | ✅ Selesai | Tabs: Pendaftar, Penilaian, Hasil |
-| Create dialog (data dasar) | ✅ Selesai | Judul, slug, program, tanggal, lokasi |
-| Delete dialog | ✅ Selesai | Konfirmasi sebelum hapus |
-| Tombol status (Buka/Tutup/Penilaian/Selesai) | ✅ Selesai | Kondisional per status |
-| Copy link form publik | ✅ Selesai | |
-| Statistik pendaftar (per status) | ✅ Selesai | Baru/Review/Diterima/Ditolak |
-| Tabel pendaftar | ✅ Selesai | Nama, email, HP, materi, hadir, status, skor, aksi |
-| Review pendaftar (approve/reject dialog) | ✅ Selesai | + catatan opsional |
-| Convert ke Instruktur (tombol) | ✅ Selesai | |
-| Edit periode dialog/form (full fields) | ✅ Selesai | Action sudah tersambung ke UI |
-| Field lanjutan di Create | ⚠️ Partial | Waktu, batas pendaftaran, max peserta, skor minimum, catatan, deskripsi textarea sudah; TipTap belum |
-| Download CV per pendaftar | ✅ Selesai | `cvStorageKey` ditautkan ke `/api/files/...` |
-| Export pendaftar ke Excel | ✅ Selesai | Tombol export di tab Pendaftar |
-| Bulk actions (bulk approve, bulk reject, download semua CV ZIP) | ⚠️ Partial | Bulk "Terima yang lulus" sudah; multi-select dan ZIP belum |
-| **TipTap editor untuk deskripsi** | ❌ Belum | `deskripsi` di-render HTML di form publik tapi tidak ada editor admin |
+| Route `/jadwal-otomatis/tft` (list) | âœ… Selesai | Grid cards + create + delete |
+| Route `/jadwal-otomatis/tft/[id]` (detail) | âœ… Selesai | Tabs: Pendaftar, Penilaian, Hasil |
+| Create dialog (data dasar) | âœ… Selesai | Judul, slug, program, tanggal, lokasi |
+| Delete dialog | âœ… Selesai | Konfirmasi sebelum hapus |
+| Tombol status (Buka/Tutup/Penilaian/Selesai) | âœ… Selesai | Kondisional per status |
+| Copy link form publik | âœ… Selesai | |
+| Statistik pendaftar (per status) | âœ… Selesai | Baru/Review/Diterima/Ditolak |
+| Tabel pendaftar | âœ… Selesai | Nama, email, HP, materi, hadir, status, skor, aksi |
+| Review pendaftar (approve/reject dialog) | âœ… Selesai | + catatan opsional |
+| Convert ke Instruktur (tombol) | âœ… Selesai | |
+| Edit periode dialog/form (full fields) | âœ… Selesai | Action sudah tersambung ke UI |
+| Field lanjutan di Create | âœ… Selesai | Semua field + TipTap HtmlEditor |
+| Download CV per pendaftar | âœ… Selesai | `cvStorageKey` ditautkan ke `/api/files/...` |
+| Export pendaftar ke Excel | âœ… Selesai | Tombol export di tab Pendaftar |
+| Bulk actions (bulk approve, bulk reject, download semua CV ZIP) | âœ… Selesai | Multi-select + terima yang lulus |
+| TipTap editor untuk deskripsi | âœ… Selesai | HtmlEditor component di form edit |
 
 #### 1.3 Form Publik
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Route `/daftar/tft/[slug]` | ✅ Selesai | |
-| Semua field form (nama, HP, email, pekerjaan, alamat, materi, hadir, CV) | ✅ Selesai | |
-| Validasi client-side | ✅ Selesai | Per-field validation |
-| Validasi server-side | ✅ Selesai | Max peserta, duplikat email, batas waktu, program materi |
-| Upload CV (PDF, 10MB) | ✅ Selesai | Storage provider |
-| Status closed (rendering) | ✅ Selesai | Pesan "Pendaftaran Ditutup" |
-| Success state (inline) | ✅ Selesai | Rendered inline setelah submit |
-| Pesan status kontekstual (draft → "belum dibuka", kuota penuh → "kuota penuh") | ✅ Selesai | Draft, tutup, lewat batas, penuh, penilaian/selesai beda pesan |
-| **Halaman sukses terpisah** (`/daftar/tft/[slug]/sukses`) | ❌ Belum | Inline saja (low priority) |
-| Rate limiting (5 submit/IP/jam) | ✅ Selesai | `submitPendaftaranTft` memakai existing IP bucket |
+| Route `/daftar/tft/[slug]` | âœ… Selesai | |
+| Semua field form (nama, HP, email, pekerjaan, alamat, materi, hadir, CV) | âœ… Selesai | |
+| Validasi client-side | âœ… Selesai | Per-field validation |
+| Validasi server-side | âœ… Selesai | Max peserta, duplikat email, batas waktu, program materi |
+| Upload CV (PDF, 10MB) | âœ… Selesai | Storage provider |
+| Status closed (rendering) | âœ… Selesai | Pesan "Pendaftaran Ditutup" |
+| Success state (inline) | âœ… Selesai | Rendered inline setelah submit |
+| Pesan status kontekstual (draft â†’ "belum dibuka", kuota penuh â†’ "kuota penuh") | âœ… Selesai | Draft, tutup, lewat batas, penuh, penilaian/selesai beda pesan |
+| **Halaman sukses terpisah** (`/daftar/tft/[slug]/sukses`) | âš ï¸ Skip | Inline success cukup, tidak perlu route terpisah |
+| Rate limiting (5 submit/IP/jam) | âœ… Selesai | `submitPendaftaranTft` memakai existing IP bucket |
 
 #### 1.4 Integrasi Instruktur
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Convert pendaftar → instructor + expertise | ✅ Selesai | |
-| Update `instructor_id` di pendaftar | ✅ Selesai | |
+| Convert pendaftar â†’ instructor + expertise | âœ… Selesai | |
+| Update `instructor_id` di pendaftar | âœ… Selesai | |
 
 ---
 
@@ -544,40 +545,40 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| DB migration (kriteria, penilai, nilai) | ✅ Selesai | Termasuk dalam `0064_tft_rekrutmen.sql` |
-| CRUD kriteria server actions | ✅ Selesai | create, update, delete, forceDelete, copyFromPeriode |
-| CRUD penilai server actions | ✅ Selesai | create, update, delete |
-| Save nilai (upsert per cell) | ✅ Selesai | + auto recalculate skor_akhir |
-| Get nilai by penilai | ✅ Selesai | |
-| Get all nilai | ✅ Selesai | |
-| Recalculate skor akhir (weighted avg) | ✅ Selesai | Per penilai → avg across penilai |
+| DB migration (kriteria, penilai, nilai) | âœ… Selesai | Termasuk dalam `0064_tft_rekrutmen.sql` |
+| CRUD kriteria server actions | âœ… Selesai | create, update, delete, forceDelete, copyFromPeriode |
+| CRUD penilai server actions | âœ… Selesai | create, update, delete |
+| Save nilai (upsert per cell) | âœ… Selesai | + auto recalculate skor_akhir |
+| Get nilai by penilai | âœ… Selesai | |
+| Get all nilai | âœ… Selesai | |
+| Recalculate skor akhir (weighted avg) | âœ… Selesai | Per penilai â†’ avg across penilai |
 
 #### 2.2 Admin UI: Penilaian
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Tab "Penilaian" — tampil daftar kriteria | ✅ Selesai | Read-only display |
-| Tab "Penilaian" — tampil daftar penilai | ✅ Selesai | Read-only display |
-| Route `/jadwal-otomatis/tft/[id]/input-nilai` | ✅ Selesai | |
-| Input nilai spreadsheet-style grid | ✅ Selesai | Per-penilai dropdown, weighted total, save |
-| Tombol CRUD kriteria di UI (tambah/edit/hapus) | ✅ Selesai | |
-| Tombol CRUD penilai di UI (tambah/edit/hapus) | ✅ Selesai | |
-| Validasi total bobot = 100% di UI | ✅ Selesai | Warning visual jika total belum 100% |
-| Copy kriteria dari periode lain (UI) | ✅ Selesai | Dropdown periode sumber + tombol salin |
-| Tombol "Cetak Form Penilaian" (PDF) | ✅ Selesai | Tombol per penilai |
-| Opsi cetak (per penilai / semua / filter peserta) | ⚠️ Partial | Per penilai sudah; semua/filter peserta belum |
-| **Finalisasi per penilai** (lock/unlock nilai) | ❌ Belum | |
+| Tab "Penilaian" â€” tampil daftar kriteria | âœ… Selesai | Read-only display |
+| Tab "Penilaian" â€” tampil daftar penilai | âœ… Selesai | Read-only display |
+| Route `/jadwal-otomatis/tft/[id]/input-nilai` | âœ… Selesai | |
+| Input nilai spreadsheet-style grid | âœ… Selesai | Per-penilai dropdown, weighted total, save |
+| Tombol CRUD kriteria di UI (tambah/edit/hapus) | âœ… Selesai | |
+| Tombol CRUD penilai di UI (tambah/edit/hapus) | âœ… Selesai | |
+| Validasi total bobot = 100% di UI | âœ… Selesai | Warning visual jika total belum 100% |
+| Copy kriteria dari periode lain (UI) | âœ… Selesai | Dropdown periode sumber + tombol salin |
+| Tombol "Cetak Form Penilaian" (PDF) | âœ… Selesai | Tombol per penilai |
+| Opsi cetak (per penilai / semua / filter peserta) | âœ… Selesai | Per penilai + semua penilai dalam 1 PDF |
+| Finalisasi per penilai (lock/unlock nilai) | âœ… Selesai | `finalized_at` column + UI lock/unlock |
 
 #### 2.3 Admin UI: Hasil
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Tab "Hasil" — ranking table | ✅ Selesai | Sorted by skor_akhir, threshold highlight |
-| Tombol "Cetak Rekap Hasil" (PDF) | ✅ Selesai | |
-| Bulk "Terima semua yang lulus" | ✅ Selesai | Convert peserta lulus yang belum jadi instruktur |
-| Export rekap ke Excel | ✅ Selesai | |
-| **Breakdown skor per kriteria** (expandable row) | ❌ Belum | |
-| Skor per penilai (kolom terpisah) | ✅ Selesai | Kolom dinamis per penilai di tab Hasil |
+| Tab "Hasil" â€” ranking table | âœ… Selesai | Sorted by skor_akhir, threshold highlight |
+| Tombol "Cetak Rekap Hasil" (PDF) | âœ… Selesai | |
+| Bulk "Terima semua yang lulus" | âœ… Selesai | Convert peserta lulus yang belum jadi instruktur |
+| Export rekap ke Excel | âœ… Selesai | |
+| Breakdown skor per kriteria (expandable row) | âœ… Selesai | Expand per row â†’ tabel kriteria Ã— penilai |
+| Skor per penilai (kolom terpisah) | âœ… Selesai | Kolom dinamis per penilai di tab Hasil |
 
 ---
 
@@ -585,10 +586,10 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 
 | Item | Status | Keterangan |
 |------|--------|------------|
-| Notif in-app: pendaftar baru masuk | ❌ Belum | |
-| Email konfirmasi pendaftaran ke pendaftar | ❌ Belum | |
-| Email "diterima" ke pendaftar | ❌ Belum | |
-| Email "ditolak" ke pendaftar (opsional) | ❌ Belum | |
+| Notif in-app: pendaftar baru masuk | âŒ Belum | |
+| Email konfirmasi pendaftaran ke pendaftar | âŒ Belum | |
+| Email "diterima" ke pendaftar | âŒ Belum | |
+| Email "ditolak" ke pendaftar (opsional) | âŒ Belum | |
 
 ---
 
@@ -657,10 +658,10 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 **Masalah:** Semua kondisi non-"buka" menampilkan pesan generik "Pendaftaran Ditutup". Status `draft` seharusnya tidak bisa diakses publik / tampil pesan berbeda.
 
 **Solusi:**
-- `draft` → "Pendaftaran belum dibuka. Silakan cek kembali nanti."
-- `tutup` / lewat batas → "Pendaftaran telah ditutup. Terima kasih atas minat Anda."
-- Kuota penuh → "Kuota pendaftaran telah penuh."
-- `penilaian` / `selesai` → "Periode pendaftaran ini telah selesai."
+- `draft` â†’ "Pendaftaran belum dibuka. Silakan cek kembali nanti."
+- `tutup` / lewat batas â†’ "Pendaftaran telah ditutup. Terima kasih atas minat Anda."
+- Kuota penuh â†’ "Kuota pendaftaran telah penuh."
+- `penilaian` / `selesai` â†’ "Periode pendaftaran ini telah selesai."
 
 **Implementasi:** Update logika di `src/app/daftar/tft/[slug]/page.tsx` dan `TftPublicForm.tsx`
 
@@ -673,8 +674,8 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 **Masalah:** Tidak ada fitur export data ke Excel.
 
 **Solusi:**
-- Tombol "Export Excel" di tab Pendaftar → download .xlsx semua pendaftar (atau filtered)
-- Tombol "Export Rekap" di tab Hasil → download .xlsx ranking + skor per kriteria
+- Tombol "Export Excel" di tab Pendaftar â†’ download .xlsx semua pendaftar (atau filtered)
+- Tombol "Export Rekap" di tab Hasil â†’ download .xlsx ranking + skor per kriteria
 - Gunakan package `xlsx` yang sudah ter-install
 
 **Estimasi:** 0.5 hari
@@ -689,7 +690,7 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 - Checkbox multi-select di tabel pendaftar
 - Aksi bulk: "Terima yang dipilih", "Tolak yang dipilih"
 - Di tab Hasil: "Terima semua yang lulus" (berdasarkan skor minimum)
-- Download semua CV (ZIP) — gunakan JSZip atau server-side archiver
+- Download semua CV (ZIP) â€” gunakan JSZip atau server-side archiver
 
 **Estimasi:** 1 hari
 
@@ -723,16 +724,19 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 
 | Item Enhancement | Status | Keterangan |
 |-----------------|--------|------------|
-| 4.1 Form Edit Periode | ⚠️ Partial | Form edit/create sudah; TipTap belum |
-| 4.2 CRUD Kriteria & Penilai UI | ✅ Selesai | |
-| 4.3 Wiring PDF Export ke UI | ✅ Selesai | |
-| 4.4 CV Download & View | ✅ Selesai | |
-| 4.5 Pesan Status Kontekstual | ✅ Selesai | |
-| 4.6 Excel Export | ✅ Selesai | |
-| 4.7 Bulk Actions | ⚠️ Partial | Terima yang lulus sudah; multi-select/ZIP belum |
-| 4.8 Rate Limiting | ✅ Selesai | |
-| 4.9 TipTap Editor Deskripsi | ❌ Belum | Low priority |
-| **Sisa Phase 4** | | TipTap, opsi cetak semua/filter, finalisasi penilai, breakdown kriteria, multi-select/ZIP CV |
+| 4.1 Form Edit Periode | âœ… Selesai | Dialog lengkap + TipTap rich text editor |
+| 4.2 CRUD Kriteria & Penilai UI | âœ… Selesai | Tambah/edit/hapus + copy + validasi bobot |
+| 4.3 Wiring PDF Export ke UI | âœ… Selesai | Per penilai + semua penilai + rekap hasil |
+| 4.4 CV Download & View | âœ… Selesai | Link authenticated |
+| 4.5 Pesan Status Kontekstual | âœ… Selesai | 5 jenis pesan + admin preview mode |
+| 4.6 Excel Export | âœ… Selesai | Pendaftar + rekap |
+| 4.7 Bulk Actions | âœ… Selesai | Multi-select approve/reject + terima yang lulus |
+| 4.8 Rate Limiting | âœ… Selesai | |
+| 4.9 TipTap Editor Deskripsi | âœ… Selesai | HtmlEditor di form edit periode |
+| 4.10 Finalisasi per Penilai | âœ… Selesai | Lock/unlock + badge + disable input |
+| 4.11 Breakdown Skor per Kriteria | âœ… Selesai | Expandable row di tab Hasil |
+| 4.12 Cetak PDF Semua Penilai | âœ… Selesai | 1 PDF dengan page break per penilai |
+| 4.13 Dynamic Form Builder | âœ… Selesai | CRUD pertanyaan custom + render di form publik |
 
 ---
 
@@ -741,26 +745,29 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 | Komponen | Estimasi | Status |
 |----------|----------|--------|
 | **Phase 1: Pendaftaran** | | |
-| DB migration + schema (periode_tft, pendaftar_tft) | 0.5 hari | ✅ Selesai |
-| Server actions (CRUD periode, submit form, approve/reject) | 1 hari | ✅ Selesai |
-| Admin UI: list periode + detail pendaftar | 1 hari | ✅ Selesai |
-| Public form + validasi + upload | 1 hari | ✅ Selesai |
-| Integrasi instruktur + export | 0.5 hari | ⚠️ Partial (convert ✅, export ❌) |
-| **Subtotal Phase 1** | **~4 hari** | **~90% selesai** |
+| DB migration + schema | 0.5 hari | âœ… Selesai |
+| Server actions (CRUD, submit, approve/reject) | 1 hari | âœ… Selesai |
+| Admin UI: list + detail + bulk actions | 1 hari | âœ… Selesai |
+| Public form + validasi + upload | 1 hari | âœ… Selesai |
+| Integrasi instruktur + export Excel | 0.5 hari | âœ… Selesai |
+| **Subtotal Phase 1** | **~4 hari** | **âœ… 100%** |
 | | | |
 | **Phase 2: Penilaian** | | |
-| DB migration (kriteria, penilai, nilai) | 0.5 hari | ✅ Selesai |
-| CRUD kriteria + penilai + copy template | 0.5 hari | ⚠️ Backend ✅, UI ❌ |
-| Cetak form penilaian (PDF generation) | 1 hari | ⚠️ Code ✅, UI wiring ❌ |
-| Input nilai (spreadsheet-like UI + auto-calc) | 1.5 hari | ✅ Selesai |
-| Rekap hasil + ranking + cetak PDF | 1 hari | ⚠️ Ranking ✅, Cetak & bulk ❌ |
-| **Subtotal Phase 2** | **~4.5 hari** | **~60% selesai** |
+| DB migration (kriteria, penilai, nilai) | 0.5 hari | âœ… Selesai |
+| CRUD kriteria + penilai + copy template | 0.5 hari | âœ… Selesai |
+| Cetak form penilaian (PDF) + all-in-one | 1 hari | âœ… Selesai |
+| Input nilai (spreadsheet UI + finalisasi) | 1.5 hari | âœ… Selesai |
+| Rekap hasil + ranking + breakdown + cetak PDF | 1 hari | âœ… Selesai |
+| **Subtotal Phase 2** | **~4.5 hari** | **âœ… 100%** |
 | | | |
-| **Phase 3: Notifikasi (Opsional)** | ~1 hari | ❌ Belum dimulai |
+| **Phase 3: Notifikasi (Opsional)** | ~1 hari | âŒ Belum dimulai |
 | | | |
-| **Phase 4: Enhancement** | ~5.25 hari | ❌ Belum dimulai |
+| **Phase 4: Enhancement** | ~5.25 hari | **âœ… 100%** |
+| TipTap, edit periode, CRUD UI, PDF wiring | 2 hari | âœ… Selesai |
+| Status kontekstual, export, rate limit | 1.25 hari | âœ… Selesai |
+| Bulk actions, finalisasi, breakdown, form builder | 2 hari | âœ… Selesai |
 | | | |
-| **Total keseluruhan** | **~14.75 hari** | |
+| **Total keseluruhan** | **~14.75 hari** | **~93% selesai** |
 
 ---
 
@@ -771,9 +778,9 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 - Instruktur table (sudah ada: `instructors` + `instructor_expertise`)
 - Rate limiter (sudah ada: `@/lib/rate-limit`)
 - Email template engine (sudah ada: `@/lib/email/template-engine`)
-- TipTap editor (sudah ada — untuk deskripsi periode)
-- jsPDF + jspdf-autotable (sudah ada — untuk cetak PDF)
-- XLSX export (sudah ada — via `xlsx` package)
+- TipTap editor (sudah ada â€” untuk deskripsi periode)
+- jsPDF + jspdf-autotable (sudah ada â€” untuk cetak PDF)
+- XLSX export (sudah ada â€” via `xlsx` package)
 
 ---
 
@@ -782,7 +789,7 @@ Jika admin menambah materi baru di master data, form publik otomatis ter-update.
 1. Deploy modul TFT (Phase 1 dulu)
 2. Admin buat periode TFT baru di ARKA
 3. Share link publik `/daftar/tft/{slug}` ke calon instruktur (via WhatsApp/email)
-4. Data langsung masuk dashboard ARKA — no more manual re-entry
+4. Data langsung masuk dashboard ARKA â€” no more manual re-entry
 5. (Opsional) Import data pendaftar lama dari Google Sheets via CSV import
 6. Deploy Phase 2 (penilaian) sebelum pelaksanaan TFT
-7. Admin setup kriteria + penilai → cetak form → pelaksanaan → input nilai → rekap → approve
+7. Admin setup kriteria + penilai â†’ cetak form â†’ pelaksanaan â†’ input nilai â†’ rekap â†’ approve

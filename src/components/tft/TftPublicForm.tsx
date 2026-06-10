@@ -114,15 +114,23 @@ export function TftPublicForm({ periode, closedReason, isAdminPreview, materiAb,
     }
 
     startTransition(async () => {
-      // Prepare CV file data
-      let cvData: { body: Buffer; fileName: string; contentType: string } | undefined;
+      // Upload CV via API route first (avoids server action body size limit)
+      let cvData: { storageKey: string; originalName: string } | undefined;
       if (cvFile) {
-        const arrayBuffer = await cvFile.arrayBuffer();
-        cvData = {
-          body: Buffer.from(arrayBuffer),
-          fileName: cvFile.name,
-          contentType: cvFile.type || "application/pdf",
-        };
+        const formData = new FormData();
+        formData.append("file", cvFile);
+        formData.append("periodeId", periode.id);
+
+        const uploadRes = await fetch("/api/tft/upload-cv", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadJson = await uploadRes.json();
+        if (!uploadJson.ok) {
+          toast.error(uploadJson.error || "Gagal mengupload CV.");
+          return;
+        }
+        cvData = { storageKey: uploadJson.key, originalName: uploadJson.fileName };
       }
 
       const res = await submitPendaftaranTft(

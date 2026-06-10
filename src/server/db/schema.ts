@@ -3334,6 +3334,7 @@ export const penilaiTft = pgTable(
     jabatan: varchar("jabatan", { length: 200 }),
     instansi: varchar("instansi", { length: 200 }),
     catatan: text("catatan"),
+    finalizedAt: timestamp("finalized_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => ({

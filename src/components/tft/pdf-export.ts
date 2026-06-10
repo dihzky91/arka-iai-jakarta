@@ -100,6 +100,107 @@ export async function exportFormPenilaianPdf(opts: {
 }
 
 /**
+ * Cetak Form Penilaian untuk SEMUA penilai sekaligus.
+ * Satu PDF dengan page breaks antar penilai.
+ */
+export async function exportFormPenilaianAllPdf(opts: {
+  periode: PeriodeTftRow;
+  penilaiList: PenilaiTftRow[];
+  pendaftar: PendaftarTftRow[];
+  kriteria: KriteriaTftRow[];
+  systemIdentity?: { namaSistem: string; logoUrl: string | null };
+}) {
+  const { periode, penilaiList, pendaftar, kriteria } = opts;
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 12;
+
+  for (let i = 0; i < penilaiList.length; i++) {
+    const penilai = penilaiList[i]!;
+    if (i > 0) doc.addPage();
+
+    let currentY = 12;
+
+    // Header
+    doc.setFontSize(14);
+    doc.setTextColor(29, 78, 216);
+    doc.text("FORM PENILAIAN", pageWidth / 2, currentY, { align: "center" });
+    currentY += 7;
+
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(periode.judul, pageWidth / 2, currentY, { align: "center" });
+    currentY += 6;
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    const infoLine = [
+      `Tanggal: ${periode.tanggalMulai}${periode.tanggalSelesai !== periode.tanggalMulai ? ` s/d ${periode.tanggalSelesai}` : ""}`,
+      periode.lokasi ? `Lokasi: ${periode.lokasi}` : "",
+    ]
+      .filter(Boolean)
+      .join("  •  ");
+    doc.text(infoLine, pageWidth / 2, currentY, { align: "center" });
+    currentY += 10;
+
+    // Penilai info
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Penilai: ${penilai.nama}`, marginX, currentY);
+    if (penilai.jabatan || penilai.instansi) {
+      currentY += 5;
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        [penilai.jabatan, penilai.instansi].filter(Boolean).join(" — "),
+        marginX,
+        currentY,
+      );
+    }
+    currentY += 8;
+
+    // Build table
+    const headerRow = ["No", "Nama Peserta", ...kriteria.map((k) => `${k.nama}\n(${k.bobot}%)`), "Catatan"];
+    const bodyRows = pendaftar
+      .filter((p) => p.bersediaHadir && p.status !== "ditolak")
+      .map((p, j) => [
+        String(j + 1),
+        p.namaLengkap,
+        ...kriteria.map(() => ""),
+        "",
+      ]);
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [headerRow],
+      body: bodyRows,
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 3, minCellHeight: 10 },
+      headStyles: { fillColor: [29, 78, 216], textColor: 255, fontSize: 7.5 },
+      columnStyles: {
+        0: { cellWidth: 10, halign: "center" },
+        1: { cellWidth: 50 },
+      },
+      margin: { left: marginX, right: marginX },
+    });
+
+    // Signature area at bottom
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+    doc.setFontSize(9);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Tanda Tangan Penilai:", marginX, finalY);
+    doc.text("(                                    )", marginX, finalY + 20);
+    doc.text(penilai.nama, marginX, finalY + 25);
+    doc.text(`Tanggal: ____________________`, pageWidth - marginX - 60, finalY);
+  }
+
+  doc.save(`form-penilaian-all-${periode.slug}.pdf`);
+}
+
+/**
  * Cetak Rekap Hasil Penilaian — ranking peserta dengan skor akhir.
  */
 export async function exportRekapHasilPdf(opts: {
