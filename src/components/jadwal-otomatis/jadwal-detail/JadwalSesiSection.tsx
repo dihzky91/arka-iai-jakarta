@@ -3,11 +3,12 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BookOpen, Download, FileCheck, Trash2 } from "lucide-react";
+import { BookOpen, Download, FileCheck, Search, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
@@ -87,11 +88,23 @@ export function JadwalSesiSection({
   const [bulkStatusPending, startBulkStatus] = useTransition();
   const [bulkSessionStatus, setBulkSessionStatus] = useState<"" | BulkSessionStatus>("");
   const [bulkSessionPending, startBulkSession] = useTransition();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate)),
     [sessions],
   );
+
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sortedSessions;
+    const q = searchQuery.trim().toLowerCase();
+    return sortedSessions.filter((session) => {
+      const materi = session.isExamDay
+        ? session.examSubjects?.join(", ") ?? "Ujian"
+        : session.materiName ?? "";
+      return materi.toLowerCase().includes(q);
+    });
+  }, [sortedSessions, searchQuery]);
 
   const assignBySession = useMemo(() => {
     const mapping = new Map<string, Assignment>();
@@ -232,12 +245,12 @@ export function JadwalSesiSection({
 
   const allSelectableIds = useMemo(() => {
     const ids: string[] = [];
-    for (const session of sortedSessions) {
+    for (const session of filteredSessions) {
       const assignment = assignBySession.get(session.id);
       if (assignment) ids.push(assignment.assignmentId);
     }
     return ids;
-  }, [sortedSessions, assignBySession]);
+  }, [filteredSessions, assignBySession]);
 
   const allSelected = useMemo(
     () =>
@@ -335,12 +348,23 @@ export function JadwalSesiSection({
   return (
     <Card className="rounded-[24px]">
       <CardHeader className="border-b border-border/60">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <CardTitle>Jadwal Kelas</CardTitle>
-          <Button variant="outline" onClick={handleExportPdf} disabled={exportPending} size="sm">
-            <Download className="h-4 w-4 mr-1" />
-            {exportPending ? "Mengekspor..." : "Export PDF"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari materi..."
+                className="pl-8 h-9 w-[200px]"
+              />
+            </div>
+            <Button variant="outline" onClick={handleExportPdf} disabled={exportPending} size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              {exportPending ? "Mengekspor..." : "Export PDF"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-6 p-0">
@@ -442,14 +466,14 @@ export function JadwalSesiSection({
               </tr>
             </thead>
             <tbody>
-              {sortedSessions.length === 0 ? (
+              {filteredSessions.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="px-6 py-8">
-                    <EmptyState icon={BookOpen} title="Belum ada jadwal" description="Sesi kelas akan tampil di sini setelah jadwal dibuat untuk kelas ini." />
+                    <EmptyState icon={BookOpen} title={searchQuery ? "Tidak ditemukan" : "Belum ada jadwal"} description={searchQuery ? `Tidak ada sesi dengan materi "${searchQuery}".` : "Sesi kelas akan tampil di sini setelah jadwal dibuat untuk kelas ini."} />
                   </td>
                 </tr>
               ) : (
-                sortedSessions.map((session, index) => {
+                filteredSessions.map((session, index) => {
                   const assignment = assignBySession.get(session.id);
                   const instructorName = assignment?.actualInstructorId
                     ? instructors.find((instructor) => instructor.id === assignment.actualInstructorId)

@@ -102,7 +102,7 @@ interface WhatsAppClassActionsProps {
 
 const TEMPLATE_FALLBACK: Record<WhatsappTemplateKey, string> = {
   offer_schedule_instructor:
-    "Yth. Bapak/Ibu {{nama_instruktur}},\n\nKami menawarkan jadwal mengajar untuk kelas {{nama_kelas}} ({{nama_program}}).\nPeriode kelas: {{periode_kelas}}.\n\nRingkasan jadwal:\n{{ringkasan_jadwal}}\n\nMohon konfirmasi ketersediaan. Terima kasih.",
+    "Yth. Bapak/Ibu {{nama_instruktur}},\n\nKami menawarkan jadwal mengajar untuk kelas {{nama_kelas}} ({{nama_program}}).\nPeriode kelas: {{periode_kelas}}.\n{{lokasi_info}}\n\nRingkasan jadwal:\n{{ringkasan_jadwal}}\n\nMohon konfirmasi ketersediaan. Terima kasih.",
   finance_honorarium_reminder:
     "Yth. {{nama_kontak_keuangan}},\n\nReminder pengajuan honorarium untuk kelas {{nama_kelas}} ({{nama_program}}).\nPeriode kelas: {{periode_kelas}}.\nTotal sesi pelatihan: {{total_sesi}} sesi.\nEstimasi honor: {{estimasi_honor}}.\n\nMohon diproses sesuai SOP. Terima kasih.",
   honor_transferred_instructor:
@@ -252,12 +252,20 @@ export function WhatsAppClassActions({
         return `- ${formatDateLong(row.scheduledDate)} (${row.timeSlotStart}-${row.timeSlotEnd})${materi}`;
       }).join("\n") || "- Jadwal akan kami kirimkan terpisah.";
 
+    let lokasiInfo = "";
+    if (kelas.mode === "online") {
+      lokasiInfo = "Pelaksanaan secara online menggunakan platform Ms Teams.";
+    } else if (kelas.lokasi) {
+      lokasiInfo = `Lokasi: ${kelas.lokasi}.`;
+    }
+
     const message = renderTemplate(getTemplateContent("offer_schedule_instructor"), {
       nama_instruktur: instructor.name,
       nama_kelas: kelas.namaKelas,
       nama_program: kelas.programName,
       periode_kelas: periodKelas,
       ringkasan_jadwal: ringkasanJadwal,
+      lokasi_info: lokasiInfo,
     });
 
     const normalizedPhone = normalizePhoneForWa(instructor.phone);

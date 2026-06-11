@@ -91,42 +91,7 @@ async function buildSessionQueue(programId: string): Promise<QueueItem[]> {
     const s2 = sessions[i + 1] ?? null;
     const lastSessionInPair = s2?.sessionNumber ?? s1.sessionNumber;
 
-    while (nextExamIdx < examPoints.length) {
-      const ep = examPoints[nextExamIdx];
-      if (!ep) break;
-      if (ep.afterSessionNumber > lastSessionInPair) break;
-      nextExamIdx++;
-
-      if (!ep.hasExam) continue;
-
-      if (ep.isMixedDay) {
-        const popped = queue.pop();
-        if (popped?.type === "session_pair") {
-          queue.push({
-            type: "mixed",
-            sessionNum: s1.sessionNumber,
-            materiName: s1.materiName,
-            examSubjects: ep.examSubjects,
-          });
-        } else {
-          if (popped) queue.push(popped);
-          queue.push({
-            type: "mixed",
-            sessionNum: s1.sessionNumber,
-            materiName: s1.materiName,
-            examSubjects: ep.examSubjects,
-          });
-        }
-        continue;
-      }
-
-      queue.push({
-        type: "exam_day",
-        examSubjects: ep.examSubjects,
-        examSlotCount: ep.examSlotCount,
-      });
-    }
-
+    // Push the session pair/single FIRST
     if (!s2) {
       queue.push({ type: "single_session", sessionNum: s1.sessionNumber, materiName: s1.materiName });
     } else {
@@ -136,6 +101,50 @@ async function buildSessionQueue(programId: string): Promise<QueueItem[]> {
         session2Num: s2.sessionNumber,
         session1Materi: s1.materiName,
         session2Materi: s2.materiName,
+      });
+    }
+
+    // Then check for exams that should come AFTER this pair
+    while (nextExamIdx < examPoints.length) {
+      const ep = examPoints[nextExamIdx];
+      if (!ep) break;
+      if (ep.afterSessionNumber > lastSessionInPair) break;
+      nextExamIdx++;
+
+      if (!ep.hasExam) continue;
+
+      if (ep.isMixedDay) {
+        // Mixed day: replace the just-pushed session with a mixed item (session + exam on same day)
+        const popped = queue.pop();
+        if (popped?.type === "session_pair") {
+          queue.push({
+            type: "mixed",
+            sessionNum: popped.session1Num,
+            materiName: popped.session1Materi,
+            examSubjects: ep.examSubjects,
+          });
+        } else if (popped?.type === "single_session") {
+          queue.push({
+            type: "mixed",
+            sessionNum: popped.sessionNum,
+            materiName: popped.materiName,
+            examSubjects: ep.examSubjects,
+          });
+        } else {
+          if (popped) queue.push(popped);
+          queue.push({
+            type: "exam_day",
+            examSubjects: ep.examSubjects,
+            examSlotCount: ep.examSlotCount,
+          });
+        }
+        continue;
+      }
+
+      queue.push({
+        type: "exam_day",
+        examSubjects: ep.examSubjects,
+        examSlotCount: ep.examSlotCount,
       });
     }
   }

@@ -961,3 +961,94 @@ export async function removeExcludedDateFromKelas(input: KelasOtomatisRemoveExcl
   revalidatePath(`/jadwal-otomatis/${parsed.kelasId}`);
   return { ok: true as const };
 }
+
+export async function forceRegenerateSchedule(kelasId: string) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+
+  const kelas = await db
+    .select({
+      id: kelasPelatihan.id,
+      programId: kelasPelatihan.programId,
+      classTypeId: kelasPelatihan.classTypeId,
+      startDate: kelasPelatihan.startDate,
+      status: kelasPelatihan.status,
+    })
+    .from(kelasPelatihan)
+    .where(eq(kelasPelatihan.id, kelasId))
+    .then((rows) => rows[0] ?? null);
+
+  if (!kelas) {
+    return { ok: false as const, error: "Kelas tidak ditemukan." };
+  }
+
+  // Hapus honorarium items terkait kelas ini
+  const deletedHonorItems = await db
+    .delete(honorariumItems)
+    .where(eq(honorariumItems.kelasId, kelasId))
+    .returning({ id: honorariumItems.id, batchId: honorariumItems.batchId });
+
+  // Hapus batch yang jadi kosong (tidak punya items lagi)
+  if (deletedHonorItems.length > 0) {
+    const affectedBatchIds = [...new Set(deletedHonorItems.map((item) => item.batchId))];
+    for (const batchId of affectedBatchIds) {
+      const remainingItems = await db
+        .select({ id: honorariumItems.id })
+        .from(honorariumItems)
+        .where(eq(honorariumItems.batchId, batchId))
+        .limit(1);
+      if (remainingItems.length === 0) {
+        await db.delete(honorariumBatches).where(eq(honorariumBatches.id, batchId));
+      }
+    }
+  }
+
+  // Hapus semua assignment instruktur terkait
+  const sessionRows = await db
+    .select({ id: classSessions.id })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, kelasId));
+
+  if (sessionRows.length > 0) {
+    const sessionIds = sessionRows.map((row) => row.id);
+    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
+  }
+
+  // Hapus semua sesi lama
+  await db.delete(classSessions).where(eq(classSessions.kelasId, kelasId));
+
+  // Generate ulang jadwal
+  await generateSchedule({
+    kelasId: kelas.id,
+    programId: kelas.programId,
+    classTypeId: kelas.classTypeId,
+    startDate: kelas.startDate,
+  });
+
+  // Update end date
+  const lastSessions = await db
+    .select({ scheduledDate: classSessions.scheduledDate })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, kelasId))
+    .orderBy(asc(classSessions.scheduledDate));
+
+  const lastSession = lastSessions[lastSessions.length - 1];
+  await db
+    .update(kelasPelatihan)
+    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
+    .where(eq(kelasPelatihan.id, kelasId));
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "FORCE_REGENERATE_SCHEDULE",
+    entitasType: "kelas_pelatihan",
+    entitasId: kelasId,
+    detail: {
+      reason: "Force regenerate - bypass honorarium check",
+      deletedHonorItemsCount: deletedHonorItems.length,
+    },
+  });
+
+  revalidatePath("/jadwal-otomatis");
+  revalidatePath(`/jadwal-otomatis/${kelasId}`);
+  return { ok: true as const };
+}

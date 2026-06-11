@@ -39,6 +39,7 @@ const TEMPLATE_SEEDS: TemplateSeed[] = [
       "",
       "Kami menawarkan jadwal mengajar untuk kelas {{nama_kelas}} ({{nama_program}}).",
       "Periode kelas: {{periode_kelas}}.",
+      "{{lokasi_info}}",
       "",
       "Ringkasan jadwal:",
       "{{ringkasan_jadwal}}",

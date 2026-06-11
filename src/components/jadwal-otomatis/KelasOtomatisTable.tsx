@@ -11,6 +11,7 @@ import {
   XCircle,
   RotateCcw,
   Calendar,
+  RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -61,6 +62,7 @@ import {
   listExcludedDatesByKelas,
   addExcludedDateToKelas,
   removeExcludedDateFromKelas,
+  forceRegenerateSchedule,
   type KelasOtomatisRow,
 } from "@/server/actions/jadwal-otomatis/kelasOtomatis";
 
@@ -158,6 +160,19 @@ export function KelasOtomatisTable({
     setExcludedDates([]);
     setNewExcludeDate("");
     setNewExcludeReason("");
+  }
+
+  function handleForceRegenerate(kelasId: string, namaKelas: string) {
+    if (!confirm(`Regenerasi jadwal untuk "${namaKelas}"?\n\nSemua sesi, assignment instruktur, dan data honorarium terkait kelas ini akan dihapus dan jadwal di-generate ulang dari kurikulum terbaru.`)) return;
+    startDeleteTransition(async () => {
+      const result = await forceRegenerateSchedule(kelasId);
+      if (!result.ok) {
+        toast.error(result.error ?? "Gagal regenerasi jadwal.");
+        return;
+      }
+      toast.success(`Jadwal "${namaKelas}" berhasil di-regenerasi.`);
+      router.refresh();
+    });
   }
 
   function handleDeleteConfirm() {
@@ -417,6 +432,12 @@ export function KelasOtomatisTable({
                   >
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit Kelas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleForceRegenerate(kelas.id, kelas.namaKelas)}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Regenerasi Jadwal
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {isActive && (
