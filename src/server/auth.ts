@@ -30,6 +30,15 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
 
+  // Izinkan request dari localhost dan semua subdomain devtunnels.ms
+  // supaya tidak perlu ganti-ganti BETTER_AUTH_URL saat pakai dev tunnel.
+  trustedOrigins: [
+    "http://localhost:6700",
+    "https://*.devtunnels.ms",
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+  ],
+
   generateId: () => crypto.randomUUID(),
 
   emailAndPassword: {

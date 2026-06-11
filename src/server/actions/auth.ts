@@ -280,11 +280,22 @@ function permissionToLegacyCapability(
 
 // Ambil session tanpa throw - dipakai di layout/middleware untuk cek login state.
 export const getSession = cache(async (): Promise<AuthSession | null> => {
-  const headersList = await headers();
-  const session = await auth.api.getSession({
-    headers: headersList,
-  });
-  return session ?? null;
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
+    return session ?? null;
+  } catch (error) {
+    // better-auth melempar APIError (FAILED_TO_GET_SESSION) ketika:
+    // 1. Token session ada di cookie tapi sudah dihapus dari DB (race/logout)
+    // 2. Koneksi DB gagal saat lookup session
+    // Kedua kasus diperlakukan sebagai "tidak ada session" supaya request tidak crash.
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[getSession] auth.api.getSession melempar error:", error);
+    }
+    return null;
+  }
 });
 
 // Guard helper: pastikan user sudah login.
