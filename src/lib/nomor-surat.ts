@@ -7,6 +7,15 @@ type DbExecutor = Pick<typeof db, "execute">;
 type AllocateNomorSuratInput = {
   tahun: number;
   bulan: number;
+  kodeSurat: string | null;
+  prefixOrganisasi: string;
+  jumlah?: number;
+};
+
+/** @deprecated Use AllocateNomorSuratInput with kodeSurat instead */
+type AllocateNomorSuratInputLegacy = {
+  tahun: number;
+  bulan: number;
   kodeJenis: string;
   prefixOrganisasi: string;
   jumlah?: number;
@@ -14,7 +23,9 @@ type AllocateNomorSuratInput = {
 
 export type AllocateNomorSuratResult = {
   nomorList: string[];
-  kodeJenis: string;
+  kodeSurat: string | null;
+  /** @deprecated Use kodeSurat instead */
+  kodeJenis: string | null;
   prefixOrganisasi: string;
   bulanRomawi: string;
   tahun: number;
@@ -24,10 +35,13 @@ export type AllocateNomorSuratResult = {
 };
 
 export async function allocateNomorSurat(
-  input: AllocateNomorSuratInput,
+  input: AllocateNomorSuratInput | AllocateNomorSuratInputLegacy,
   executor: DbExecutor = db,
 ): Promise<AllocateNomorSuratResult> {
   const jumlah = input.jumlah ?? 1;
+
+  // Support both new (kodeSurat) and legacy (kodeJenis) callers
+  const kodeSurat = "kodeSurat" in input ? input.kodeSurat : input.kodeJenis;
 
   const upsert = await executor.execute(sql`
     INSERT INTO nomor_surat_counter (tahun, bulan, counter, updated_at)
@@ -52,12 +66,17 @@ export async function allocateNomorSurat(
 
   const nomorList = Array.from({ length: jumlah }, (_, index) => {
     const counter = startCounter + index;
-    return `${counter}/${input.kodeJenis}/${input.prefixOrganisasi}/${bulanRomawi}/${input.tahun}`;
+    if (kodeSurat) {
+      return `${counter}/${kodeSurat}/${input.prefixOrganisasi}/${bulanRomawi}/${input.tahun}`;
+    }
+    // Without kode — still valid and sequential
+    return `${counter}/${input.prefixOrganisasi}/${bulanRomawi}/${input.tahun}`;
   });
 
   return {
     nomorList,
-    kodeJenis: input.kodeJenis,
+    kodeSurat,
+    kodeJenis: kodeSurat,
     prefixOrganisasi: input.prefixOrganisasi,
     bulanRomawi,
     tahun: input.tahun,

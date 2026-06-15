@@ -88,13 +88,13 @@ export function NomorSuratManager({
   const [query, setQuery] = useState("");
   const [lastGenerated, setLastGenerated] = useState<{
     nomor: string;
-    kodeJenis: string;
+    kodeJenis: string | null;
     prefixOrganisasi: string;
     counter: number;
   } | null>(null);
   const [lastBulkGenerated, setLastBulkGenerated] = useState<{
     nomorList: string[];
-    kodeJenis: string;
+    kodeJenis: string | null;
     prefixOrganisasi: string;
     startCounter: number;
     endCounter: number;
@@ -407,7 +407,7 @@ export function NomorSuratManager({
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Badge variant="outline">Counter: {lastGenerated.counter}</Badge>
-                  <Badge variant="outline">Kode: {lastGenerated.kodeJenis}</Badge>
+                  <Badge variant="outline">Kode: {lastGenerated.kodeJenis ?? "-"}</Badge>
                   <Badge variant="outline">Prefix: {lastGenerated.prefixOrganisasi}</Badge>
                 </div>
                 <div className="mt-4">
@@ -439,7 +439,7 @@ export function NomorSuratManager({
                         Total: {lastBulkGenerated.nomorList.length}
                       </Badge>
                       <Badge variant="outline">
-                        Kode: {lastBulkGenerated.kodeJenis}
+                        Kode: {lastBulkGenerated.kodeJenis ?? "-"}
                       </Badge>
                       <Badge variant="outline">
                         Prefix: {lastBulkGenerated.prefixOrganisasi}

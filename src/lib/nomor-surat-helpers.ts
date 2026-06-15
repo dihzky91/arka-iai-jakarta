@@ -7,6 +7,7 @@ const DEFAULT_PREFIX_ORGANISASI = "IAI-DKIJKT";
 /**
  * Resolve kode jenis + prefix organisasi needed to allocate a nomor surat.
  * Throws with a clear message if kode jenis belum dikonfigurasi.
+ * Used by the workflow flow (assignNomorSuratKeluar) for backward compatibility.
  */
 export async function resolveNomorSuratParams(jenisSurat: string): Promise<{
   kodeJenis: string;
@@ -37,4 +38,35 @@ export async function resolveNomorSuratParams(jenisSurat: string): Promise<{
     kodeJenis: kodeRow.kode,
     prefixOrganisasi,
   };
+}
+
+/**
+ * Resolve only prefix organisasi (for quick-log flow where kode is user-provided).
+ */
+export async function resolveNomorSuratPrefix(): Promise<{
+  prefixOrganisasi: string;
+}> {
+  const [settingsRow] = await db
+    .select({ prefixOrganisasi: systemSettings.prefixOrganisasi })
+    .from(systemSettings)
+    .limit(1);
+
+  return {
+    prefixOrganisasi: settingsRow?.prefixOrganisasi ?? DEFAULT_PREFIX_ORGANISASI,
+  };
+}
+
+/**
+ * Get all configured kode suggestions from kode_jenis_surat table.
+ * Used as autocomplete suggestions in the quick-log modal.
+ */
+export async function getSaranKodeSurat(): Promise<
+  { kode: string; keterangan: string | null }[]
+> {
+  const rows = await db
+    .select({ kode: kodeJenisSurat.kode, keterangan: kodeJenisSurat.keterangan })
+    .from(kodeJenisSurat)
+    .orderBy(kodeJenisSurat.kode);
+
+  return rows;
 }

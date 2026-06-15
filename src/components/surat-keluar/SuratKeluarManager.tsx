@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
@@ -13,6 +13,7 @@ import {
   Download,
   Files,
   Building2,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -38,6 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SuratKeluarForm } from "./SuratKeluarForm";
+import { CatatSuratModal } from "./CatatSuratModal";
 import {
   SuratKeluarStepper,
   STATUS_CONFIG,
@@ -145,6 +147,7 @@ export function SuratKeluarManager({
   const router = useRouter();
   const [formState, setFormState] = useState<FormState>({ open: false });
   const [detailState, setDetailState] = useState<DetailState>({ open: false });
+  const [catatOpen, setCatatOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SuratKeluarRow | null>(null);
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -181,6 +184,22 @@ export function SuratKeluarManager({
         }),
     [initialData],
   );
+
+  // Keyboard shortcut: Ctrl+Shift+N to open Catat Surat modal
+  const handleKeyboardShortcut = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "N" && canCreate) {
+        e.preventDefault();
+        setCatatOpen(true);
+      }
+    },
+    [canCreate],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyboardShortcut);
+    return () => document.removeEventListener("keydown", handleKeyboardShortcut);
+  }, [handleKeyboardShortcut]);
 
   const columns = useMemo<ColumnDef<SuratKeluarRow>[]>(() => {
     return [
@@ -499,11 +518,19 @@ export function SuratKeluarManager({
                   </Button>
                 ) : null}
                 <Button
+                  variant="outline"
                   onClick={() => setFormState({ open: true, mode: "create" })}
                   className="w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4" />
-                  Buat Surat Keluar
+                  Surat Workflow
+                </Button>
+                <Button
+                  onClick={() => setCatatOpen(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Catat Surat
                 </Button>
               </div>
             ) : (
@@ -544,7 +571,7 @@ export function SuratKeluarManager({
             data={filteredData}
             searchColumnId="perihal"
             searchPlaceholder="Cari perihal surat..."
-            emptyMessage="Belum ada surat keluar. Klik 'Buat Surat Keluar' untuk memulai."
+            emptyMessage="Belum ada surat keluar. Klik 'Catat Surat' untuk pencatatan cepat, atau 'Surat Workflow' untuk surat dengan proses approval. (Ctrl+Shift+N)"
           />
         </CardContent>
       </Card>
@@ -561,6 +588,8 @@ export function SuratKeluarManager({
         pejabatList={pejabatList}
         divisiList={divisiList}
       />
+
+      <CatatSuratModal open={catatOpen} onOpenChange={setCatatOpen} />
 
       {detailState.open ? (
         <SuratKeluarStepper

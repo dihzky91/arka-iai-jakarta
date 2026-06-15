@@ -14,6 +14,7 @@ import {
   divisi,
   users,
   pejabatPenandatangan,
+  nomorSuratCounter,
 } from "@/server/db/schema";
 import { getStorageProvider } from "@/lib/storage";
 import {
@@ -22,7 +23,10 @@ import {
   sanitizeFileName,
 } from "@/lib/storage/utils";
 import { allocateNomorSurat } from "@/lib/nomor-surat";
-import { resolveNomorSuratParams } from "@/lib/nomor-surat-helpers";
+import {
+  resolveNomorSuratParams,
+  resolveNomorSuratPrefix,
+} from "@/lib/nomor-surat-helpers";
 import {
   buildVerifikasiSuratPayload,
   generateQRDataURL,
@@ -1335,4 +1339,158 @@ export async function bulkAssignNomorSuratKeluar(data: { ids: string[] }) {
   revalidatePath("/surat-keluar");
   revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
   return { ok: true as const, assigned };
+}
+
+// ─── CATAT SURAT CEPAT (Quick Log) ──────────────────────────────────────────
+
+const catatSuratCepatSchema = z.object({
+  perihal: z.string().min(1, "Perihal wajib diisi"),
+  tujuan: z.string().min(1, "Tujuan wajib diisi"),
+  tujuanAlamat: z.string().optional(),
+  tanggalSurat: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD"),
+  kodeSurat: z.string().min(1, "Kode surat wajib diisi").max(20),
+  isiSingkat: z.string().optional(),
+});
+
+export async function catatSuratCepat(data: unknown) {
+  const parsed = catatSuratCepatSchema.parse(data);
+  const session = await requirePermission("suratKeluar", "create");
+
+  const tanggal = parseIsoDateInJakarta(parsed.tanggalSurat);
+  const bulan = tanggal.getMonth() + 1;
+  const tahun = tanggal.getFullYear();
+
+  const { prefixOrganisasi } = await resolveNomorSuratPrefix();
+
+  const result = await allocateNomorSurat({
+    tahun,
+    bulan,
+    kodeSurat: parsed.kodeSurat,
+    prefixOrganisasi,
+  });
+  const nomorSurat = result.nomorList[0]!;
+
+  const [row] = await db
+    .insert(suratKeluar)
+    .values({
+      id: crypto.randomUUID(),
+      perihal: parsed.perihal,
+      tujuan: parsed.tujuan,
+      tujuanAlamat: parsed.tujuanAlamat ?? null,
+      tanggalSurat: parsed.tanggalSurat,
+      jenisSurat: "lainnya",
+      isiSingkat: parsed.isiSingkat ?? null,
+      catatSaja: true,
+      nomorSurat,
+      status: "selesai",
+      dibuatOleh: session.user.id,
+    })
+    .returning();
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "CATAT_SURAT_CEPAT",
+    entitasType: "surat_keluar",
+    entitasId: row!.id,
+    detail: { nomorSurat, perihal: parsed.perihal, kodeSurat: parsed.kodeSurat },
+  });
+
+  revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
+  return { ok: true as const, data: row!, nomorSurat };
+}
+
+// ─── CATAT SURAT MANUAL (Backdate) ──────────────────────────────────────────
+
+const catatSuratManualSchema = z.object({
+  perihal: z.string().min(1, "Perihal wajib diisi"),
+  tujuan: z.string().min(1, "Tujuan wajib diisi"),
+  tujuanAlamat: z.string().optional(),
+  tanggalSurat: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD"),
+  nomorSurat: z.string().min(1, "Nomor surat wajib diisi").max(200),
+  isiSingkat: z.string().optional(),
+});
+
+export async function catatSuratManual(data: unknown) {
+  const parsed = catatSuratManualSchema.parse(data);
+  const session = await requirePermission("suratKeluar", "create");
+
+  // Check duplicate
+  const [existing] = await db
+    .select({ id: suratKeluar.id })
+    .from(suratKeluar)
+    .where(eq(suratKeluar.nomorSurat, parsed.nomorSurat.trim()))
+    .limit(1);
+
+  if (existing) {
+    return {
+      ok: false as const,
+      error: "Nomor surat sudah digunakan. Gunakan nomor lain.",
+    };
+  }
+
+  const [row] = await db
+    .insert(suratKeluar)
+    .values({
+      id: crypto.randomUUID(),
+      perihal: parsed.perihal,
+      tujuan: parsed.tujuan,
+      tujuanAlamat: parsed.tujuanAlamat ?? null,
+      tanggalSurat: parsed.tanggalSurat,
+      jenisSurat: "lainnya",
+      isiSingkat: parsed.isiSingkat ?? null,
+      catatSaja: true,
+      nomorSurat: parsed.nomorSurat.trim(),
+      status: "selesai",
+      dibuatOleh: session.user.id,
+    })
+    .returning();
+
+  await writeAuditLog({
+    userId: session.user.id,
+    aksi: "CATAT_SURAT_MANUAL",
+    entitasType: "surat_keluar",
+    entitasId: row!.id,
+    detail: { nomorSurat: parsed.nomorSurat, perihal: parsed.perihal },
+  });
+
+  revalidatePath("/surat-keluar");
+  revalidateDashboardTag(DASHBOARD_TAGS.persuratan);
+  return { ok: true as const, data: row!, nomorSurat: parsed.nomorSurat.trim() };
+}
+
+// ─── GET NEXT COUNTER (Preview) ─────────────────────────────────────────────
+
+export async function getNextCounter(tanggalSurat: string) {
+  const tanggal = parseIsoDateInJakarta(tanggalSurat);
+  const bulan = tanggal.getMonth() + 1;
+  const tahun = tanggal.getFullYear();
+
+  const [row] = await db
+    .select({ counter: nomorSuratCounter.counter })
+    .from(nomorSuratCounter)
+    .where(
+      and(
+        eq(nomorSuratCounter.tahun, tahun),
+        eq(nomorSuratCounter.bulan, bulan),
+      ),
+    );
+
+  const { prefixOrganisasi } = await resolveNomorSuratPrefix();
+
+  return {
+    nextCounter: (row?.counter ?? 0) + 1,
+    prefixOrganisasi,
+  };
+}
+
+// ─── GET SARAN KODE (Autocomplete) ──────────────────────────────────────────
+
+export async function getSaranKodeSurat() {
+  const { getSaranKodeSurat: getSaran } = await import("@/lib/nomor-surat-helpers");
+  return getSaran();
 }
