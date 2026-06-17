@@ -21,6 +21,7 @@ import {
   listWhatsappMessageLogsByKelas,
   listWhatsappTemplatesForClassActions,
 } from "@/server/actions/jadwal-otomatis/whatsapp";
+import { getSessionHonorariumStatuses } from "@/server/actions/jadwal-otomatis/honorarium";
 import { getSession } from "@/server/actions/auth";
 import { getSystemSettings } from "@/server/actions/systemSettings";
 
@@ -71,6 +72,10 @@ export default async function Page({ params }: Props) {
   const canManage = role === "admin" || role === "staff";
   const whatsappBotEnabled = systemSettings.whatsappBotEnabled;
   const hasExamSessions = sessions.some((s) => s.isExamDay);
+
+  const sessionHonorariumStatuses = await getSessionHonorariumStatuses(
+    sessions.map((s) => s.id),
+  );
 
   const kelasProp = {
     ...kelas,
@@ -131,6 +136,7 @@ export default async function Page({ params }: Props) {
             whatsappTemplates={whatsappTemplates}
             whatsappLogs={whatsappLogs}
             whatsappBotEnabled={whatsappBotEnabled}
+            sessionHonorariumStatuses={sessionHonorariumStatuses}
           />
         </TabsContent>
 

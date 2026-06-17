@@ -3157,3 +3157,407 @@ export async function logHonorariumBatchPdfExport(
   revalidatePath(`/jadwal-otomatis/honorarium/${parsed.batchId}`);
   return { ok: true as const };
 }
+
+
+// ─── OUTSTANDING HONORARIUM (SIMPLIFIKASI) ─────────────────────────────────
+
+export type OutstandingHonorariumSession = {
+  assignmentId: string;
+  sessionId: string;
+  kelasId: string;
+  scheduledDate: string;
+  namaKelas: string;
+  programId: string;
+  programName: string;
+  materiBlock: string;
+  paidInstructorId: string;
+  paidInstructorName: string;
+  source: "planned" | "actual";
+  kelasMode: "online" | "offline";
+  expertiseLevel: ExpertiseLevel;
+  rateSource: "override_instructor" | "matrix_standard" | "missing";
+  honorAmount: number;
+  transportAmount: number;
+  totalAmount: number;
+};
+
+export type OutstandingHonorariumResult = {
+  sessions: OutstandingHonorariumSession[];
+  totals: {
+    sessionCount: number;
+    instructorCount: number;
+    totalAmount: number;
+    missingRateCount: number;
+  };
+};
+
+/**
+ * Return semua sesi eligible (completed + accepted) yang BELUM masuk batch honorarium manapun.
+ * Tidak perlu filter periode — langsung tampil semua yang outstanding.
+ */
+export async function getOutstandingHonorariumSessions(): Promise<OutstandingHonorariumResult> {
+  await requirePermission("jadwalPelatihan", "view");
+
+  // 1. Fetch all completed+accepted assignments not in any batch
+  const assignmentRows = await db
+    .select({
+      assignmentId: sessionAssignments.id,
+      sessionId: sessionAssignments.sessionId,
+      kelasId: classSessions.kelasId,
+      plannedInstructorId: sessionAssignments.plannedInstructorId,
+      actualInstructorId: sessionAssignments.actualInstructorId,
+      scheduledDate: classSessions.scheduledDate,
+      materiBlock: classSessions.materiName,
+      namaKelas: kelasPelatihan.namaKelas,
+      kelasMode: kelasPelatihan.mode,
+      lokasi: kelasPelatihan.lokasi,
+      programId: programs.id,
+      programName: programs.name,
+    })
+    .from(sessionAssignments)
+    .innerJoin(classSessions, eq(sessionAssignments.sessionId, classSessions.id))
+    .innerJoin(kelasPelatihan, eq(classSessions.kelasId, kelasPelatihan.id))
+    .innerJoin(programs, eq(kelasPelatihan.programId, programs.id))
+    .where(
+      and(
+        eq(classSessions.isExamDay, false),
+        eq(classSessions.status, "completed"),
+        eq(sessionAssignments.availabilityStatus, "accepted"),
+      ),
+    )
+    .orderBy(asc(classSessions.scheduledDate), asc(kelasPelatihan.namaKelas));
+
+  // Filter out assignments without materi
+  const withMateri = assignmentRows.filter((row) => !!row.materiBlock);
+
+  if (withMateri.length === 0) {
+    return {
+      sessions: [],
+      totals: { sessionCount: 0, instructorCount: 0, totalAmount: 0, missingRateCount: 0 },
+    };
+  }
+
+  // 2. Find which assignments already have honorarium items
+  const allAssignmentIds = withMateri.map((row) => row.assignmentId);
+  const existingItems = await db
+    .select({ assignmentId: honorariumItems.assignmentId })
+    .from(honorariumItems)
+    .where(inArray(honorariumItems.assignmentId, allAssignmentIds));
+
+  const existingSet = new Set(existingItems.map((item) => item.assignmentId));
+
+  // 3. Only keep assignments NOT in any batch
+  const outstandingRows = withMateri.filter((row) => !existingSet.has(row.assignmentId));
+
+  if (outstandingRows.length === 0) {
+    return {
+      sessions: [],
+      totals: { sessionCount: 0, instructorCount: 0, totalAmount: 0, missingRateCount: 0 },
+    };
+  }
+
+  // 4. Resolve rates (same logic as getHonorariumReport)
+  const instructorIds = Array.from(
+    new Set(
+      outstandingRows.flatMap((row) =>
+        row.actualInstructorId
+          ? [row.plannedInstructorId, row.actualInstructorId]
+          : [row.plannedInstructorId],
+      ),
+    ),
+  );
+
+  const programIds = Array.from(new Set(outstandingRows.map((row) => row.programId)));
+
+  const [instructorRowsData, rateRows, expertiseRows, standardRateRows] = await Promise.all([
+    db.select({ id: instructors.id, name: instructors.name }).from(instructors).where(inArray(instructors.id, instructorIds)),
+    db.select({
+      instructorId: instructorRates.instructorId,
+      programId: instructorRates.programId,
+      materiBlock: instructorRates.materiBlock,
+      mode: instructorRates.mode,
+      rateAmount: instructorRates.rateAmount,
+    }).from(instructorRates).where(and(inArray(instructorRates.instructorId, instructorIds), inArray(instructorRates.programId, programIds))),
+    db.select({
+      instructorId: instructorExpertise.instructorId,
+      programId: instructorExpertise.programId,
+      materiBlock: instructorExpertise.materiBlock,
+      level: instructorExpertise.level,
+    }).from(instructorExpertise).where(and(inArray(instructorExpertise.instructorId, instructorIds), inArray(instructorExpertise.programId, programIds))),
+    db.select({
+      programId: honorariumRateRules.programId,
+      level: honorariumRateRules.level,
+      mode: honorariumRateRules.mode,
+      honorPerSession: honorariumRateRules.honorPerSession,
+      transportAmount: honorariumRateRules.transportAmount,
+      effectiveFrom: honorariumRateRules.effectiveFrom,
+      effectiveTo: honorariumRateRules.effectiveTo,
+      locationScope: honorariumRateRules.locationScope,
+    }).from(honorariumRateRules).where(and(inArray(honorariumRateRules.programId, programIds), eq(honorariumRateRules.isActive, true))),
+  ]);
+
+  const instructorNameById = new Map(instructorRowsData.map((row) => [row.id, row.name]));
+  const rateByKey = new Map(
+    rateRows.map((row) => [
+      `${row.instructorId}::${row.programId}::${row.materiBlock}::${normalizeMode(row.mode)}`,
+      toNumber(row.rateAmount),
+    ]),
+  );
+  const expertiseByKey = new Map<string, ExpertiseLevel>();
+  for (const row of expertiseRows) {
+    expertiseByKey.set(`${row.instructorId}::${row.programId}::${row.materiBlock}`, normalizeExpertiseLevel(row.level));
+  }
+
+  // 5. Map to result
+  const sessions: OutstandingHonorariumSession[] = outstandingRows.map((row) => {
+    const paidInstructorId = row.actualInstructorId ?? row.plannedInstructorId;
+    const source: "planned" | "actual" = row.actualInstructorId ? "actual" : "planned";
+    const materiBlock = row.materiBlock ?? "";
+    const kelasMode = normalizeMode(row.kelasMode);
+    const expertiseLevel = expertiseByKey.get(`${paidInstructorId}::${row.programId}::${materiBlock}`) ?? "middle";
+
+    const overrideRate = rateByKey.get(`${paidInstructorId}::${row.programId}::${materiBlock}::${kelasMode}`);
+
+    let honorAmount = 0;
+    let transportAmount = 0;
+    let rateSource: OutstandingHonorariumSession["rateSource"] = "missing";
+
+    if (overrideRate !== undefined) {
+      honorAmount = overrideRate;
+      transportAmount = 0;
+      rateSource = "override_instructor";
+    } else {
+      const matchedRule = pickRateRule(standardRateRows, {
+        programId: row.programId,
+        level: expertiseLevel,
+        mode: kelasMode,
+        scheduledDate: row.scheduledDate,
+        lokasi: row.lokasi,
+      });
+      if (matchedRule) {
+        honorAmount = toNumber(matchedRule.honorPerSession);
+        transportAmount = toNumber(matchedRule.transportAmount);
+        rateSource = "matrix_standard";
+      }
+    }
+
+    return {
+      assignmentId: row.assignmentId,
+      sessionId: row.sessionId,
+      kelasId: row.kelasId,
+      scheduledDate: row.scheduledDate,
+      namaKelas: row.namaKelas,
+      programId: row.programId,
+      programName: row.programName,
+      materiBlock,
+      paidInstructorId,
+      paidInstructorName: instructorNameById.get(paidInstructorId) ?? "Instruktur tidak ditemukan",
+      source,
+      kelasMode,
+      expertiseLevel,
+      rateSource,
+      honorAmount,
+      transportAmount,
+      totalAmount: honorAmount + transportAmount,
+    };
+  });
+
+  const instructorSet = new Set(sessions.map((s) => s.paidInstructorId));
+  const missingRateCount = sessions.filter((s) => s.rateSource === "missing").length;
+
+  return {
+    sessions,
+    totals: {
+      sessionCount: sessions.length,
+      instructorCount: instructorSet.size,
+      totalAmount: sessions.reduce((sum, s) => sum + s.totalAmount, 0),
+      missingRateCount,
+    },
+  };
+}
+
+// ─── GENERATE BATCH FROM SELECTION ─────────────────────────────────────────
+
+const generateFromSelectionSchema = z.object({
+  assignmentIds: z.array(z.string().min(1)).min(1, "Minimal 1 sesi dipilih."),
+  internalNotes: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export async function generateHonorariumBatchFromSelection(
+  data: z.infer<typeof generateFromSelectionSchema>,
+) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = generateFromSelectionSchema.parse(data);
+
+  // 1. Fetch outstanding sessions and filter to selected ones
+  const outstanding = await getOutstandingHonorariumSessions();
+  const selectedSessions = outstanding.sessions.filter((s) =>
+    parsed.assignmentIds.includes(s.assignmentId),
+  );
+
+  if (selectedSessions.length === 0) {
+    return {
+      ok: false as const,
+      message: "Tidak ada sesi eligible dari yang dipilih. Pastikan sesi sudah selesai dan belum masuk batch.",
+    };
+  }
+
+  // 2. Check for missing rates
+  const missingRateRows = selectedSessions.filter((s) => s.rateSource === "missing");
+  if (missingRateRows.length > 0) {
+    return {
+      ok: false as const,
+      message: `Draft gagal: ${missingRateRows.length} sesi belum punya tarif. Lengkapi master tarif terlebih dahulu.`,
+    };
+  }
+
+  // 3. Double-check not already in a batch (race condition protection)
+  const existingAssignmentRows = await findExistingHonorariumAssignments(
+    selectedSessions.map((s) => s.assignmentId),
+  );
+  if (existingAssignmentRows.length > 0) {
+    const conflictDocs = summarizeConflictBatches(existingAssignmentRows)
+      .map((r) => `${r.documentNumber} (${r.statusLabel})`)
+      .slice(0, 3)
+      .join(", ");
+    return {
+      ok: false as const,
+      message: `Draft gagal: ${existingAssignmentRows.length} sesi sudah masuk batch lain (${conflictDocs}).`,
+    };
+  }
+
+  // 4. Auto-determine period from selected sessions
+  const dates = selectedSessions.map((s) => s.scheduledDate).sort();
+  const periodStart = dates[0]!;
+  const periodEnd = dates[dates.length - 1]!;
+
+  // 5. Create batch
+  const batchId = nanoid();
+  const documentNumber = nextHonorariumDocumentNumber();
+
+  await db.insert(honorariumBatches).values({
+    id: batchId,
+    documentNumber,
+    periodStart,
+    periodEnd,
+    status: "draft",
+    generatedBy: session.user.id,
+    internalNotes: parsed.internalNotes || null,
+  });
+
+  // 6. Insert items
+  try {
+    await db.insert(honorariumItems).values(
+      selectedSessions.map((s) => ({
+        id: nanoid(),
+        batchId,
+        assignmentId: s.assignmentId,
+        sessionId: s.sessionId,
+        kelasId: s.kelasId,
+        programId: s.programId,
+        scheduledDate: s.scheduledDate,
+        paidInstructorId: s.paidInstructorId,
+        paidInstructorName: s.paidInstructorName,
+        source: s.source,
+        materiBlock: s.materiBlock,
+        expertiseLevelSnapshot: s.expertiseLevel,
+        rateSnapshot: s.totalAmount.toFixed(2),
+        amount: s.totalAmount.toFixed(2),
+      })),
+    );
+  } catch (error) {
+    await db.delete(honorariumBatches).where(eq(honorariumBatches.id, batchId));
+    if (isUniqueViolationOnHonorariumAssignment(error)) {
+      return {
+        ok: false as const,
+        message: "Generate dibatalkan: beberapa sesi sudah masuk batch lain. Refresh dan coba lagi.",
+      };
+    }
+    throw error;
+  }
+
+  // 7. Audit log
+  await db.insert(honorariumAuditLogs).values({
+    id: nanoid(),
+    batchId,
+    actorId: session.user.id,
+    action: "generated_draft",
+    payload: {
+      periodStart,
+      periodEnd,
+      eligibleItemCount: selectedSessions.length,
+      totalAmount: selectedSessions.reduce((sum, s) => sum + s.totalAmount, 0),
+      source: "outstanding_selection",
+    },
+  });
+
+  revalidatePath("/jadwal-otomatis/honorarium");
+  return {
+    ok: true as const,
+    batchId,
+    documentNumber,
+    itemCount: selectedSessions.length,
+    totalAmount: selectedSessions.reduce((sum, s) => sum + s.totalAmount, 0),
+  };
+}
+
+// ─── SESSION HONORARIUM STATUS (FOR BADGE IN JADWAL KELAS) ─────────────────
+
+export type SessionHonorariumStatusValue = "outstanding" | "draft" | "submitted" | "paid" | null;
+
+export async function getSessionHonorariumStatuses(
+  sessionIds: string[],
+): Promise<Record<string, SessionHonorariumStatusValue>> {
+  await requirePermission("jadwalPelatihan", "view");
+
+  if (sessionIds.length === 0) return {};
+
+  // Find all honorarium items for these sessions and their batch status
+  const rows = await db
+    .select({
+      sessionId: honorariumItems.sessionId,
+      batchStatus: honorariumBatches.status,
+    })
+    .from(honorariumItems)
+    .innerJoin(honorariumBatches, eq(honorariumItems.batchId, honorariumBatches.id))
+    .where(inArray(honorariumItems.sessionId, sessionIds));
+
+  const result: Record<string, SessionHonorariumStatusValue> = {};
+
+  for (const row of rows) {
+    const current = result[row.sessionId];
+    const mapped = mapBatchStatusToSessionStatus(row.batchStatus);
+
+    // Keep highest priority status if session appears in multiple batches (shouldn't happen, but safe)
+    if (!current || statusPriority(mapped) > statusPriority(current)) {
+      result[row.sessionId] = mapped;
+    }
+  }
+
+  return result;
+}
+
+function mapBatchStatusToSessionStatus(batchStatus: string): SessionHonorariumStatusValue {
+  switch (batchStatus) {
+    case "draft":
+      return "draft";
+    case "dikirim_ke_keuangan":
+    case "diproses_keuangan":
+      return "submitted";
+    case "dibayar":
+    case "locked":
+      return "paid";
+    default:
+      return "draft";
+  }
+}
+
+function statusPriority(status: SessionHonorariumStatusValue): number {
+  switch (status) {
+    case "paid": return 3;
+    case "submitted": return 2;
+    case "draft": return 1;
+    case "outstanding": return 0;
+    default: return -1;
+  }
+}

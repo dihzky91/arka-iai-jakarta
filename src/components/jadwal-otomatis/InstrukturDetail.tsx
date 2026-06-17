@@ -62,6 +62,7 @@ interface Props {
   unavailability: any[];
   history: any[];
   programs: any[];
+  programBlocks: { programId: string; materiBlock: string }[];
   allocationSummary: {
     weeklySessions: number;
     monthlySessions: number;
@@ -88,6 +89,7 @@ export function InstrukturDetail({
   unavailability,
   history,
   programs,
+  programBlocks,
   allocationSummary,
 }: Props) {
   const router = useRouter();
@@ -113,6 +115,11 @@ export function InstrukturDetail({
   const [editPhone, setEditPhone] = useState((instructor.phone ?? "") as string);
   const [saving, startSave] = useTransition();
   const hasOverrides = rates.length > 0;
+
+  const availableExpBlocks = useMemo(
+    () => programBlocks.filter((b) => b.programId === expProgram).map((b) => b.materiBlock),
+    [programBlocks, expProgram],
+  );
 
   const rateProgramOptions = useMemo(() => {
     const ids = new Set(expertise.map((item: any) => item.programId));
@@ -412,7 +419,7 @@ export function InstrukturDetail({
         <CardContent className="pt-6 space-y-4">
           <div className="grid gap-2 md:grid-cols-4 md:items-end">
             <div>
-              <Select value={expProgram} onValueChange={setExpProgram}>
+              <Select value={expProgram} onValueChange={(v) => { setExpProgram(v); setExpBlock(""); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih program" />
                 </SelectTrigger>
@@ -426,11 +433,18 @@ export function InstrukturDetail({
               </Select>
             </div>
             <div>
-              <Input
-                placeholder="Blok materi (contoh: PPh OP)"
-                value={expBlock}
-                onChange={(event) => setExpBlock(event.target.value)}
-              />
+              <Select value={expBlock} onValueChange={setExpBlock} disabled={!expProgram}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih blok materi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableExpBlocks.map((block) => (
+                    <SelectItem key={block} value={block}>
+                      {block}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Select

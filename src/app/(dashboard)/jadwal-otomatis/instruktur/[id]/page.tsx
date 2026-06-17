@@ -6,7 +6,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { InstrukturDetail } from "@/components/jadwal-otomatis/InstrukturDetail";
 import { listInstructors } from "@/server/actions/jadwal-otomatis/instructors";
-import { listExpertise, listUnavailability } from "@/server/actions/jadwal-otomatis/expertise";
+import { listExpertise, listUnavailability, listProgramMateriBlocks } from "@/server/actions/jadwal-otomatis/expertise";
 import {
   getTeachingHistory,
   getInstructorAllocationSummary,
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { id } = await params;
-  const [all, expertise, rates, unavailability, history, programs, allocationSummary] = await Promise.all([
+  const [all, expertise, rates, unavailability, history, programs, allocationSummary, programBlocks] = await Promise.all([
     listInstructors(),
     listExpertise(id),
     listInstructorRates(id),
@@ -33,6 +33,7 @@ export default async function Page({ params }: Props) {
     getTeachingHistory(id),
     listPrograms(),
     getInstructorAllocationSummary(id),
+    listProgramMateriBlocks(),
   ]);
 
   const instructor = all.find((i) => i.id === id);
@@ -56,6 +57,7 @@ export default async function Page({ params }: Props) {
         history={history}
         programs={programs}
         allocationSummary={allocationSummary}
+        programBlocks={programBlocks}
       />
     </PageWrapper>
   );

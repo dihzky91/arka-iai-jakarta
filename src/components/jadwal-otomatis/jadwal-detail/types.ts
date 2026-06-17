@@ -91,6 +91,7 @@ export interface JadwalDetailProps {
   }>;
   whatsappBotEnabled: boolean;
   mode?: "informasi" | "jadwal" | "instruktur" | "full";
+  sessionHonorariumStatuses?: Record<string, "outstanding" | "draft" | "submitted" | "paid" | null>;
 }
 
 export const STATUS_COLORS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
