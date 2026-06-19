@@ -34,6 +34,7 @@ import {
 } from "@/server/db/schema";
 import { createNotification } from "@/server/actions/notifications";
 import { checkNotificationPreference } from "@/server/actions/notificationPreferences";
+import { getSystemSettings } from "@/server/actions/systemSettings";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -1379,7 +1380,10 @@ export async function listHonorariumBatches(
 export async function listHonorariumBatchesPage(
   filters?: Partial<z.infer<typeof listBatchPageSchema>>,
 ): Promise<HonorariumBatchPage> {
-  await requirePermission("jadwalUjian", "view");
+  // Allow access for both jadwal admin (jadwal_ujian:view) and finance staff (keuangan:view)
+  await requirePermission("jadwalUjian", "view").catch(() =>
+    requireCapability("keuangan:view"),
+  );
   const parsed = listBatchPageSchema.parse(filters ?? {});
 
   if (
@@ -2108,7 +2112,10 @@ export type HonorariumBatchDetail = {
 export async function getHonorariumBatchDetail(
   batchId: string,
 ): Promise<HonorariumBatchDetail | null> {
-  await requirePermission("jadwalPelatihan", "view");
+  // Allow access for jadwal admin or finance staff
+  await requirePermission("jadwalPelatihan", "view").catch(() =>
+    requireCapability("keuangan:view"),
+  );
   const parsed = batchIdSchema.parse({ batchId });
 
   const [batchRow] = await db
@@ -2477,6 +2484,242 @@ export async function submitHonorariumBatchToFinance(batchId: string) {
   return { ok: true as const };
 }
 
+const reminderBatchSchema = z.object({
+  batchId: z.string().min(1),
+  channels: z.array(z.enum(["whatsapp", "email"])).min(1),
+});
+
+export async function sendHonorariumReminderToFinance(
+  input: z.infer<typeof reminderBatchSchema>,
+) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = reminderBatchSchema.parse(input);
+
+  const [batch] = await db
+    .select({
+      id: honorariumBatches.id,
+      documentNumber: honorariumBatches.documentNumber,
+      periodStart: honorariumBatches.periodStart,
+      periodEnd: honorariumBatches.periodEnd,
+      status: honorariumBatches.status,
+    })
+    .from(honorariumBatches)
+    .where(eq(honorariumBatches.id, parsed.batchId))
+    .limit(1);
+
+  if (!batch) throw new Error("Batch tidak ditemukan.");
+  if (batch.status !== "dikirim_ke_keuangan") {
+    throw new Error(
+      "Reminder hanya bisa dikirim untuk batch yang berstatus Dikirim ke Keuangan.",
+    );
+  }
+
+  // Get item count and total from batch items
+  const [batchAgg] = await db
+    .select({
+      itemCount: sql<number>`COUNT(*)`,
+      totalAmount: sql<number>`COALESCE(SUM(${honorariumItems.amount}), 0)`,
+    })
+    .from(honorariumItems)
+    .where(eq(honorariumItems.batchId, parsed.batchId));
+
+  const itemCount = Number(batchAgg?.itemCount ?? 0);
+  const totalAmount = Number(batchAgg?.totalAmount ?? 0);
+
+  const settings = await getSystemSettings();
+  const results: { channel: string; ok: boolean; error?: string; waLink?: string; message?: string; recipientName?: string; recipientPhone?: string }[] = [];
+
+  const formatCurrencyPlain = (v: number) =>
+    `Rp ${Math.round(v).toLocaleString("id-ID")}`;
+
+  // WhatsApp — return wa.me link untuk redirect di client
+  if (parsed.channels.includes("whatsapp")) {
+    const phone = settings.financeWhatsappNumber;
+    if (!phone) {
+      results.push({
+        channel: "whatsapp",
+        ok: false,
+        error: "Nomor WhatsApp keuangan belum dikonfigurasi di Pengaturan.",
+      });
+    } else {
+      const contactName = settings.financeContactName || "Tim Keuangan";
+      const message = [
+        `Yth. ${contactName},`,
+        "",
+        `Reminder: Batch honorarium ${batch.documentNumber} telah dikirim ke keuangan dan menunggu diproses.`,
+        `Periode: ${batch.periodStart} s.d. ${batch.periodEnd}`,
+        `Total sesi: ${itemCount} sesi`,
+        `Estimasi honor: ${formatCurrencyPlain(totalAmount)}`,
+        "",
+        "Mohon segera diproses. Terima kasih.",
+      ].join("\n");
+
+      // Normalize phone for wa.me link
+      const digits = phone.replace(/\D/g, "");
+      const normalizedPhone = digits.startsWith("0") ? "62" + digits.slice(1) : digits;
+      const waLink = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+
+      results.push({
+        channel: "whatsapp",
+        ok: true,
+        waLink,
+        message,
+        recipientName: contactName,
+        recipientPhone: normalizedPhone,
+      });
+    }
+  }
+
+  // Email — kirim ke semua user aktif yang punya capability keuangan:view
+  // Fallback: jika tidak ada user ditemukan, kirim ke financeEmail dari settings
+  if (parsed.channels.includes("email")) {
+    const { roleCapabilities } = await import("@/server/db/schema");
+
+    // Cari user dari custom role yang punya keuangan:view
+    const usersFromCustomRole = await db
+      .select({ email: users.email, namaLengkap: users.namaLengkap })
+      .from(users)
+      .innerJoin(roleCapabilities, eq(users.roleId, roleCapabilities.roleId))
+      .where(
+        and(
+          eq(roleCapabilities.capability, "keuangan:view"),
+          eq(users.isActive, true),
+        ),
+      );
+
+    // Juga include admin/superadmin yang punya akses semua
+    const adminUsers = await db
+      .select({ email: users.email, namaLengkap: users.namaLengkap })
+      .from(users)
+      .where(
+        and(
+          eq(users.isActive, true),
+          eq(users.isSuperAdmin, true),
+        ),
+      );
+
+    // Deduplicate by email
+    const allFinanceEmails = new Map<string, { email: string; namaLengkap: string | null }>();
+    for (const u of [...usersFromCustomRole, ...adminUsers]) {
+      if (u.email && !allFinanceEmails.has(u.email)) {
+        allFinanceEmails.set(u.email, u);
+      }
+    }
+
+    // Fallback ke financeEmail di system settings jika tidak ada user ditemukan
+    if (allFinanceEmails.size === 0 && settings.financeEmail) {
+      allFinanceEmails.set(settings.financeEmail, {
+        email: settings.financeEmail,
+        namaLengkap: settings.financeContactName,
+      });
+    }
+
+    const financeUsers = Array.from(allFinanceEmails.values());
+
+    if (financeUsers.length === 0) {
+      results.push({
+        channel: "email",
+        ok: false,
+        error: "Tidak ada user keuangan atau email keuangan yang dikonfigurasi.",
+      });
+    } else {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const batchUrl = `${appUrl}/keuangan/honorarium/${batch.id}`;
+      let emailOk = true;
+      let emailError: string | undefined;
+
+      for (const user of financeUsers) {
+        if (!user.email) continue;
+        const recipientName = user.namaLengkap ?? "Tim Keuangan";
+        try {
+          const { sendEmail: sendEmailDirect } = await import("@/lib/email");
+          const { wrapWithLayout } = await import("@/lib/email/template-engine/layout-wrapper");
+          const { getGlobalVariables } = await import("@/lib/email/template-engine/sample-data");
+
+          const contentHtml = [
+            `<p style="margin:0 0 16px;color:#1e293b">Yth. ${recipientName},</p>`,
+            `<p style="margin:0 0 16px;color:#1e293b">Batch honorarium <strong>${batch.documentNumber}</strong> telah dikirim ke keuangan dan menunggu diproses.</p>`,
+            `<table style="border-collapse:collapse;margin:0 0 20px;width:100%">`,
+            `<tr><td style="padding:8px 16px 8px 0;color:#64748b;border-bottom:1px solid #f1f5f9">Periode</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#1e293b">${batch.periodStart} s.d. ${batch.periodEnd}</td></tr>`,
+            `<tr><td style="padding:8px 16px 8px 0;color:#64748b;border-bottom:1px solid #f1f5f9">Total Sesi</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#1e293b">${itemCount} sesi</td></tr>`,
+            `<tr><td style="padding:8px 16px 8px 0;color:#64748b;border-bottom:1px solid #f1f5f9">Estimasi Honor</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#1e293b"><strong>${formatCurrencyPlain(totalAmount)}</strong></td></tr>`,
+            `</table>`,
+            `<p style="margin:0 0 24px"><a href="${batchUrl}" style="display:inline-block;padding:12px 24px;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500">Lihat Detail Batch</a></p>`,
+            `<p style="margin:0;color:#64748b;font-size:13px">Mohon segera diproses. Terima kasih.</p>`,
+          ].join("");
+
+          const htmlBody = await wrapWithLayout(contentHtml, getGlobalVariables());
+
+          await sendEmailDirect({
+            to: user.email,
+            toName: recipientName,
+            subject: `[Reminder] Batch Honorarium ${batch.documentNumber} Menunggu Diproses`,
+            htmlBody,
+            textBody: [
+              `Yth. ${recipientName},`,
+              "",
+              `Batch honorarium ${batch.documentNumber} telah dikirim ke keuangan dan menunggu diproses.`,
+              `Periode: ${batch.periodStart} s.d. ${batch.periodEnd}`,
+              `Total sesi: ${itemCount} sesi`,
+              `Estimasi honor: ${formatCurrencyPlain(totalAmount)}`,
+              "",
+              `Lihat detail: ${batchUrl}`,
+              "",
+              "Mohon segera diproses. Terima kasih.",
+            ].join("\n"),
+          });
+        } catch (e) {
+          emailOk = false;
+          emailError = e instanceof Error ? e.message : "Gagal kirim email.";
+        }
+      }
+      results.push({ channel: "email", ok: emailOk, error: emailError });
+    }
+  }
+
+  // Audit log
+  await db.insert(honorariumAuditLogs).values({
+    id: nanoid(),
+    batchId: parsed.batchId,
+    actorId: session.user.id,
+    action: "finance_reminder_sent",
+    payload: { channels: parsed.channels, results },
+  });
+
+  return { ok: true as const, results };
+}
+
+const sendDirectWaReminderSchema = z.object({
+  batchId: z.string().min(1),
+  recipientPhone: z.string().min(5),
+  message: z.string().min(5).max(5000),
+});
+
+export async function sendHonorariumReminderWhatsappDirect(
+  input: z.infer<typeof sendDirectWaReminderSchema>,
+) {
+  const session = await requirePermission("jadwalPelatihan", "manage");
+  const parsed = sendDirectWaReminderSchema.parse(input);
+
+  const { sendWhatsAppMessage } = await import("@/lib/whatsapp/sender");
+  const result = await sendWhatsAppMessage(parsed.recipientPhone, parsed.message);
+
+  if (!result.ok) {
+    return { ok: false as const, error: result.error };
+  }
+
+  // Audit log
+  await db.insert(honorariumAuditLogs).values({
+    id: nanoid(),
+    batchId: parsed.batchId,
+    actorId: session.user.id,
+    action: "finance_reminder_wa_direct",
+    payload: { recipientPhone: parsed.recipientPhone, messageId: result.messageId },
+  });
+
+  return { ok: true as const };
+}
+
 export async function markHonorariumBatchInProcess(batchId: string) {
   const session = await requireCapability("keuangan:process");
   const parsed = batchIdSchema.parse({ batchId });
@@ -2763,7 +3006,10 @@ export type DeductionRow = {
 export async function listHonorariumDeductions(
   batchId: string,
 ): Promise<DeductionRow[]> {
-  await requirePermission("jadwalPelatihan", "view");
+  // Allow access for jadwal admin or finance staff
+  await requirePermission("jadwalPelatihan", "view").catch(() =>
+    requireCapability("keuangan:view"),
+  );
 
   const rows = await db
     .select({
@@ -2805,7 +3051,10 @@ export type HonorariumPaymentProofRow = {
 export async function listHonorariumPaymentProofs(
   batchId: string,
 ): Promise<HonorariumPaymentProofRow[]> {
-  await requirePermission("jadwalPelatihan", "view");
+  // Allow access for jadwal admin or finance staff
+  await requirePermission("jadwalPelatihan", "view").catch(() =>
+    requireCapability("keuangan:view"),
+  );
 
   const rows = await db
     .select({

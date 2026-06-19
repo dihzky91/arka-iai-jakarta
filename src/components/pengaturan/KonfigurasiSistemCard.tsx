@@ -33,6 +33,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
   const [financeWhatsappNumber, setFinanceWhatsappNumber] = useState(
     initial.financeWhatsappNumber ?? "",
   );
+  const [financeEmail, setFinanceEmail] = useState(initial.financeEmail ?? "");
   const [emailProvider, setEmailProvider] = useState<"mailjet" | "brevo">(
     initial.emailProvider,
   );
@@ -57,6 +58,7 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
         emailProvider,
         financeContactName: financeContactName.trim() || null,
         financeWhatsappNumber: financeWhatsappNumber.trim() || null,
+        financeEmail: financeEmail.trim() || null,
         prefixOrganisasi,
       });
       if (result.ok) {
@@ -144,6 +146,20 @@ export function KonfigurasiSistemCard({ initial, isAdmin }: Props) {
                     maxLength={30}
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="financeEmail">Email Keuangan</Label>
+                <Input
+                  id="financeEmail"
+                  type="email"
+                  value={financeEmail}
+                  onChange={(event) => setFinanceEmail(event.target.value)}
+                  placeholder="Mis. keuangan@organisasi.com"
+                  maxLength={200}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email tujuan reminder honorarium. Jika kosong, sistem akan kirim ke user yang punya akses modul keuangan.
+                </p>
               </div>
             </div>
 

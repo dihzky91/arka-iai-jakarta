@@ -66,11 +66,13 @@ export function BatchHeader({
           <p className="text-sm font-medium">
             {formatTanggalWaktuJakarta(batch.updatedAt)}
           </p>
-          {systemIdentity ? (
-            <p className="text-xs text-muted-foreground">
-              Sistem: {systemIdentity.namaSistem}
-            </p>
-          ) : null}
+          <p className="text-xs text-muted-foreground">
+            {batch.paidByName
+              ? `Oleh: ${batch.paidByName}`
+              : systemIdentity
+                ? `Sistem: ${systemIdentity.namaSistem}`
+                : null}
+          </p>
         </div>
       </CardContent>
     </Card>

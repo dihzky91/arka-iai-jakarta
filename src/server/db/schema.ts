@@ -564,6 +564,7 @@ export const systemSettings = pgTable("system_settings", {
   faviconUrl: text("favicon_url"),
   financeContactName: varchar("finance_contact_name", { length: 200 }),
   financeWhatsappNumber: varchar("finance_whatsapp_number", { length: 30 }),
+  financeEmail: varchar("finance_email", { length: 200 }),
   // Non-secret runtime preferences (admin-editable from UI)
   defaultDisposisiDeadlineDays: integer("default_disposisi_deadline_days")
     .default(7)

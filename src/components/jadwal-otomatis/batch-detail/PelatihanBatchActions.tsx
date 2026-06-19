@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Bell,
   CheckCircle2,
   DollarSign,
   Lock,
@@ -59,6 +61,7 @@ export function PelatihanBatchActions({
   onEditPaymentAmountChange,
   onEditPaidDateChange,
   onEditPaymentReasonChange,
+  onSendReminder,
 }: {
   isPending: boolean;
   currentStatus: string;
@@ -92,6 +95,7 @@ export function PelatihanBatchActions({
   onEditPaymentAmountChange: (value: string) => void;
   onEditPaidDateChange: (value: string) => void;
   onEditPaymentReasonChange: (value: string) => void;
+  onSendReminder?: (channels: ("whatsapp" | "email")[]) => void;
 }) {
   const canSubmit = canManage && currentStatus === "draft";
   const canMarkProcess = canProcess && currentStatus === "dikirim_ke_keuangan";
@@ -103,6 +107,10 @@ export function PelatihanBatchActions({
       currentStatus,
     );
   const canEditPayment = canPay && currentStatus === "dibayar";
+  const canRemind = canManage && currentStatus === "dikirim_ke_keuangan";
+
+  const [reminderWhatsapp, setReminderWhatsapp] = useState(true);
+  const [reminderEmail, setReminderEmail] = useState(true);
 
   return (
     <Card className="sticky top-6 border border-border bg-card">
@@ -123,6 +131,51 @@ export function PelatihanBatchActions({
               <Send className="mr-2 h-4 w-4" />
               Kirim ke Keuangan
             </Button>
+          ) : null}
+
+          {canRemind && onSendReminder ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                Kirim reminder ke tim keuangan:
+              </p>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={reminderWhatsapp}
+                    onCheckedChange={(checked) =>
+                      setReminderWhatsapp(checked === true)
+                    }
+                    disabled={isPending}
+                  />
+                  WhatsApp
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={reminderEmail}
+                    onCheckedChange={(checked) =>
+                      setReminderEmail(checked === true)
+                    }
+                    disabled={isPending}
+                  />
+                  Email
+                </label>
+              </div>
+              <Button
+                className="w-full"
+                variant="outline"
+                size="sm"
+                disabled={isPending || (!reminderWhatsapp && !reminderEmail)}
+                onClick={() => {
+                  const channels: ("whatsapp" | "email")[] = [];
+                  if (reminderWhatsapp) channels.push("whatsapp");
+                  if (reminderEmail) channels.push("email");
+                  onSendReminder(channels);
+                }}
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                Kirim Reminder
+              </Button>
+            </div>
           ) : null}
 
           {canMarkProcess ? (

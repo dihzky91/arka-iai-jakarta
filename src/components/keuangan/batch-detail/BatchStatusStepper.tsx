@@ -16,9 +16,9 @@ export function BatchStatusStepper({
   const activeIndex = steps.findIndex((step) => step.key === currentStatus);
 
   return (
-    <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm">
+    <div className="rounded-lg border border-border/60 bg-card p-5 shadow-sm overflow-hidden">
       <div className="mb-4 text-sm font-medium">Alur Status Batch</div>
-      <div className="grid gap-3 sm:grid-cols-5">
+      <div className="grid min-w-0 gap-3 grid-cols-2 sm:grid-cols-5">
         {steps.map((step, index) => {
           const isCompleted = index <= activeIndex;
           const isCurrent = index === activeIndex;

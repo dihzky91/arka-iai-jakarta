@@ -23,6 +23,7 @@ export type SystemSettingsRow = {
   faviconUrl: string | null;
   financeContactName: string | null;
   financeWhatsappNumber: string | null;
+  financeEmail: string | null;
   defaultDisposisiDeadlineDays: number;
   notificationEmailEnabled: boolean;
   whatsappBotEnabled: boolean;
@@ -39,6 +40,7 @@ const FALLBACK: SystemSettingsRow = {
   faviconUrl: null,
   financeContactName: null,
   financeWhatsappNumber: null,
+  financeEmail: null,
   defaultDisposisiDeadlineDays: 7,
   notificationEmailEnabled: true,
   whatsappBotEnabled: false,
@@ -121,6 +123,7 @@ const cachedSystemSettingsInternal = unstable_cache(
           faviconUrl: systemSettings.faviconUrl,
           financeContactName: systemSettings.financeContactName,
           financeWhatsappNumber: systemSettings.financeWhatsappNumber,
+          financeEmail: systemSettings.financeEmail,
           defaultDisposisiDeadlineDays:
             systemSettings.defaultDisposisiDeadlineDays,
           notificationEmailEnabled: systemSettings.notificationEmailEnabled,

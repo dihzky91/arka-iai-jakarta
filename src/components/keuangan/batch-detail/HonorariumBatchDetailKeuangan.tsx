@@ -8,6 +8,7 @@ import {
   type DeductionRow,
   type HonorariumPaymentProofRow,
   type HonorariumBatchDetail,
+  correctHonorariumBatchPayment,
   lockHonorariumBatch,
   markHonorariumBatchInProcess,
   markHonorariumBatchPaid,
@@ -60,6 +61,17 @@ export function HonorariumBatchDetailKeuangan({
     new Date().toISOString().slice(0, 10),
   );
   const [reopenReason, setReopenReason] = useState("");
+  const [isEditingPayment, setIsEditingPayment] = useState(false);
+  const [editPaymentReference, setEditPaymentReference] = useState(
+    initialData.reconciliation.paymentReference ?? "",
+  );
+  const [editPaymentAmount, setEditPaymentAmount] = useState(
+    String(initialData.reconciliation.paymentAmount ?? initialData.reconciliation.netAmount),
+  );
+  const [editPaidDate, setEditPaidDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [editPaymentReason, setEditPaymentReason] = useState("");
 
   const currentStatus = initialData.batch.status;
   const canMarkProcess = canProcess && currentStatus === "dikirim_ke_keuangan";
@@ -73,6 +85,7 @@ export function HonorariumBatchDetailKeuangan({
     ["dikirim_ke_keuangan", "diproses_keuangan", "dibayar", "locked"].includes(
       currentStatus,
     );
+  const canCorrect = canPay && currentStatus === "dibayar";
 
   async function handleMarkInProcess() {
     if (!canMarkProcess) return;
@@ -189,9 +202,56 @@ export function HonorariumBatchDetailKeuangan({
     });
   }
 
+  function handleOpenEditPayment() {
+    setEditPaymentReference(initialData.reconciliation.paymentReference ?? "");
+    setEditPaymentAmount(
+      String(initialData.reconciliation.paymentAmount ?? initialData.reconciliation.netAmount),
+    );
+    setEditPaidDate(new Date().toISOString().slice(0, 10));
+    setEditPaymentReason("");
+    setIsEditingPayment(true);
+  }
+
+  async function handleCorrectPayment() {
+    if (!canCorrect) return;
+    if (!editPaymentReference.trim()) {
+      toast.error("Referensi transfer wajib diisi.");
+      return;
+    }
+    const parsedAmount = Number(editPaymentAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Nominal pembayaran harus lebih dari 0.");
+      return;
+    }
+    if (!editPaymentReason.trim()) {
+      toast.error("Alasan koreksi wajib diisi.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await correctHonorariumBatchPayment({
+          batchId: initialData.batch.id,
+          paymentReference: editPaymentReference.trim(),
+          paymentAmount: parsedAmount,
+          paidDate: editPaidDate,
+          reason: editPaymentReason.trim(),
+        });
+        toast.success("Data pembayaran berhasil dikoreksi.");
+        setIsEditingPayment(false);
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Gagal koreksi pembayaran.",
+        );
+      }
+    });
+  }
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
-      <div className="space-y-6">
+    <div className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr] min-w-0">
+      <div className="space-y-6 min-w-0">
         <BatchHeader
           batch={initialData.batch}
           systemIdentity={systemIdentity}
@@ -222,19 +282,32 @@ export function HonorariumBatchDetailKeuangan({
           canPay={canMarkPaid}
           canReopen={canReopenBatch}
           canLock={canLock}
+          canCorrect={canCorrect}
+          isEditingPayment={isEditingPayment}
           paymentReference={paymentReference}
           paymentAmount={paymentAmount}
           paidDate={paidDate}
           reopenReason={reopenReason}
           expectedAmount={initialData.reconciliation.netAmount}
+          editPaymentReference={editPaymentReference}
+          editPaymentAmount={editPaymentAmount}
+          editPaidDate={editPaidDate}
+          editPaymentReason={editPaymentReason}
           onPaymentReferenceChange={setPaymentReference}
           onPaymentAmountChange={setPaymentAmount}
           onPaidDateChange={setPaidDate}
           onReopenReasonChange={setReopenReason}
+          onEditPaymentReferenceChange={setEditPaymentReference}
+          onEditPaymentAmountChange={setEditPaymentAmount}
+          onEditPaidDateChange={setEditPaidDate}
+          onEditPaymentReasonChange={setEditPaymentReason}
           onProcess={handleMarkInProcess}
           onPay={handleMarkPaid}
           onLock={handleLock}
           onReopen={handleReopen}
+          onOpenEditPayment={handleOpenEditPayment}
+          onCancelEditPayment={() => setIsEditingPayment(false)}
+          onCorrectPayment={handleCorrectPayment}
         />
       </aside>
     </div>

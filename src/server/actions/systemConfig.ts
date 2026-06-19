@@ -22,6 +22,7 @@ const configSchema = z.object({
   emailProvider: z.enum(["mailjet", "brevo"]),
   financeContactName: z.string().trim().max(200).optional().nullable(),
   financeWhatsappNumber: z.string().trim().max(30).optional().nullable(),
+  financeEmail: z.string().trim().email().max(200).optional().nullable().or(z.literal("")),
   prefixOrganisasi: z.string().trim().min(1, "Prefix organisasi wajib diisi.").max(80),
 });
 
@@ -37,6 +38,7 @@ export async function updateSystemConfig(input: unknown) {
   }
   const financeContactName = parsed.data.financeContactName?.trim() || null;
   const financeWhatsappNumber = parsed.data.financeWhatsappNumber?.trim() || null;
+  const financeEmail = parsed.data.financeEmail?.trim() || null;
   const normalizedConfig = {
     defaultDisposisiDeadlineDays: parsed.data.defaultDisposisiDeadlineDays,
     notificationEmailEnabled: parsed.data.notificationEmailEnabled,
@@ -44,6 +46,7 @@ export async function updateSystemConfig(input: unknown) {
     emailProvider: parsed.data.emailProvider,
     financeContactName,
     financeWhatsappNumber,
+    financeEmail,
     prefixOrganisasi: parsed.data.prefixOrganisasi,
   };
 

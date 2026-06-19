@@ -78,20 +78,20 @@ function buildEmailWrapper(
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="color-scheme" content="light dark"/>
-  <meta name="supported-color-schemes" content="light dark"/>
+  <meta name="color-scheme" content="light only"/>
+  <meta name="supported-color-schemes" content="light only"/>
   <title>Email</title>
   <!--[if mso]>
   <style>table{border-collapse:collapse;}td{font-family:Arial,sans-serif;}</style>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1e293b;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;">
     <tr>
       <td align="center" style="padding:24px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;max-width:600px;width:100%;">
           ${headerHtml}
-          <tr><td style="padding:32px;">${contentHtml}</td></tr>
+          <tr><td style="padding:32px;color:#1e293b;">${contentHtml}</td></tr>
           ${footerHtml}
         </table>
       </td>
