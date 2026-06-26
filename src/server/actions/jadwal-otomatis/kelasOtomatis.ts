@@ -35,6 +35,7 @@ import {
   type KelasOtomatisRemoveExcludedDateInput,
 } from "@/lib/validators/jadwalOtomatis.schema";
 import { addDaysToIsoDate } from "@/lib/utils";
+import { toNumber } from "./honorarium-utils";
 import { generateSchedule } from "./generate";
 
 export type KelasOtomatisRow = {
@@ -100,15 +101,6 @@ function normalizeContactValue(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
-function toNumber(value: unknown) {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
 function resolveFinanceContactFromCandidates(values: {
   kelasContactNameOverride: string | null | undefined;
   kelasWhatsappNumberOverride: string | null | undefined;
@@ -141,6 +133,57 @@ function resolveFinanceContactFromCandidates(values: {
     financeWhatsappNumber: null,
     source: "unconfigured",
   };
+}
+
+// ─── SHARED INTERNAL HELPERS ──────────────────────────────────────────────────
+
+function revalidateKelas(kelasId?: string) {
+  revalidatePath("/jadwal-otomatis");
+  if (kelasId) {
+    revalidatePath(`/jadwal-otomatis/${kelasId}`);
+  }
+}
+
+/**
+ * Clears existing sessions + assignments for a kelas, regenerates the schedule,
+ * and updates the kelas endDate. Used by all functions that modify schedule-affecting data.
+ */
+async function regenerateScheduleForKelas(kelas: {
+  id: string;
+  programId: string;
+  classTypeId: string;
+  startDate: string;
+}) {
+  const sessionRows = await db
+    .select({ id: classSessions.id })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, kelas.id));
+
+  if (sessionRows.length > 0) {
+    const sessionIds = sessionRows.map((row) => row.id);
+    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
+  }
+
+  await db.delete(classSessions).where(eq(classSessions.kelasId, kelas.id));
+
+  await generateSchedule({
+    kelasId: kelas.id,
+    programId: kelas.programId,
+    classTypeId: kelas.classTypeId,
+    startDate: kelas.startDate,
+  });
+
+  const lastSessions = await db
+    .select({ scheduledDate: classSessions.scheduledDate })
+    .from(classSessions)
+    .where(eq(classSessions.kelasId, kelas.id))
+    .orderBy(asc(classSessions.scheduledDate));
+
+  const lastSession = lastSessions[lastSessions.length - 1];
+  await db
+    .update(kelasPelatihan)
+    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
+    .where(eq(kelasPelatihan.id, kelas.id));
 }
 
 export async function listKelasOtomatis(
@@ -262,7 +305,7 @@ export async function createKelasOtomatis(data: KelasOtomatisCreateInput) {
     detail: { namaKelas: parsed.namaKelas, programId: parsed.programId, classTypeId: parsed.classTypeId, startDate: parsed.startDate },
   });
 
-  revalidatePath("/jadwal-otomatis");
+  revalidateKelas();
   return { ok: true as const, data: row };
 }
 
@@ -458,8 +501,7 @@ export async function updateKelasFinanceContactOverride(input: unknown) {
     return { ok: false as const, error: "Kelas tidak ditemukan." };
   }
 
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${parsed.data.id}`);
+  revalidateKelas(parsed.data.id);
   return { ok: true as const };
 }
 
@@ -507,7 +549,7 @@ export async function deleteKelasOtomatis(id: string) {
     entitasId: id,
   });
 
-  revalidatePath("/jadwal-otomatis");
+  revalidateKelas();
   return { ok: true as const };
 }
 
@@ -580,8 +622,7 @@ export async function updateKelasOtomatisStatus(data: KelasOtomatisUpdateStatusI
     detail: { from: kelas.status, to: parsed.status, reason: parsed.reason ?? null },
   });
 
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${parsed.id}`);
+  revalidateKelas(parsed.id);
   return { ok: true as const };
 }
 
@@ -625,8 +666,7 @@ export async function updateKelasOtomatisMetadata(data: KelasOtomatisUpdateMetad
     },
   });
 
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${parsed.id}`);
+  revalidateKelas(parsed.id);
   return { ok: true as const };
 }
 
@@ -709,20 +749,6 @@ export async function updateKelasOtomatisStartDate(data: KelasOtomatisUpdateStar
     }
   }
 
-  const sessionRows = await db
-    .select({ id: classSessions.id })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, parsed.id));
-
-  if (sessionRows.length > 0) {
-    const sessionIds = sessionRows.map((row) => row.id);
-    await db
-      .delete(sessionAssignments)
-      .where(inArray(sessionAssignments.sessionId, sessionIds));
-  }
-
-  await db.delete(classSessions).where(eq(classSessions.kelasId, parsed.id));
-
   await db
     .update(kelasPelatihan)
     .set({
@@ -732,30 +758,14 @@ export async function updateKelasOtomatisStartDate(data: KelasOtomatisUpdateStar
     })
     .where(eq(kelasPelatihan.id, parsed.id));
 
-  await generateSchedule({
-    kelasId: kelas.id,
+  await regenerateScheduleForKelas({
+    id: kelas.id,
     programId: kelas.programId,
     classTypeId: kelas.classTypeId,
     startDate: parsed.startDate,
   });
 
-  const lastSessions = await db
-    .select({ scheduledDate: classSessions.scheduledDate })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, parsed.id))
-    .orderBy(asc(classSessions.scheduledDate));
-
-  const lastSession = lastSessions[lastSessions.length - 1];
-  await db
-    .update(kelasPelatihan)
-    .set({
-      endDate: lastSession?.scheduledDate ?? null,
-      updatedAt: new Date(),
-    })
-    .where(eq(kelasPelatihan.id, parsed.id));
-
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${parsed.id}`);
+  revalidateKelas(parsed.id);
   return {
     ok: true as const,
     exclusionStrategy: parsed.exclusionStrategy,
@@ -823,36 +833,12 @@ export async function addExcludedDateToKelas(input: KelasOtomatisExcludedDateInp
     return { ok: false as const, error: "Tanggal eksklusi sudah ada atau gagal ditambahkan." };
   }
 
-  const sessionRows = await db
-    .select({ id: classSessions.id })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, parsed.kelasId));
-
-  if (sessionRows.length > 0) {
-    const sessionIds = sessionRows.map((row) => row.id);
-    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
-  }
-
-  await db.delete(classSessions).where(eq(classSessions.kelasId, parsed.kelasId));
-
-  await generateSchedule({
-    kelasId: kelas.id,
+  await regenerateScheduleForKelas({
+    id: kelas.id,
     programId: kelas.programId,
     classTypeId: kelas.classTypeId,
     startDate: kelas.startDate,
   });
-
-  const lastSessions = await db
-    .select({ scheduledDate: classSessions.scheduledDate })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, parsed.kelasId))
-    .orderBy(asc(classSessions.scheduledDate));
-
-  const lastSession = lastSessions[lastSessions.length - 1];
-  await db
-    .update(kelasPelatihan)
-    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
-    .where(eq(kelasPelatihan.id, parsed.kelasId));
 
   await writeAuditLog({
     userId: session.user.id,
@@ -862,8 +848,7 @@ export async function addExcludedDateToKelas(input: KelasOtomatisExcludedDateInp
     detail: { date: parsed.date, reason: parsed.reason ?? "Manual" },
   });
 
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${parsed.kelasId}`);
+  revalidateKelas(parsed.kelasId);
   return { ok: true as const };
 }
 
@@ -918,36 +903,12 @@ export async function removeExcludedDateFromKelas(input: KelasOtomatisRemoveExcl
     return { ok: false as const, error: "Tanggal eksklusi tidak ditemukan." };
   }
 
-  const sessionRows = await db
-    .select({ id: classSessions.id })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, parsed.kelasId));
-
-  if (sessionRows.length > 0) {
-    const sessionIds = sessionRows.map((row) => row.id);
-    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
-  }
-
-  await db.delete(classSessions).where(eq(classSessions.kelasId, parsed.kelasId));
-
-  await generateSchedule({
-    kelasId: kelas.id,
+  await regenerateScheduleForKelas({
+    id: kelas.id,
     programId: kelas.programId,
     classTypeId: kelas.classTypeId,
     startDate: kelas.startDate,
   });
-
-  const lastSessions = await db
-    .select({ scheduledDate: classSessions.scheduledDate })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, parsed.kelasId))
-    .orderBy(asc(classSessions.scheduledDate));
-
-  const lastSession = lastSessions[lastSessions.length - 1];
-  await db
-    .update(kelasPelatihan)
-    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
-    .where(eq(kelasPelatihan.id, parsed.kelasId));
 
   await writeAuditLog({
     userId: session.user.id,
@@ -957,8 +918,7 @@ export async function removeExcludedDateFromKelas(input: KelasOtomatisRemoveExcl
     detail: { date: parsed.date },
   });
 
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${parsed.kelasId}`);
+  revalidateKelas(parsed.kelasId);
   return { ok: true as const };
 }
 
@@ -1002,40 +962,13 @@ export async function forceRegenerateSchedule(kelasId: string) {
     }
   }
 
-  // Hapus semua assignment instruktur terkait
-  const sessionRows = await db
-    .select({ id: classSessions.id })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, kelasId));
-
-  if (sessionRows.length > 0) {
-    const sessionIds = sessionRows.map((row) => row.id);
-    await db.delete(sessionAssignments).where(inArray(sessionAssignments.sessionId, sessionIds));
-  }
-
-  // Hapus semua sesi lama
-  await db.delete(classSessions).where(eq(classSessions.kelasId, kelasId));
-
-  // Generate ulang jadwal
-  await generateSchedule({
-    kelasId: kelas.id,
+  // Hapus semua assignment instruktur terkait dan regenerasi
+  await regenerateScheduleForKelas({
+    id: kelas.id,
     programId: kelas.programId,
     classTypeId: kelas.classTypeId,
     startDate: kelas.startDate,
   });
-
-  // Update end date
-  const lastSessions = await db
-    .select({ scheduledDate: classSessions.scheduledDate })
-    .from(classSessions)
-    .where(eq(classSessions.kelasId, kelasId))
-    .orderBy(asc(classSessions.scheduledDate));
-
-  const lastSession = lastSessions[lastSessions.length - 1];
-  await db
-    .update(kelasPelatihan)
-    .set({ endDate: lastSession?.scheduledDate ?? null, updatedAt: new Date() })
-    .where(eq(kelasPelatihan.id, kelasId));
 
   await writeAuditLog({
     userId: session.user.id,
@@ -1048,7 +981,6 @@ export async function forceRegenerateSchedule(kelasId: string) {
     },
   });
 
-  revalidatePath("/jadwal-otomatis");
-  revalidatePath(`/jadwal-otomatis/${kelasId}`);
+  revalidateKelas(kelasId);
   return { ok: true as const };
 }

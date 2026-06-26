@@ -2,17 +2,12 @@
 
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   requireCapability,
   requirePermission,
-  requireSession,
 } from "@/server/actions/auth";
 import { db } from "@/server/db";
-import { revalidateDashboardTag } from "@/server/actions/statistics";
-import { DASHBOARD_TAGS } from "@/lib/dashboard-cache-tags";
-import { getTodayIsoInJakarta } from "@/lib/utils";
 import {
   honorariumAuditLogs,
   honorariumBatches,
@@ -24,9 +19,9 @@ import {
 import {
   type HonorariumBatchStatus,
   type ExistingAssignmentRow,
+  type ExpertiseLevel,
   batchIdSchema,
   batchIdsSchema,
-  batchStatusLabel,
   batchStatusLabelLoose,
   correctBatchPaymentSchema,
   formatCurrency,
@@ -40,9 +35,9 @@ import {
   reopenBatchSchema,
   toNumber,
   isUniqueViolationOnHonorariumAssignment,
-  addDaysToIsoDate,
 } from "./honorarium-utils";
 import { notifyHonorariumStatusTransition } from "./honorarium-notifications";
+import { revalidateHonorariumPaths } from "./honorarium-revalidate";
 import {
   getHonorariumReport,
   getOutstandingHonorariumSessions,
@@ -335,12 +330,7 @@ async function transitionBatchStatus(params: {
     },
   });
 
-  revalidatePath("/jadwal-otomatis/honorarium");
-  revalidatePath(`/jadwal-otomatis/honorarium/${params.batchId}`);
-  revalidatePath("/keuangan");
-  revalidatePath("/keuangan/honorarium");
-  revalidatePath(`/keuangan/honorarium/${params.batchId}`);
-  await revalidateDashboardTag(DASHBOARD_TAGS.keuangan);
+  await revalidateHonorariumPaths(params.batchId);
 
   try {
     await notifyHonorariumStatusTransition({
@@ -528,11 +518,7 @@ export async function correctHonorariumBatchPayment(
     },
   });
 
-  revalidatePath("/jadwal-otomatis/honorarium");
-  revalidatePath(`/jadwal-otomatis/honorarium/${parsed.batchId}`);
-  revalidatePath("/keuangan/honorarium");
-  revalidateDashboardTag(DASHBOARD_TAGS.keuangan);
-  revalidatePath(`/keuangan/honorarium/${parsed.batchId}`);
+  await revalidateHonorariumPaths(parsed.batchId);
 
   return { ok: true as const };
 }
@@ -618,12 +604,7 @@ export async function reopenHonorariumBatch(
     },
   });
 
-  revalidatePath("/jadwal-otomatis/honorarium");
-  revalidatePath(`/jadwal-otomatis/honorarium/${parsed.batchId}`);
-  revalidatePath("/keuangan");
-  revalidatePath("/keuangan/honorarium");
-  revalidatePath(`/keuangan/honorarium/${parsed.batchId}`);
-  await revalidateDashboardTag(DASHBOARD_TAGS.keuangan);
+  await revalidateHonorariumPaths(parsed.batchId);
 
   try {
     await notifyHonorariumStatusTransition({
@@ -640,79 +621,146 @@ export async function reopenHonorariumBatch(
   return { ok: true as const };
 }
 
-// ─── GENERATE BATCH ───────────────────────────────────────────────────────────
+// ─── GENERATE BATCH (UNIFIED) ─────────────────────────────────────────────────
 
-export async function generateHonorariumBatch(
-  data: z.infer<typeof generateBatchSchema>,
-) {
+/** Shared shape between HonorariumReportRow and OutstandingHonorariumSession for batch generation. */
+type EligibleRow = {
+  assignmentId: string;
+  sessionId: string;
+  kelasId: string;
+  programId: string;
+  scheduledDate: string;
+  paidInstructorId: string;
+  paidInstructorName: string;
+  source: "planned" | "actual";
+  materiBlock: string;
+  expertiseLevel: ExpertiseLevel;
+  rateSource: "override_instructor" | "matrix_standard" | "missing";
+  rateAmount?: number;
+  totalAmount: number;
+};
+
+type GenerateBatchInput =
+  | { mode: "dateRange"; startDate: string; endDate: string; internalNotes?: string }
+  | { mode: "selection"; assignmentIds: string[]; internalNotes?: string };
+
+async function generateBatchCore(input: GenerateBatchInput) {
   const session = await requirePermission("jadwalPelatihan", "manage");
-  const parsed = generateBatchSchema.parse(data);
 
-  if (parsed.startDate > parsed.endDate) {
-    throw new Error("Tanggal mulai harus <= tanggal akhir.");
+  // 1. Resolve eligible rows based on input mode
+  let eligibleRows: EligibleRow[];
+  let periodStart: string;
+  let periodEnd: string;
+  let auditSource: string | undefined;
+
+  if (input.mode === "dateRange") {
+    const parsed = generateBatchSchema.parse({
+      startDate: input.startDate,
+      endDate: input.endDate,
+      internalNotes: input.internalNotes,
+    });
+
+    if (parsed.startDate > parsed.endDate) {
+      throw new Error("Tanggal mulai harus <= tanggal akhir.");
+    }
+
+    const report = await getHonorariumReport({
+      startDate: parsed.startDate,
+      endDate: parsed.endDate,
+    });
+
+    const rows = getEligibleRows(report.rows);
+    if (rows.length === 0) {
+      return {
+        ok: false as const,
+        message: "Tidak ada sesi layak bayar (completed + accepted) pada periode ini.",
+      };
+    }
+
+    eligibleRows = rows;
+    periodStart = parsed.startDate;
+    periodEnd = parsed.endDate;
+  } else {
+    const parsed = generateFromSelectionSchema.parse({
+      assignmentIds: input.assignmentIds,
+      internalNotes: input.internalNotes,
+    });
+
+    const outstanding = await getOutstandingHonorariumSessions();
+    const selectedSessions = outstanding.sessions.filter((s) =>
+      parsed.assignmentIds.includes(s.assignmentId),
+    );
+
+    if (selectedSessions.length === 0) {
+      return {
+        ok: false as const,
+        message: "Tidak ada sesi eligible dari yang dipilih. Pastikan sesi sudah selesai dan belum masuk batch.",
+      };
+    }
+
+    eligibleRows = selectedSessions;
+    const dates = selectedSessions.map((s) => s.scheduledDate).sort();
+    periodStart = dates[0]!;
+    periodEnd = dates[dates.length - 1]!;
+    auditSource = "outstanding_selection";
   }
 
-  const report = await getHonorariumReport({
-    startDate: parsed.startDate,
-    endDate: parsed.endDate,
-  });
-
-  const eligibleRows = getEligibleRows(report.rows);
-  if (eligibleRows.length === 0) {
-    return {
-      ok: false as const,
-      message:
-        "Tidak ada sesi layak bayar (completed + accepted) pada periode ini.",
-    };
-  }
-
+  // 2. Deduplicate by assignmentId
   const uniqueEligibleRows = Array.from(
     new Map(eligibleRows.map((row) => [row.assignmentId, row])).values(),
   );
 
+  // 3. Validate rates
   const missingRateRows = uniqueEligibleRows.filter(
     (row) => row.rateSource === "missing",
   );
   if (missingRateRows.length > 0) {
     return {
       ok: false as const,
-      message:
-        "Draft gagal dibuat karena ada sesi tanpa tarif. Lengkapi master tarif/override instruktur terlebih dahulu.",
+      message: input.mode === "dateRange"
+        ? "Draft gagal dibuat karena ada sesi tanpa tarif. Lengkapi master tarif/override instruktur terlebih dahulu."
+        : `Draft gagal: ${missingRateRows.length} sesi belum punya tarif. Lengkapi master tarif terlebih dahulu.`,
     };
   }
 
+  // 4. Check existing assignments conflict
   const existingAssignmentRows = await findExistingHonorariumAssignments(
     uniqueEligibleRows.map((row) => row.assignmentId),
   );
 
   if (existingAssignmentRows.length > 0) {
-    const existingDocs = summarizeConflictBatches(existingAssignmentRows).map(
-      (row) => `${row.documentNumber} (${row.statusLabel})`,
-    );
-    const sampleDocs = existingDocs.slice(0, 3).join(", ");
+    const conflictDocs = summarizeConflictBatches(existingAssignmentRows)
+      .map((r) => `${r.documentNumber} (${r.statusLabel})`)
+      .slice(0, 3)
+      .join(", ");
     const moreCount =
-      existingDocs.length > 3
-        ? ` dan ${existingDocs.length - 3} batch lainnya`
+      existingAssignmentRows.length > 3
+        ? ` dan ${existingAssignmentRows.length - 3} batch lainnya`
         : "";
     return {
       ok: false as const,
-      message: `Draft gagal dibuat karena ada ${existingAssignmentRows.length} sesi yang sudah masuk batch honorarium sebelumnya. Hapus/review batch lama terlebih dahulu (${sampleDocs}${moreCount}).`,
+      message: input.mode === "dateRange"
+        ? `Draft gagal dibuat karena ada ${existingAssignmentRows.length} sesi yang sudah masuk batch honorarium sebelumnya. Hapus/review batch lama terlebih dahulu (${conflictDocs}${moreCount}).`
+        : `Draft gagal: ${existingAssignmentRows.length} sesi sudah masuk batch lain (${conflictDocs}).`,
     };
   }
 
+  // 5. Create batch
   const batchId = nanoid();
   const documentNumber = nextHonorariumDocumentNumber();
+  const internalNotes = input.internalNotes?.trim() || null;
 
   await db.insert(honorariumBatches).values({
     id: batchId,
     documentNumber,
-    periodStart: parsed.startDate,
-    periodEnd: parsed.endDate,
+    periodStart,
+    periodEnd,
     status: "draft",
     generatedBy: session.user.id,
-    internalNotes: parsed.internalNotes || null,
+    internalNotes,
   });
 
+  // 6. Insert items
   try {
     await db.insert(honorariumItems).values(
       uniqueEligibleRows.map((row) => ({
@@ -728,137 +776,29 @@ export async function generateHonorariumBatch(
         source: row.source,
         materiBlock: row.materiBlock,
         expertiseLevelSnapshot: row.expertiseLevel,
-        rateSnapshot: row.rateAmount.toFixed(2),
+        rateSnapshot: (row.rateAmount ?? row.totalAmount).toFixed(2),
         amount: row.totalAmount.toFixed(2),
       })),
     );
   } catch (error) {
     await db.delete(honorariumBatches).where(eq(honorariumBatches.id, batchId));
     if (isUniqueViolationOnHonorariumAssignment(error)) {
-      throw new Error(
-        "Generate dibatalkan karena beberapa sesi sudah masuk batch lain. Refresh daftar batch lalu review batch yang bentrok.",
-      );
+      const msg = input.mode === "dateRange"
+        ? "Generate dibatalkan karena beberapa sesi sudah masuk batch lain. Refresh daftar batch lalu review batch yang bentrok."
+        : "Generate dibatalkan: beberapa sesi sudah masuk batch lain. Refresh dan coba lagi.";
+      if (input.mode === "selection") {
+        return { ok: false as const, message: msg };
+      }
+      throw new Error(msg);
     }
     throw error;
   }
 
-  await db.insert(honorariumAuditLogs).values({
-    id: nanoid(),
-    batchId,
-    actorId: session.user.id,
-    action: "generated_draft",
-    payload: {
-      periodStart: parsed.startDate,
-      periodEnd: parsed.endDate,
-      eligibleItemCount: uniqueEligibleRows.length,
-      totalAmount: uniqueEligibleRows.reduce(
-        (sum, row) => sum + row.totalAmount,
-        0,
-      ),
-    },
-  });
-
-  revalidatePath("/jadwal-otomatis/honorarium");
-  return {
-    ok: true as const,
-    batchId,
-    documentNumber,
-    itemCount: uniqueEligibleRows.length,
-    totalAmount: uniqueEligibleRows.reduce(
-      (sum, row) => sum + row.totalAmount,
-      0,
-    ),
-  };
-}
-
-// ─── GENERATE BATCH FROM SELECTION ──────────────────────────────────────────
-
-export async function generateHonorariumBatchFromSelection(
-  data: z.infer<typeof generateFromSelectionSchema>,
-) {
-  const session = await requirePermission("jadwalPelatihan", "manage");
-  const parsed = generateFromSelectionSchema.parse(data);
-
-  const outstanding = await getOutstandingHonorariumSessions();
-  const selectedSessions = outstanding.sessions.filter((s) =>
-    parsed.assignmentIds.includes(s.assignmentId),
+  // 7. Audit log
+  const totalAmount = uniqueEligibleRows.reduce(
+    (sum, row) => sum + row.totalAmount,
+    0,
   );
-
-  if (selectedSessions.length === 0) {
-    return {
-      ok: false as const,
-      message: "Tidak ada sesi eligible dari yang dipilih. Pastikan sesi sudah selesai dan belum masuk batch.",
-    };
-  }
-
-  const missingRateRows = selectedSessions.filter((s) => s.rateSource === "missing");
-  if (missingRateRows.length > 0) {
-    return {
-      ok: false as const,
-      message: `Draft gagal: ${missingRateRows.length} sesi belum punya tarif. Lengkapi master tarif terlebih dahulu.`,
-    };
-  }
-
-  const existingAssignmentRows = await findExistingHonorariumAssignments(
-    selectedSessions.map((s) => s.assignmentId),
-  );
-  if (existingAssignmentRows.length > 0) {
-    const conflictDocs = summarizeConflictBatches(existingAssignmentRows)
-      .map((r) => `${r.documentNumber} (${r.statusLabel})`)
-      .slice(0, 3)
-      .join(", ");
-    return {
-      ok: false as const,
-      message: `Draft gagal: ${existingAssignmentRows.length} sesi sudah masuk batch lain (${conflictDocs}).`,
-    };
-  }
-
-  const dates = selectedSessions.map((s) => s.scheduledDate).sort();
-  const periodStart = dates[0]!;
-  const periodEnd = dates[dates.length - 1]!;
-
-  const batchId = nanoid();
-  const documentNumber = nextHonorariumDocumentNumber();
-
-  await db.insert(honorariumBatches).values({
-    id: batchId,
-    documentNumber,
-    periodStart,
-    periodEnd,
-    status: "draft",
-    generatedBy: session.user.id,
-    internalNotes: parsed.internalNotes || null,
-  });
-
-  try {
-    await db.insert(honorariumItems).values(
-      selectedSessions.map((s) => ({
-        id: nanoid(),
-        batchId,
-        assignmentId: s.assignmentId,
-        sessionId: s.sessionId,
-        kelasId: s.kelasId,
-        programId: s.programId,
-        scheduledDate: s.scheduledDate,
-        paidInstructorId: s.paidInstructorId,
-        paidInstructorName: s.paidInstructorName,
-        source: s.source,
-        materiBlock: s.materiBlock,
-        expertiseLevelSnapshot: s.expertiseLevel,
-        rateSnapshot: s.totalAmount.toFixed(2),
-        amount: s.totalAmount.toFixed(2),
-      })),
-    );
-  } catch (error) {
-    await db.delete(honorariumBatches).where(eq(honorariumBatches.id, batchId));
-    if (isUniqueViolationOnHonorariumAssignment(error)) {
-      return {
-        ok: false as const,
-        message: "Generate dibatalkan: beberapa sesi sudah masuk batch lain. Refresh dan coba lagi.",
-      };
-    }
-    throw error;
-  }
 
   await db.insert(honorariumAuditLogs).values({
     id: nanoid(),
@@ -868,20 +808,49 @@ export async function generateHonorariumBatchFromSelection(
     payload: {
       periodStart,
       periodEnd,
-      eligibleItemCount: selectedSessions.length,
-      totalAmount: selectedSessions.reduce((sum, s) => sum + s.totalAmount, 0),
-      source: "outstanding_selection",
+      eligibleItemCount: uniqueEligibleRows.length,
+      totalAmount,
+      ...(auditSource ? { source: auditSource } : {}),
     },
   });
 
-  revalidatePath("/jadwal-otomatis/honorarium");
+  // 8. Revalidate
+  await revalidateHonorariumPaths();
+
   return {
     ok: true as const,
     batchId,
     documentNumber,
-    itemCount: selectedSessions.length,
-    totalAmount: selectedSessions.reduce((sum, s) => sum + s.totalAmount, 0),
+    itemCount: uniqueEligibleRows.length,
+    totalAmount,
   };
+}
+
+/**
+ * Generate honorarium batch from a date range (report-based).
+ */
+export async function generateHonorariumBatch(
+  data: z.infer<typeof generateBatchSchema>,
+) {
+  return generateBatchCore({
+    mode: "dateRange",
+    startDate: data.startDate,
+    endDate: data.endDate,
+    internalNotes: data.internalNotes,
+  });
+}
+
+/**
+ * Generate honorarium batch from selected outstanding sessions.
+ */
+export async function generateHonorariumBatchFromSelection(
+  data: z.infer<typeof generateFromSelectionSchema>,
+) {
+  return generateBatchCore({
+    mode: "selection",
+    assignmentIds: data.assignmentIds,
+    internalNotes: data.internalNotes,
+  });
 }
 
 // ─── DELETE BATCH ─────────────────────────────────────────────────────────────
@@ -912,8 +881,7 @@ export async function deleteHonorariumBatch(batchId: string) {
     .delete(honorariumBatches)
     .where(eq(honorariumBatches.id, parsed.batchId));
 
-  revalidatePath("/jadwal-otomatis/honorarium");
-  revalidatePath(`/jadwal-otomatis/honorarium/${parsed.batchId}`);
+  await revalidateHonorariumPaths(parsed.batchId);
 
   return {
     ok: true as const,

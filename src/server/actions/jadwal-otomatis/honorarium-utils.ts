@@ -1,5 +1,3 @@
-"use server";
-
 import { z } from "zod";
 import { APP_TIME_ZONE, getTodayIsoInJakarta } from "@/lib/utils";
 import { nanoid } from "nanoid";
